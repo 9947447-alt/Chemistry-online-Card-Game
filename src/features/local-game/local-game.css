@@ -1,0 +1,34 @@
+.local-game-page {
+  align-items: center;
+  display: flex;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.local-game-panel {
+  margin: 0 auto;
+  max-width: 760px;
+  width: 100%;
+}
+
+.local-game-kicker {
+  color: #4f6f52;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.local-game-panel h1 {
+  color: #182026;
+  font-size: 2.25rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.local-game-note {
+  color: #52606d;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 20px 0 0;
+}
