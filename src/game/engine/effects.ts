@@ -1,3 +1,1 @@
-export type EngineEffect = {
-  type: "NO_OP";
-};
+export type { Effect } from "./types";

@@ -1,5 +1,5 @@
-import type { EngineEffect } from "./effects";
+import type { Effect } from "./types";
 
-export function resolveEffects(effects: EngineEffect[]): EngineEffect[] {
+export function resolveEffects(effects: Effect[]): Effect[] {
   return effects;
 }

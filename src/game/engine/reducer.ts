@@ -1,14 +1,15 @@
-import type { EngineAction } from "./actions";
-import type { EngineStatus } from "./types";
+import type { GameAction } from "./actions";
+import type { GameState } from "./types";
+import { fisherYatesShuffle } from "../../shared/random";
+import { advanceTurnFromReducer } from "./turnFlow";
 
-export type EngineState = {
-  status: EngineStatus;
-};
-
-export function engineReducer(state: EngineState, action: EngineAction): EngineState {
+export function engineReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case "SKELETON_READY":
-      return { ...state, status: "skeleton-ready" };
+    case "PASS_ACTION":
+      if (action.playerId !== state.activePlayerId || state.phase === "gameOver") {
+        return state;
+      }
+      return advanceTurnFromReducer(state, fisherYatesShuffle);
     default:
       return state;
   }

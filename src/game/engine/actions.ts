@@ -1,3 +1,1 @@
-export type EngineAction = {
-  type: "SKELETON_READY";
-};
+export type GameAction = { type: "PASS_ACTION"; playerId: string };
