@@ -133,6 +133,18 @@ function canNeutralize(
   return responseDefinition.tags.includes("acid");
 }
 
+function canGenerateCarbonDioxideAgainstAcid(
+  incomingDamageKind: "acid" | "base" | "status",
+  responseDefinition: CardDefinition,
+): boolean {
+  return (
+    incomingDamageKind === "acid" &&
+    responseDefinition.id === "substance_na2co3" &&
+    responseDefinition.type === "substance" &&
+    responseDefinition.allowedTimings.includes("response")
+  );
+}
+
 export function playMainActionCard(
   state: GameState,
   playerId: PlayerId,
@@ -198,6 +210,10 @@ export function respondWithCard(
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
   const attackDefinition =
     sourceEffect?.type === "DAMAGE" ? getDefinitionForCard(state, sourceEffect.sourceId) : undefined;
+  const isCarbonateResponse =
+    sourceEffect?.type === "DAMAGE" &&
+    responseDefinition &&
+    canGenerateCarbonDioxideAgainstAcid(sourceEffect.damageKind, responseDefinition);
 
   if (
     state.phase !== "responseWindow" ||
@@ -210,7 +226,7 @@ export function respondWithCard(
     !responder.hand.includes(cardInstanceId) ||
     !responseDefinition ||
     !attackDefinition ||
-    !canNeutralize(sourceEffect.damageKind, responseDefinition)
+    (!canNeutralize(sourceEffect.damageKind, responseDefinition) && !isCarbonateResponse)
   ) {
     return state;
   }
@@ -231,7 +247,9 @@ export function respondWithCard(
       phase: "mainAction",
       pendingResponse: undefined,
     },
-    `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackDefinition.name}，原伤害取消。`,
+    isCarbonateResponse
+      ? `${responder.name} 打出 Na2CO3，响应 ${attackDefinition.name} 的酸性伤害，生成 CO2，原伤害取消。`
+      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackDefinition.name}，原伤害取消。`,
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
