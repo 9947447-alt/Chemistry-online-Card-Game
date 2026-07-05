@@ -129,12 +129,19 @@ function discardAllHands(state: GameState): GameState {
 }
 
 function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
+  const nextStartingPlayer = state.players.find((player) => !player.eliminated);
+
+  if (!nextStartingPlayer) {
+    return finishGameIfResolved(state);
+  }
+
   let nextState: GameState = {
     ...state,
     phase: "cycleStart",
     cycleNumber: state.cycleNumber + 1,
     roundInCycle: 1,
-    activePlayerId: state.startingPlayerId,
+    activePlayerId: nextStartingPlayer.id,
+    startingPlayerId: nextStartingPlayer.id,
   };
 
   nextState = appendLog(nextState, `进入第 ${nextState.cycleNumber} 实验周期。`);
@@ -163,23 +170,78 @@ export function dealInitialHands(state: GameState, shuffle: ShuffleFunction): Ga
   return nextState;
 }
 
-export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunction): GameState {
-  const activeIndex = state.players.findIndex((player) => player.id === state.activePlayerId);
-  const nextPlayerIndex = activeIndex + 1;
+export function finishGameIfResolved(state: GameState): GameState {
+  if (state.phase === "gameOver") {
+    return state;
+  }
 
-  if (nextPlayerIndex < state.players.length) {
+  const survivors = state.players.filter((player) => !player.eliminated);
+
+  if (survivors.length === 1) {
+    return appendLog(
+      {
+        ...state,
+        phase: "gameOver",
+        activePlayerId: survivors[0].id,
+        pendingResponse: undefined,
+        effectQueue: [],
+        winnerPlayerId: survivors[0].id,
+        isDraw: undefined,
+      },
+      `${survivors[0].name} 获胜。`,
+    );
+  }
+
+  if (survivors.length === 0) {
+    return appendLog(
+      {
+        ...state,
+        phase: "gameOver",
+        pendingResponse: undefined,
+        effectQueue: [],
+        winnerPlayerId: undefined,
+        isDraw: true,
+      },
+      "所有玩家均被淘汰，本局平局。",
+    );
+  }
+
+  return state;
+}
+
+function findNextAlivePlayer(state: GameState, startIndex: number): GameState["players"][number] | undefined {
+  return state.players.slice(startIndex).find((player) => !player.eliminated);
+}
+
+export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunction): GameState {
+  const resolvedState = finishGameIfResolved(state);
+  if (resolvedState.phase === "gameOver") {
+    return resolvedState;
+  }
+
+  const activeIndex = state.players.findIndex((player) => player.id === state.activePlayerId);
+  const nextPlayer = findNextAlivePlayer(state, activeIndex + 1);
+
+  if (nextPlayer) {
     return {
-      ...appendLog(state, `轮到 ${state.players[nextPlayerIndex].name} 行动。`),
-      activePlayerId: state.players[nextPlayerIndex].id,
+      ...appendLog(state, `轮到 ${nextPlayer.name} 行动。`),
+      activePlayerId: nextPlayer.id,
       phase: "mainAction",
     };
   }
 
   if (state.roundInCycle < state.settings.roundsPerCycle) {
     const nextRound = (state.roundInCycle + 1) as GameState["roundInCycle"];
+    const nextStartingPlayer = findNextAlivePlayer(state, 0);
+
+    if (!nextStartingPlayer) {
+      return finishGameIfResolved(state);
+    }
+
     return {
       ...appendLog(state, `进入第 ${nextRound} 实验轮次。`),
-      activePlayerId: state.startingPlayerId,
+      activePlayerId: nextStartingPlayer.id,
+      startingPlayerId: nextStartingPlayer.id,
       roundInCycle: nextRound,
       phase: "mainAction",
     };

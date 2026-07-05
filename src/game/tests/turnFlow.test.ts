@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialGame } from "../engine/createInitialGame";
 import { engineReducer } from "../engine/reducer";
-import type { GameState } from "../engine/types";
+import type { GameState, Player } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
 
@@ -89,5 +89,64 @@ describe("turn flow", () => {
     expect(state.discardPile).toHaveLength(0);
     expect(state.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
     expectCardZonesToBeConsistent(state);
+  });
+
+  it("rejects PASS_ACTION from an eliminated active player", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const activePlayer = state.players[0];
+
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === activePlayer.id ? { ...player, hp: 0, eliminated: true } : player,
+      ),
+    };
+
+    const rejected = passCurrentAction(state);
+
+    expect(rejected).toBe(state);
+    expectCardZonesToBeConsistent(rejected);
+  });
+
+  it("skips eliminated players when more than one survivor remains", () => {
+    const state = createInitialGame({ shuffle: identityShuffle });
+    const thirdPlayer: Player = {
+      id: "player_3",
+      name: "玩家 C",
+      hp: 10,
+      maxHp: 10,
+      hand: [],
+      statuses: [],
+      eliminated: false,
+      usedDIYThisCycle: false,
+    };
+    const withThirdPlayer: GameState = {
+      ...state,
+      players: [
+        state.players[0],
+        { ...state.players[1], hp: 0, eliminated: true },
+        thirdPlayer,
+      ],
+    };
+
+    const advanced = passCurrentAction(withThirdPlayer);
+
+    expect(advanced.phase).toBe("mainAction");
+    expect(advanced.activePlayerId).toBe(thirdPlayer.id);
+    expectCardZonesToBeConsistent(advanced);
+  });
+
+  it("rejects all actions after gameOver", () => {
+    const state = createInitialGame({ shuffle: identityShuffle });
+    const gameOverState: GameState = {
+      ...state,
+      phase: "gameOver",
+      winnerPlayerId: state.players[0].id,
+    };
+
+    const rejected = passCurrentAction(gameOverState);
+
+    expect(rejected).toBe(gameOverState);
+    expectCardZonesToBeConsistent(rejected);
   });
 });

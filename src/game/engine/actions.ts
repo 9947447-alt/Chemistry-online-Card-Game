@@ -1,1 +1,12 @@
-export type GameAction = { type: "PASS_ACTION"; playerId: string };
+import type { CardInstanceId, PlayerId } from "./types";
+
+export type GameAction =
+  | { type: "PASS_ACTION"; playerId: PlayerId }
+  | {
+      type: "PLAY_CARD";
+      playerId: PlayerId;
+      cardInstanceId: CardInstanceId;
+      targetPlayerId?: PlayerId;
+    }
+  | { type: "RESPOND_WITH_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "PASS_RESPONSE"; playerId: PlayerId };
