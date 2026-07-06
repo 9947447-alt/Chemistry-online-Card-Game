@@ -10,7 +10,10 @@ export type DIYRecipe = {
   name: string;
   requiredComponents: ComponentRequirement[];
   requiresTarget: boolean;
-  result: "CO2_REMOVE_OWN_FIRE" | "SO2_APPLY_LEAK" | "H2O_REMOVE_OWN_FIRE";
+  result: "CO2_REMOVE_OWN_FIRE" | "SO2_APPLY_LEAK" | "H2O_REMOVE_OWN_FIRE" | "VIRTUAL_ATTACK";
+  damageKind?: "acid" | "base";
+  damageAmount?: number;
+  displayName?: string;
 };
 
 export const diyRecipes = [
@@ -33,6 +36,32 @@ export const diyRecipes = [
     ],
     requiresTarget: false,
     result: "H2O_REMOVE_OWN_FIRE",
+  },
+  {
+    id: "diy_hcl_from_h_cl",
+    name: "H+ + Cl- -> 稀 HCl",
+    requiredComponents: [
+      { definitionId: "ion_h", count: 1 },
+      { definitionId: "ion_cl", count: 1 },
+    ],
+    requiresTarget: true,
+    result: "VIRTUAL_ATTACK",
+    damageKind: "acid",
+    damageAmount: 1,
+    displayName: "主动 DIY 生成的稀 HCl",
+  },
+  {
+    id: "diy_h2so4_from_2h_so4",
+    name: "2H+ + SO4^2- -> 稀 H2SO4",
+    requiredComponents: [
+      { definitionId: "ion_h", count: 2 },
+      { definitionId: "ion_so4", count: 1 },
+    ],
+    requiresTarget: true,
+    result: "VIRTUAL_ATTACK",
+    damageKind: "acid",
+    damageAmount: 1,
+    displayName: "主动 DIY 生成的稀 H2SO4",
   },
   {
     id: "diy_so2_from_s_o_o",

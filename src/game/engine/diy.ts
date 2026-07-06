@@ -1,6 +1,14 @@
 import { cardDefinitions } from "../data/cardDefinitions";
 import { diyRecipes, type DIYRecipe } from "../data/diyRecipes";
-import type { CardDefinition, CardInstanceId, GameState, Player, PlayerId, PlayerStatus } from "./types";
+import type {
+  CardDefinition,
+  CardInstanceId,
+  DamageEffect,
+  GameState,
+  Player,
+  PlayerId,
+  PlayerStatus,
+} from "./types";
 import { advanceTurnFromReducer, type ShuffleFunction } from "./turnFlow";
 
 const definitionsById = new Map<string, CardDefinition>(
@@ -251,6 +259,54 @@ export function startActiveDIY(
     );
 
     return advanceTurnFromReducer(resolved, shuffle);
+  }
+
+  if (matchedRecipe.result === "VIRTUAL_ATTACK") {
+    const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
+
+    if (
+      !matchedRecipe.requiresTarget ||
+      !target ||
+      target.id === player.id ||
+      target.eliminated ||
+      !matchedRecipe.damageKind ||
+      !matchedRecipe.damageAmount ||
+      !matchedRecipe.displayName
+    ) {
+      return state;
+    }
+
+    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
+    if (!withComponentsDiscarded) {
+      return state;
+    }
+
+    const sourceEffect: DamageEffect = {
+      type: "DAMAGE",
+      source: {
+        kind: "virtual-diy",
+        recipeId: matchedRecipe.id,
+        displayName: matchedRecipe.displayName,
+      },
+      targetPlayerId: target.id,
+      amount: matchedRecipe.damageAmount,
+      damageKind: matchedRecipe.damageKind,
+      canRespond: true,
+    };
+
+    return appendLog(
+      {
+        ...markDIYUsed(withComponentsDiscarded, player.id),
+        phase: "responseWindow",
+        pendingResponse: {
+          responderId: target.id,
+          sourceEffect,
+          chainDepth: 1,
+          effectsAfterPass: [sourceEffect],
+        },
+      },
+      `${player.name} 主动 DIY 使用 ${matchedRecipe.name}，生成虚拟 ${matchedRecipe.displayName}，对 ${target.name} 造成 ${matchedRecipe.damageAmount} 点酸性伤害，等待响应；不创建实体卡牌。`,
+    );
   }
 
   if (matchedRecipe.result === "SO2_APPLY_LEAK") {
