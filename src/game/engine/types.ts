@@ -66,10 +66,29 @@ export type Player = {
   usedDIYThisCycle: boolean;
 };
 
+export type AttackSource =
+  | {
+      kind: "card";
+      cardInstanceId: CardInstanceId;
+    }
+  | {
+      kind: "virtual-diy";
+      recipeId: string;
+      displayName: string;
+    };
+
+export type DamageSource =
+  | AttackSource
+  | {
+      kind: "status";
+      statusInstanceId: string;
+      displayName: string;
+    };
+
 export type Effect =
   | {
       type: "DAMAGE";
-      sourceId: string;
+      source: DamageSource;
       targetPlayerId: PlayerId;
       amount: number;
       damageKind: "acid" | "base" | "status";
@@ -83,9 +102,11 @@ export type Effect =
   | { type: "MOVE_CARD"; cardInstanceId: CardInstanceId; from: CardZone; to: CardZone }
   | { type: "ADVANCE_TURN" };
 
+export type DamageEffect = Extract<Effect, { type: "DAMAGE" }>;
+
 export type PendingResponse = {
   responderId: PlayerId;
-  sourceEffect: Effect;
+  sourceEffect: DamageEffect;
   chainDepth: number;
   effectsAfterPass: Effect[];
 };

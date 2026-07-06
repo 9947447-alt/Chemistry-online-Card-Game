@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialGame } from "../engine/createInitialGame";
 import { engineReducer } from "../engine/reducer";
-import type { CardInstanceId, GameState, Player, PlayerId } from "../engine/types";
+import type { CardInstanceId, Effect, GameState, Player, PlayerId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
 
@@ -72,6 +72,10 @@ function countCardDefinition(state: GameState, definitionId: string): number {
   ).length;
 }
 
+function expectTotalCardInstances(state: GameState): void {
+  expect(Object.keys(state.cardInstances)).toHaveLength(70);
+}
+
 function startAttack(
   state: GameState,
   attackerCardId: CardInstanceId = "substance_hcl_dilute_01",
@@ -84,6 +88,52 @@ function startAttack(
     cardInstanceId: attackerCardId,
     targetPlayerId: responder.id,
   });
+}
+
+function createVirtualDIYResponseGame(
+  responderCardId?: CardInstanceId,
+  options: {
+    damageKind?: "acid" | "base";
+    activePlayerIndex?: 0 | 1;
+    roundInCycle?: 1 | 2 | 3;
+  } = {},
+): GameState {
+  let state = createInitialGame({ shuffle: identityShuffle });
+  const activePlayerIndex = options.activePlayerIndex ?? 0;
+  const activePlayer = state.players[activePlayerIndex];
+  const responder = state.players[activePlayerIndex === 0 ? 1 : 0];
+  const sourceEffect: Extract<Effect, { type: "DAMAGE" }> = {
+    type: "DAMAGE",
+    source: {
+      kind: "virtual-diy",
+      recipeId: "test_virtual_diy_attack",
+      displayName: options.damageKind === "base" ? "虚拟 DIY 碱性攻击" : "虚拟 DIY 酸性攻击",
+    },
+    targetPlayerId: responder.id,
+    amount: 1,
+    damageKind: options.damageKind ?? "acid",
+    canRespond: true,
+  };
+
+  if (responderCardId) {
+    state = putCardInHand(state, responder.id, responderCardId);
+  }
+
+  state = {
+    ...state,
+    activePlayerId: activePlayer.id,
+    roundInCycle: options.roundInCycle ?? state.roundInCycle,
+    phase: "responseWindow",
+    pendingResponse: {
+      responderId: responder.id,
+      sourceEffect,
+      chainDepth: 1,
+      effectsAfterPass: [sourceEffect],
+    },
+  };
+  expectCardZonesToBeConsistent(state);
+
+  return state;
 }
 
 describe("acid/base response window", () => {
@@ -105,6 +155,10 @@ describe("acid/base response window", () => {
     expect(state.pendingResponse?.responderId).toBe(responder.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
+      source: {
+        kind: "card",
+        cardInstanceId: "substance_hcl_dilute_01",
+      },
       targetPlayerId: responder.id,
       amount: 1,
       damageKind: "acid",
@@ -142,6 +196,10 @@ describe("acid/base response window", () => {
 
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
+      source: {
+        kind: "card",
+        cardInstanceId: "substance_naoh_dilute_01",
+      },
       targetPlayerId: responder.id,
       amount: 1,
       damageKind: "base",
@@ -273,6 +331,106 @@ describe("acid/base response window", () => {
       ).toBe(true);
       expectCardZonesToBeConsistent(state);
     }
+  });
+
+  it("resolves virtual DIY acid attacks with CO3^2-, Na2CO3, base neutralization, or pass", () => {
+    const responseCases: {
+      name: string;
+      responseCardId: CardInstanceId;
+      expectedLogText: string;
+    }[] = [
+      {
+        name: "CO3^2-",
+        responseCardId: "ion_co3_01",
+        expectedLogText: "生成 CO2",
+      },
+      {
+        name: "Na2CO3",
+        responseCardId: "substance_na2co3_01",
+        expectedLogText: "生成 CO2",
+      },
+      {
+        name: "base neutralization",
+        responseCardId: "substance_naoh_dilute_01",
+        expectedLogText: "中和 虚拟 DIY 酸性攻击",
+      },
+    ];
+
+    for (const { responseCardId, expectedLogText } of responseCases) {
+      let state = createVirtualDIYResponseGame(responseCardId);
+      const responder = state.players[1];
+      const initialDiscardSize = state.discardPile.length;
+      const initialCo2Count = countCardDefinition(state, "substance_co2");
+
+      state = engineReducer(state, {
+        type: "RESPOND_WITH_CARD",
+        playerId: responder.id,
+        cardInstanceId: responseCardId,
+      });
+
+      expect(state.pendingResponse).toBeUndefined();
+      expect(state.players[1].hp).toBe(10);
+      expect(state.discardPile).toHaveLength(initialDiscardSize + 1);
+      expect(state.discardPile.filter((cardId) => cardId === responseCardId)).toHaveLength(1);
+      expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
+      expect(state.log.some((entry) => entry.message.includes(expectedLogText))).toBe(true);
+      expect(state.activePlayerId).toBe(responder.id);
+      expect(state.roundInCycle).toBe(1);
+      expectTotalCardInstances(state);
+      expectCardZonesToBeConsistent(state);
+    }
+
+    let passed = createVirtualDIYResponseGame();
+    const responder = passed.players[1];
+    const initialDiscardSize = passed.discardPile.length;
+
+    passed = engineReducer(passed, {
+      type: "PASS_RESPONSE",
+      playerId: responder.id,
+    });
+
+    expect(passed.pendingResponse).toBeUndefined();
+    expect(passed.players[1].hp).toBe(9);
+    expect(passed.discardPile).toHaveLength(initialDiscardSize);
+    expect(passed.activePlayerId).toBe(responder.id);
+    expect(passed.roundInCycle).toBe(1);
+    expectTotalCardInstances(passed);
+    expectCardZonesToBeConsistent(passed);
+  });
+
+  it("resolves virtual DIY base attacks with acid neutralization or pass", () => {
+    let neutralized = createVirtualDIYResponseGame("substance_hcl_dilute_01", {
+      damageKind: "base",
+    });
+    const neutralizingResponder = neutralized.players[1];
+
+    neutralized = engineReducer(neutralized, {
+      type: "RESPOND_WITH_CARD",
+      playerId: neutralizingResponder.id,
+      cardInstanceId: "substance_hcl_dilute_01",
+    });
+
+    expect(neutralized.pendingResponse).toBeUndefined();
+    expect(neutralized.players[1].hp).toBe(10);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
+    expect(neutralized.log.some((entry) => entry.message.includes("中和 虚拟 DIY 碱性攻击"))).toBe(true);
+    expectTotalCardInstances(neutralized);
+    expectCardZonesToBeConsistent(neutralized);
+
+    let passed = createVirtualDIYResponseGame(undefined, { damageKind: "base" });
+    const passingResponder = passed.players[1];
+    const initialDiscardSize = passed.discardPile.length;
+
+    passed = engineReducer(passed, {
+      type: "PASS_RESPONSE",
+      playerId: passingResponder.id,
+    });
+
+    expect(passed.pendingResponse).toBeUndefined();
+    expect(passed.players[1].hp).toBe(9);
+    expect(passed.discardPile).toHaveLength(initialDiscardSize);
+    expectTotalCardInstances(passed);
+    expectCardZonesToBeConsistent(passed);
   });
 
   it("rejects Na2CO3 responses to base attacks", () => {
@@ -925,6 +1083,92 @@ describe("acid/base response window", () => {
     expect(state.roundInCycle).toBe(1);
     expect(state.phase).toBe("mainAction");
     expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("cleans up exactly once after a final third-round virtual DIY response", () => {
+    let carbonate = createVirtualDIYResponseGame("ion_co3_01", {
+      activePlayerIndex: 1,
+      roundInCycle: 3,
+    });
+    const carbonateResponder = carbonate.players[0];
+
+    carbonate = engineReducer(carbonate, {
+      type: "RESPOND_WITH_CARD",
+      playerId: carbonateResponder.id,
+      cardInstanceId: "ion_co3_01",
+    });
+
+    expect(carbonate.pendingResponse).toBeUndefined();
+    expect(carbonate.players[0].hp).toBe(10);
+    expect(carbonate.discardPile.filter((cardId) => cardId === "ion_co3_01")).toHaveLength(1);
+    expect(carbonate.cycleNumber).toBe(2);
+    expect(carbonate.roundInCycle).toBe(1);
+    expect(carbonate.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectTotalCardInstances(carbonate);
+    expectCardZonesToBeConsistent(carbonate);
+
+    let passed = createVirtualDIYResponseGame(undefined, {
+      activePlayerIndex: 1,
+      roundInCycle: 3,
+    });
+    const passingResponder = passed.players[0];
+
+    passed = engineReducer(passed, {
+      type: "PASS_RESPONSE",
+      playerId: passingResponder.id,
+    });
+
+    expect(passed.pendingResponse).toBeUndefined();
+    expect(passed.players[0].hp).toBe(9);
+    expect(passed.cycleNumber).toBe(2);
+    expect(passed.roundInCycle).toBe(1);
+    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectTotalCardInstances(passed);
+    expectCardZonesToBeConsistent(passed);
+  });
+
+  it("cleans up exactly once after a final third-round virtual DIY acid attack is answered by Na2CO3", () => {
+    let state = createVirtualDIYResponseGame("substance_na2co3_01", {
+      activePlayerIndex: 1,
+      roundInCycle: 3,
+    });
+    const responder = state.players[0];
+
+    state = engineReducer(state, {
+      type: "RESPOND_WITH_CARD",
+      playerId: responder.id,
+      cardInstanceId: "substance_na2co3_01",
+    });
+
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.discardPile.filter((cardId) => cardId === "substance_na2co3_01")).toHaveLength(1);
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("cleans up exactly once after a final third-round virtual DIY attack is neutralized", () => {
+    let state = createVirtualDIYResponseGame("substance_naoh_dilute_01", {
+      activePlayerIndex: 1,
+      roundInCycle: 3,
+    });
+    const responder = state.players[0];
+
+    state = engineReducer(state, {
+      type: "RESPOND_WITH_CARD",
+      playerId: responder.id,
+      cardInstanceId: "substance_naoh_dilute_01",
+    });
+
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.discardPile.filter((cardId) => cardId === "substance_naoh_dilute_01")).toHaveLength(1);
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
   });
 

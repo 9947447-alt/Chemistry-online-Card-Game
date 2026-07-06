@@ -2,6 +2,7 @@ import { cardDefinitions } from "../data/cardDefinitions";
 import type {
   CardDefinition,
   CardInstanceId,
+  DamageSource,
   Effect,
   GameState,
   Player,
@@ -149,19 +150,30 @@ function canGenerateCarbonDioxideAgainstAcid(
   );
 }
 
-function getEffectSourceName(state: GameState, effect: Extract<Effect, { type: "DAMAGE" }>): string {
-  return getDefinitionForCard(state, effect.sourceId)?.name ?? "虚拟 DIY 攻击";
+function getDamageSourceName(state: GameState, source: DamageSource): string {
+  switch (source.kind) {
+    case "card":
+      return getDefinitionForCard(state, source.cardInstanceId)?.name ?? "未知卡牌";
+    case "virtual-diy":
+      return source.displayName;
+    case "status":
+      return source.displayName;
+    default: {
+      const exhaustiveSource: never = source;
+      return exhaustiveSource;
+    }
+  }
 }
 
-function discardSourceCardIfPresentInHand(
+function discardAttackSourceCardIfNeeded(
   state: GameState,
-  sourceId: string,
+  source: DamageSource,
 ): GameState | undefined {
-  if (!state.cardInstances[sourceId]) {
+  if (source.kind !== "card") {
     return state;
   }
 
-  return moveCardFromHandToDiscard(state, sourceId);
+  return moveCardFromHandToDiscard(state, source.cardInstanceId);
 }
 
 function getOrderedStatuses(player: Player): PlayerStatus[] {
@@ -406,7 +418,10 @@ export function playMainActionCard(
 
   const sourceEffect: Effect = {
     type: "DAMAGE",
-    sourceId: cardInstanceId,
+    source: {
+      kind: "card",
+      cardInstanceId,
+    },
     targetPlayerId: target.id,
     amount: 1,
     damageKind,
@@ -510,7 +525,11 @@ export function passStatusHandling(
 
   const withDamage = applyDamage(state, {
     type: "DAMAGE",
-    sourceId: status.id,
+    source: {
+      kind: "status",
+      statusInstanceId: status.id,
+      displayName: status.statusId,
+    },
     targetPlayerId: player.id,
     amount: 2,
     damageKind: "status",
@@ -554,7 +573,7 @@ export function respondWithCard(
   const responder = getPlayer(state, playerId);
   const sourceEffect = pendingResponse?.sourceEffect;
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
-  const attackName = sourceEffect?.type === "DAMAGE" ? getEffectSourceName(state, sourceEffect) : "";
+  const attackName = sourceEffect?.type === "DAMAGE" ? getDamageSourceName(state, sourceEffect.source) : "";
   const isCarbonateResponse =
     sourceEffect?.type === "DAMAGE" &&
     responseDefinition &&
@@ -575,7 +594,7 @@ export function respondWithCard(
     return state;
   }
 
-  const withAttackDiscarded = discardSourceCardIfPresentInHand(state, sourceEffect.sourceId);
+  const withAttackDiscarded = discardAttackSourceCardIfNeeded(state, sourceEffect.source);
   if (!withAttackDiscarded) {
     return state;
   }
@@ -623,7 +642,7 @@ export function passResponse(
   }
 
   const withDamage = applyDamage(state, sourceEffect);
-  const withAttackDiscarded = discardSourceCardIfPresentInHand(withDamage, sourceEffect.sourceId);
+  const withAttackDiscarded = discardAttackSourceCardIfNeeded(withDamage, sourceEffect.source);
 
   if (!withAttackDiscarded) {
     return state;
