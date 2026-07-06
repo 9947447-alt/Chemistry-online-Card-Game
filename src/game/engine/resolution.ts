@@ -138,12 +138,30 @@ function canGenerateCarbonDioxideAgainstAcid(
   incomingDamageKind: "acid" | "base" | "status",
   responseDefinition: CardDefinition,
 ): boolean {
+  const isCarbonateResponder =
+    responseDefinition.id === "ion_co3" || responseDefinition.id === "substance_na2co3";
+
   return (
     incomingDamageKind === "acid" &&
-    responseDefinition.id === "substance_na2co3" &&
-    responseDefinition.type === "substance" &&
+    isCarbonateResponder &&
+    (responseDefinition.type === "ion" || responseDefinition.type === "substance") &&
     responseDefinition.allowedTimings.includes("response")
   );
+}
+
+function getEffectSourceName(state: GameState, effect: Extract<Effect, { type: "DAMAGE" }>): string {
+  return getDefinitionForCard(state, effect.sourceId)?.name ?? "虚拟 DIY 攻击";
+}
+
+function discardSourceCardIfPresentInHand(
+  state: GameState,
+  sourceId: string,
+): GameState | undefined {
+  if (!state.cardInstances[sourceId]) {
+    return state;
+  }
+
+  return moveCardFromHandToDiscard(state, sourceId);
 }
 
 function getOrderedStatuses(player: Player): PlayerStatus[] {
@@ -536,8 +554,7 @@ export function respondWithCard(
   const responder = getPlayer(state, playerId);
   const sourceEffect = pendingResponse?.sourceEffect;
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
-  const attackDefinition =
-    sourceEffect?.type === "DAMAGE" ? getDefinitionForCard(state, sourceEffect.sourceId) : undefined;
+  const attackName = sourceEffect?.type === "DAMAGE" ? getEffectSourceName(state, sourceEffect) : "";
   const isCarbonateResponse =
     sourceEffect?.type === "DAMAGE" &&
     responseDefinition &&
@@ -553,13 +570,12 @@ export function respondWithCard(
     responder.eliminated ||
     !responder.hand.includes(cardInstanceId) ||
     !responseDefinition ||
-    !attackDefinition ||
     (!canNeutralize(sourceEffect.damageKind, responseDefinition) && !isCarbonateResponse)
   ) {
     return state;
   }
 
-  const withAttackDiscarded = moveCardFromHandToDiscard(state, sourceEffect.sourceId);
+  const withAttackDiscarded = discardSourceCardIfPresentInHand(state, sourceEffect.sourceId);
   if (!withAttackDiscarded) {
     return state;
   }
@@ -576,8 +592,8 @@ export function respondWithCard(
       pendingResponse: undefined,
     },
     isCarbonateResponse
-      ? `${responder.name} 打出 Na2CO3，响应 ${attackDefinition.name} 的酸性伤害，生成 CO2，原伤害取消。`
-      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackDefinition.name}，原伤害取消。`,
+      ? `${responder.name} 打出 ${responseDefinition.name}，响应 ${attackName} 的酸性伤害，生成 CO2，原伤害取消。`
+      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackName}，原伤害取消。`,
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
@@ -592,8 +608,6 @@ export function passResponse(
   const sourceEffect = pendingResponse?.sourceEffect;
   const responder = getPlayer(state, playerId);
   const target = sourceEffect?.type === "DAMAGE" ? getPlayer(state, sourceEffect.targetPlayerId) : undefined;
-  const attackDefinition =
-    sourceEffect?.type === "DAMAGE" ? getDefinitionForCard(state, sourceEffect.sourceId) : undefined;
 
   if (
     state.phase !== "responseWindow" ||
@@ -603,14 +617,13 @@ export function passResponse(
     !responder ||
     responder.eliminated ||
     !target ||
-    target.eliminated ||
-    !attackDefinition
+    target.eliminated
   ) {
     return state;
   }
 
   const withDamage = applyDamage(state, sourceEffect);
-  const withAttackDiscarded = moveCardFromHandToDiscard(withDamage, sourceEffect.sourceId);
+  const withAttackDiscarded = discardSourceCardIfPresentInHand(withDamage, sourceEffect.sourceId);
 
   if (!withAttackDiscarded) {
     return state;

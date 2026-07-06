@@ -84,6 +84,11 @@ function putSo2ComponentsInHand(state: GameState, playerId: PlayerId): GameState
   return putCardInHand(nextState, playerId, "element_o_02");
 }
 
+function putH2oComponentsInHand(state: GameState, playerId: PlayerId): GameState {
+  let nextState = putCardInHand(state, playerId, "ion_h_01");
+  return putCardInHand(nextState, playerId, "ion_oh_01");
+}
+
 function countCardDefinition(state: GameState, definitionId: string): number {
   return Object.values(state.cardInstances).filter(
     (cardInstance) => cardInstance.definitionId === definitionId,
@@ -122,6 +127,15 @@ function startSo2DIY(state: GameState, playerId: PlayerId, targetPlayerId: Playe
     recipeId: "diy_so2_from_s_o_o",
     componentCardInstanceIds: ["element_s_01", "element_o_01", "element_o_02"],
     targetPlayerId,
+  });
+}
+
+function startH2oDIY(state: GameState, playerId: PlayerId): GameState {
+  return engineReducer(state, {
+    type: "START_ACTIVE_DIY",
+    playerId,
+    recipeId: "diy_h2o_from_h_oh",
+    componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
   });
 }
 
@@ -310,6 +324,221 @@ describe("active DIY", () => {
     expect(state.players[0].statuses.some((status) => status.statusId === "SO2_LEAK")).toBe(true);
     expect(state.players[1].statuses.some((status) => status.statusId === "FIRE")).toBe(true);
     expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("uses H+ + OH- to generate H2O and remove own FIRE", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const player = state.players[0];
+    state = addStatusForTest(state, player.id, "FIRE");
+    state = putH2oComponentsInHand(state, player.id);
+    const initialH2oCount = countCardDefinition(state, "substance_h2o");
+
+    state = startH2oDIY(state, player.id);
+
+    expect(state.players[0].statuses.some((status) => status.statusId === "FIRE")).toBe(false);
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_h2o")).toBe(initialH2oCount);
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.activePlayerId).toBe(state.players[1].id);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O 并移除 FIRE"))).toBe(true);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("H+ + OH- removes only the acting player's FIRE", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [player, opponent] = state.players;
+    state = addStatusForTest(state, player.id, "FIRE", 1);
+    state = addStatusForTest(state, player.id, "SO2_LEAK", 2);
+    state = addStatusForTest(state, opponent.id, "FIRE", 3);
+    state = addStatusForTest(state, opponent.id, "SO2_LEAK", 4);
+    state = putH2oComponentsInHand(state, player.id);
+
+    state = startH2oDIY(state, player.id);
+
+    expect(state.players[0].statuses.map((status) => status.statusId)).toEqual(["SO2_LEAK"]);
+    expect(state.players[1].statuses.map((status) => status.statusId)).toEqual([
+      "FIRE",
+      "SO2_LEAK",
+    ]);
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("rejects H+ + OH- without own FIRE without side effects", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const player = state.players[0];
+    state = putH2oComponentsInHand(state, player.id);
+
+    const rejected = startH2oDIY(state, player.id);
+
+    expect(rejected).toBe(state);
+    expectNoCoreSideEffects(rejected, state);
+    expect(rejected.players[0].usedDIYThisCycle).toBe(false);
+    expect(rejected.discardPile).not.toContain("ion_h_01");
+    expect(rejected.discardPile).not.toContain("ion_oh_01");
+    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O"))).toBe(false);
+    expectTotalCardInstances(rejected);
+    expectCardZonesToBeConsistent(rejected);
+  });
+
+  it("rejects malformed H+ + OH- DIY calls without side effects", () => {
+    const createReadyH2oState = () => {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      state = addStatusForTest(state, state.players[0].id, "FIRE");
+      state = putH2oComponentsInHand(state, state.players[0].id);
+      return state;
+    };
+
+    const cases: { name: string; state: GameState; action: Parameters<typeof engineReducer>[1] }[] = [];
+
+    let extraComponent = createReadyH2oState();
+    extraComponent = putCardInHand(extraComponent, extraComponent.players[0].id, "ion_oh_02");
+    cases.push({
+      name: "extra component",
+      state: extraComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: extraComponent.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01", "ion_oh_02"],
+      },
+    });
+
+    const missingComponent = createReadyH2oState();
+    cases.push({
+      name: "missing component",
+      state: missingComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: missingComponent.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01"],
+      },
+    });
+
+    const duplicateComponent = createReadyH2oState();
+    cases.push({
+      name: "duplicate component",
+      state: duplicateComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: duplicateComponent.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_h_01"],
+      },
+    });
+
+    const withTarget = createReadyH2oState();
+    cases.push({
+      name: "target player supplied",
+      state: withTarget,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: withTarget.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
+        targetPlayerId: withTarget.players[1].id,
+      },
+    });
+
+    let nonActive = createInitialGame({ shuffle: identityShuffle });
+    nonActive = addStatusForTest(nonActive, nonActive.players[1].id, "FIRE");
+    nonActive = putH2oComponentsInHand(nonActive, nonActive.players[1].id);
+    cases.push({
+      name: "non-active player",
+      state: nonActive,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: nonActive.players[1].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
+      },
+    });
+
+    let statusWindow = createReadyH2oState();
+    statusWindow = {
+      ...statusWindow,
+      phase: "statusWindow",
+      pendingStatusHandling: {
+        playerId: statusWindow.players[0].id,
+        statusInstanceId: "status_test_FIRE_1",
+      },
+    };
+    cases.push({
+      name: "statusWindow",
+      state: statusWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: statusWindow.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
+      },
+    });
+
+    let responseWindow = createReadyH2oState();
+    responseWindow = { ...responseWindow, phase: "responseWindow" };
+    cases.push({
+      name: "responseWindow",
+      state: responseWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: responseWindow.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
+      },
+    });
+
+    let gameOver = createReadyH2oState();
+    gameOver = { ...gameOver, phase: "gameOver", winnerPlayerId: gameOver.players[0].id };
+    cases.push({
+      name: "gameOver",
+      state: gameOver,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: gameOver.players[0].id,
+        recipeId: "diy_h2o_from_h_oh",
+        componentCardInstanceIds: ["ion_h_01", "ion_oh_01"],
+      },
+    });
+
+    for (const { state, action } of cases) {
+      const rejected = engineReducer(state, action);
+      expect(rejected).toBe(state);
+      expectNoCoreSideEffects(rejected, state);
+      expect(rejected.discardPile).not.toContain("ion_h_01");
+      expect(rejected.discardPile).not.toContain("ion_oh_01");
+      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O"))).toBe(false);
+      expectTotalCardInstances(rejected);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("cleans up exactly once after final third-round H+ + OH- DIY", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const finalActor = state.players[1];
+    state = addStatusForTest(state, finalActor.id, "FIRE");
+    state = putH2oComponentsInHand(state, finalActor.id);
+    state = {
+      ...state,
+      activePlayerId: finalActor.id,
+      roundInCycle: 3,
+    };
+
+    state = startH2oDIY(state, finalActor.id);
+
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.phase).toBe("mainAction");
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
   });

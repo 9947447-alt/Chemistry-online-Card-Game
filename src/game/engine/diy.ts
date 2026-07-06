@@ -234,6 +234,25 @@ export function startActiveDIY(
     return advanceTurnFromReducer(resolved, shuffle);
   }
 
+  if (matchedRecipe.result === "H2O_REMOVE_OWN_FIRE") {
+    if (targetPlayerId || !player.statuses.some((status) => status.statusId === "FIRE")) {
+      return state;
+    }
+
+    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
+    if (!withComponentsDiscarded) {
+      return state;
+    }
+
+    const withFireRemoved = removeOwnFire(withComponentsDiscarded, player.id);
+    const resolved = appendLog(
+      markDIYUsed(withFireRemoved, player.id),
+      `${player.name} 主动 DIY 生成 H2O 并移除 FIRE；不创建 H2O 卡牌。`,
+    );
+
+    return advanceTurnFromReducer(resolved, shuffle);
+  }
+
   if (matchedRecipe.result === "SO2_APPLY_LEAK") {
     const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
 

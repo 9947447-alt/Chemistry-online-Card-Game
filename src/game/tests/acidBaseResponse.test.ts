@@ -233,6 +233,48 @@ describe("acid/base response window", () => {
     expectCardZonesToBeConsistent(state);
   });
 
+  it("allows CO3^2- ion to respond to HCl and H2SO4 acid attacks", () => {
+    const acidAttackIds: CardInstanceId[] = [
+      "substance_hcl_dilute_01",
+      "substance_h2so4_dilute_01",
+    ];
+
+    for (const acidAttackId of acidAttackIds) {
+      let state = createResponseTestGame(acidAttackId, "ion_co3_01");
+      const [attacker, responder] = state.players;
+      const initialCardInstanceCount = Object.keys(state.cardInstances).length;
+      const initialCo2Count = countCardDefinition(state, "substance_co2");
+
+      state = engineReducer(state, {
+        type: "PLAY_CARD",
+        playerId: attacker.id,
+        cardInstanceId: acidAttackId,
+        targetPlayerId: responder.id,
+      });
+      state = engineReducer(state, {
+        type: "RESPOND_WITH_CARD",
+        playerId: responder.id,
+        cardInstanceId: "ion_co3_01",
+      });
+
+      expect(state.pendingResponse).toBeUndefined();
+      expect(state.players[1].hp).toBe(10);
+      expect(state.discardPile.filter((cardId) => cardId === acidAttackId)).toHaveLength(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_co3_01")).toHaveLength(1);
+      expect(Object.keys(state.cardInstances)).toHaveLength(initialCardInstanceCount);
+      expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
+      expect(
+        state.log.some(
+          (entry) =>
+            entry.message.includes("CO3^2-") &&
+            entry.message.includes("酸性伤害") &&
+            entry.message.includes("生成 CO2"),
+        ),
+      ).toBe(true);
+      expectCardZonesToBeConsistent(state);
+    }
+  });
+
   it("rejects Na2CO3 responses to base attacks", () => {
     const baseAttackIds: CardInstanceId[] = [
       "substance_naoh_dilute_01",
@@ -265,32 +307,101 @@ describe("acid/base response window", () => {
     }
   });
 
-  it("rejects CO3^2- ion as a substitute for Na2CO3 against acid damage", () => {
-    let state = createResponseTestGame("substance_hcl_dilute_01", "ion_co3_01");
-    const [attacker, responder] = state.players;
+  it("rejects CO3^2- ion responses to base attacks without side effects", () => {
+    const baseAttackIds: CardInstanceId[] = [
+      "substance_naoh_dilute_01",
+      "substance_koh_dilute_01",
+      "substance_caoh2_limewater_01",
+    ];
 
-    state = engineReducer(state, {
+    for (const baseAttackId of baseAttackIds) {
+      let state = createResponseTestGame(baseAttackId, "ion_co3_01");
+      const [attacker, responder] = state.players;
+
+      state = engineReducer(state, {
+        type: "PLAY_CARD",
+        playerId: attacker.id,
+        cardInstanceId: baseAttackId,
+        targetPlayerId: responder.id,
+      });
+
+      const rejected = engineReducer(state, {
+        type: "RESPOND_WITH_CARD",
+        playerId: responder.id,
+        cardInstanceId: "ion_co3_01",
+      });
+
+      expect(rejected).toBe(state);
+      expect(rejected.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expect(rejected.players[1].hp).toBe(10);
+      expect(rejected.players[1].hand).toContain("ion_co3_01");
+      expect(rejected.discardPile).not.toContain("ion_co3_01");
+      expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("rejects illegal CO3^2- ion responses without side effects or success logs", () => {
+    let nonResponderState = createResponseTestGame("substance_hcl_dilute_01", "ion_co3_01");
+    const [attacker, responder] = nonResponderState.players;
+    nonResponderState = putCardInHand(nonResponderState, attacker.id, "ion_co3_02");
+    nonResponderState = engineReducer(nonResponderState, {
       type: "PLAY_CARD",
       playerId: attacker.id,
       cardInstanceId: "substance_hcl_dilute_01",
       targetPlayerId: responder.id,
     });
 
-    const rejected = engineReducer(state, {
+    const rejectedNonResponder = engineReducer(nonResponderState, {
       type: "RESPOND_WITH_CARD",
-      playerId: responder.id,
+      playerId: attacker.id,
+      cardInstanceId: "ion_co3_02",
+    });
+
+    expect(rejectedNonResponder).toBe(nonResponderState);
+    expect(rejectedNonResponder.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+    expectCardZonesToBeConsistent(rejectedNonResponder);
+
+    let eliminatedResponderState = createResponseTestGame("substance_hcl_dilute_01", "ion_co3_01");
+    const [eliminatingAttacker, eliminatedResponder] = eliminatedResponderState.players;
+    eliminatedResponderState = engineReducer(eliminatedResponderState, {
+      type: "PLAY_CARD",
+      playerId: eliminatingAttacker.id,
+      cardInstanceId: "substance_hcl_dilute_01",
+      targetPlayerId: eliminatedResponder.id,
+    });
+    eliminatedResponderState = updatePlayer(
+      eliminatedResponderState,
+      eliminatedResponder.id,
+      (player) => ({
+        ...player,
+        hp: 0,
+        eliminated: true,
+      }),
+    );
+
+    const rejectedEliminatedResponder = engineReducer(eliminatedResponderState, {
+      type: "RESPOND_WITH_CARD",
+      playerId: eliminatedResponder.id,
       cardInstanceId: "ion_co3_01",
     });
 
-    expect(rejected).toBe(state);
-    expect(rejected.pendingResponse).toBeDefined();
-    expect(rejected.players[1].hp).toBe(10);
-    expect(rejected.players[1].hand).toContain("ion_co3_01");
-    expect(rejected.discardPile).not.toContain("ion_co3_01");
-    expect(rejected.discardPile).not.toContain("substance_hcl_dilute_01");
-    expect(rejected.activePlayerId).toBe(attacker.id);
-    expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
-    expectCardZonesToBeConsistent(rejected);
+    expect(rejectedEliminatedResponder).toBe(eliminatedResponderState);
+    expect(rejectedEliminatedResponder.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+    expectCardZonesToBeConsistent(rejectedEliminatedResponder);
+
+    let noWindowState = createInitialGame({ shuffle: identityShuffle });
+    noWindowState = putCardInHand(noWindowState, noWindowState.players[1].id, "ion_co3_01");
+
+    const rejectedNoWindow = engineReducer(noWindowState, {
+      type: "RESPOND_WITH_CARD",
+      playerId: noWindowState.players[1].id,
+      cardInstanceId: "ion_co3_01",
+    });
+
+    expect(rejectedNoWindow).toBe(noWindowState);
+    expect(rejectedNoWindow.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+    expectCardZonesToBeConsistent(rejectedNoWindow);
   });
 
   it("rejects Na2CO3 from non-responders, eliminated responders, and closed windows", () => {
@@ -775,6 +886,41 @@ describe("acid/base response window", () => {
     expect(state.players[0].hp).toBe(10);
     expect(state.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "substance_na2co3_01")).toHaveLength(1);
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.phase).toBe("mainAction");
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("cleans up exactly once after a final third-round CO3^2- ion response", () => {
+    let state = createResponseTestGame("ion_co3_01", "substance_hcl_dilute_01");
+    const [responder, attacker] = state.players;
+    const initialCo2Count = countCardDefinition(state, "substance_co2");
+
+    state = {
+      ...state,
+      activePlayerId: attacker.id,
+      roundInCycle: 3,
+    };
+
+    state = engineReducer(state, {
+      type: "PLAY_CARD",
+      playerId: attacker.id,
+      cardInstanceId: "substance_hcl_dilute_01",
+      targetPlayerId: responder.id,
+    });
+    state = engineReducer(state, {
+      type: "RESPOND_WITH_CARD",
+      playerId: responder.id,
+      cardInstanceId: "ion_co3_01",
+    });
+
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.players[0].hp).toBe(10);
+    expect(state.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_co3_01")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
     expect(state.cycleNumber).toBe(2);
     expect(state.roundInCycle).toBe(1);
     expect(state.phase).toBe("mainAction");
