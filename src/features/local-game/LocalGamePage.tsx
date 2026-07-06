@@ -1,15 +1,61 @@
 import "./local-game.css";
+import { useState } from "react";
+import type { GameAction } from "../../game/engine/actions";
+import type { CardInstanceId } from "../../game/engine/types";
+import { ActionPanel } from "./components/ActionPanel";
+import { DiyPanel } from "./components/DiyPanel";
+import { GameLog } from "./components/GameLog";
+import { GameSummary } from "./components/GameSummary";
+import { PlayerPanel } from "./components/PlayerPanel";
+import { ResponsePanel } from "./components/ResponsePanel";
+import { StatusPanel } from "./components/StatusPanel";
+import { useLocalGameDebug } from "./hooks/useLocalGameDebug";
 
 export function LocalGamePage() {
+  const [{ game, error }, dispatch] = useLocalGameDebug();
+  const [selectedCardId, setSelectedCardId] = useState<CardInstanceId | undefined>();
+
+  function dispatchGameAction(action: GameAction) {
+    dispatch(action);
+    setSelectedCardId(undefined);
+  }
+
   return (
     <main className="local-game-page">
-      <section className="local-game-panel" aria-labelledby="mvp0-title">
-        <p className="local-game-kicker">MVP 0</p>
-        <h1 id="mvp0-title">化学在线卡牌游戏 · MVP 0 引擎准备中</h1>
-        <p className="local-game-note">
-          当前阶段仅初始化项目骨架，规则引擎 Alpha 尚未实现。
-        </p>
-      </section>
+      <GameSummary game={game} error={error} onReset={() => dispatch({ type: "RESET_GAME" })} />
+      <div className="debug-layout">
+        <div className="debug-main">
+          <div className="players-grid">
+            {game.players.map((player) => (
+              <PlayerPanel
+                game={game}
+                key={player.id}
+                onSelectCard={setSelectedCardId}
+                player={player}
+                selectedCardId={selectedCardId}
+              />
+            ))}
+          </div>
+          <GameLog game={game} />
+        </div>
+        <aside className="debug-sidebar" aria-label="操作面板">
+          <ActionPanel
+            dispatchGameAction={dispatchGameAction}
+            game={game}
+            onSelectCard={setSelectedCardId}
+            selectedCardId={selectedCardId}
+          />
+          <DiyPanel dispatchGameAction={dispatchGameAction} game={game} />
+          <ResponsePanel dispatchGameAction={dispatchGameAction} game={game} />
+          <StatusPanel dispatchGameAction={dispatchGameAction} game={game} />
+          {game.phase === "gameOver" ? (
+            <section className="debug-section">
+              <h2>对局结束</h2>
+              <p className="panel-note">可以查看完整日志，或点击顶部“重开”。</p>
+            </section>
+          ) : null}
+        </aside>
+      </div>
     </main>
   );
 }

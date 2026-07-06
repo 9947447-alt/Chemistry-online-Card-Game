@@ -1,34 +1,371 @@
 .local-game-page {
-  align-items: center;
-  display: flex;
   min-height: 100vh;
-  padding: 32px;
+  padding: 24px;
 }
 
-.local-game-panel {
-  margin: 0 auto;
-  max-width: 760px;
-  width: 100%;
+.debug-section {
+  background: #ffffff;
+  border: 1px solid #d7dee4;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 7%);
+  padding: 16px;
 }
 
-.local-game-kicker {
-  color: #4f6f52;
-  font-size: 0.875rem;
-  font-weight: 700;
-  margin: 0 0 12px;
+.debug-kicker {
+  color: #356554;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 6px;
   text-transform: uppercase;
 }
 
-.local-game-panel h1 {
+.debug-section h1,
+.debug-section h2 {
   color: #182026;
-  font-size: 2.25rem;
-  line-height: 1.15;
+  line-height: 1.2;
   margin: 0;
 }
 
-.local-game-note {
-  color: #52606d;
+.debug-section h1 {
+  font-size: 1.45rem;
+}
+
+.debug-section h2 {
   font-size: 1rem;
-  line-height: 1.6;
-  margin: 20px 0 0;
+}
+
+.debug-summary {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto 16px;
+  max-width: 1480px;
+}
+
+.summary-grid,
+.player-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 0;
+}
+
+.summary-grid div,
+.player-stats div {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+dt {
+  color: #60717f;
+  font-size: 0.73rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+dd {
+  color: #17212b;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.state-readout {
+  align-items: start;
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.state-readout strong {
+  color: #334250;
+  font-size: 0.78rem;
+}
+
+.state-readout span,
+.panel-note,
+.status-line,
+.empty-note {
+  color: #52606d;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.summary-actions,
+.panel-heading,
+.player-panel__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.debug-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  margin: 0 auto;
+  max-width: 1480px;
+}
+
+.debug-main,
+.debug-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.players-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.player-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.player-panel__header p {
+  color: #60717f;
+  font-size: 0.78rem;
+  margin: 4px 0 0;
+}
+
+.active-pill,
+.ok-pill,
+.warn-pill {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 8px;
+}
+
+.active-pill,
+.ok-pill {
+  background: #e6f4ee;
+  color: #226048;
+}
+
+.warn-pill {
+  background: #fff0d6;
+  color: #8a4b05;
+}
+
+.hand-grid,
+.candidate-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.hand-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.candidate-grid {
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+}
+
+.debug-card {
+  background: #fbfcfd;
+  border: 1px solid #ccd6de;
+  border-radius: 8px;
+  color: #17212b;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  min-height: 124px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.debug-card:hover:not(:disabled) {
+  border-color: #38766b;
+}
+
+.debug-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.debug-card.is-selected {
+  background: #eaf5f1;
+  border-color: #2d6b5f;
+  box-shadow: inset 0 0 0 1px #2d6b5f;
+}
+
+.debug-card__name {
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.debug-card__meta,
+.debug-card__line {
+  color: #5d6e7a;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.field-row {
+  display: grid;
+  gap: 6px;
+}
+
+.field-row span {
+  color: #334250;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+select {
+  background: #ffffff;
+  border: 1px solid #bcc9d3;
+  border-radius: 6px;
+  color: #17212b;
+  min-height: 38px;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+.primary-button,
+.secondary-button,
+.recipe-chip {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.primary-button {
+  background: #244b64;
+  color: #ffffff;
+  width: 100%;
+}
+
+.secondary-button {
+  background: #eef2f5;
+  border-color: #ccd6de;
+  color: #263642;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-panel,
+.diy-panel,
+.response-panel,
+.status-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.recipe-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recipe-chip {
+  background: #f4f6f8;
+  border-color: #d7dee4;
+  color: #334250;
+  font-size: 0.78rem;
+}
+
+.recipe-chip.is-selected {
+  background: #e7eef8;
+  border-color: #4e6e9b;
+  color: #1e3f69;
+}
+
+.component-slots {
+  display: grid;
+  gap: 8px;
+}
+
+.error-banner,
+.quiet-banner {
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.error-banner {
+  background: #fdeaea;
+  color: #9c2323;
+}
+
+.quiet-banner {
+  background: #eef7f2;
+  color: #28624b;
+}
+
+.game-log ol {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 12px 0 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 0;
+}
+
+.game-log li {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  color: #263642;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  padding: 8px;
+}
+
+.game-log li span {
+  color: #60717f;
+  display: inline-block;
+  font-weight: 800;
+  margin-right: 8px;
+}
+
+@media (max-width: 1100px) {
+  .debug-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .debug-sidebar {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .local-game-page {
+    padding: 12px;
+  }
+
+  .players-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-actions,
+  .panel-heading,
+  .player-panel__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
