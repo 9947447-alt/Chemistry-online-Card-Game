@@ -20,12 +20,13 @@ MVP 0 只做一个可运行、可调试、可复盘的本地双人规则模拟�
 - 关闭响应 DIY；仅保留每名玩家每周期 1 次主动 DIY。
 - 采用 V0.1 默认自由出牌；正常行动不要求与场面基准牌关联。
 - 保留 70 张固定测试卡池，不压缩到 40 张。
-- 禁止任何“无即时合法效果”的主行动出牌。
-- 元素牌、普通离子牌只能作为 DIY 组件。
-- H+、OH-、CO3^2- 等特殊离子仅能在各自合法响应窗口或状态处理窗口使用。
-- H2O、手牌 CO2 仅能在火情状态处理窗口使用。
+- 存活 `activePlayer` 在 `mainAction` 可将任意实体手牌普通出牌为场面基准。
+- 无即时效果的实体牌不能走“执行效果”路径，但可以走“普通出牌 / 场面基准”路径。
+- 元素牌、普通离子牌可作为 DIY 组件，也可在 `mainAction` 普通出牌。
+- H+、OH-、CO3^2- 等特殊离子的响应或状态处理效果仅能在各自合法窗口执行；它们仍可在 `mainAction` 普通出牌。
+- H2O、手牌 CO2 的灭火效果仅能在 `FIRE` 的 `statusWindow` 执行；它们仍可在 `mainAction` 普通出牌，普通出牌时不触发灭火效果。
 - O2 是可从牌库摸到的物质牌，可在主行动中仅对自己使用并回复 2 HP。
-- Na2CO3 仅能作为酸性攻击的响应牌。
+- Na2CO3 的响应效果仅能作为酸性攻击响应执行；它仍可在 `mainAction` 普通出牌。
 - 暂不实现 Ag+、AgCl、方程式牌、金属置换、高危牌、专业处置牌、多人技能。
 - 暂不实现 BaSO4 沉淀链，直到先定义零伤害盐/离子牌在正常行动中的触发窗口和收益。
 - 暂不实现私密手牌、账号、匹配、房间、断线重连、观战、AI。
@@ -66,8 +67,42 @@ MVP 0 对 O2 的定案：
 - 满 HP 时不能使用 O2。
 - 当自己拥有 `SO2_LEAK` 或 `FIRE` 时不能使用 O2。
 - `SO2_LEAK` 与 `FIRE` 在 MVP 0 中标记为“阻止回复”的负面状态。
-- H2O 仅用于处理 `FIRE`，不回复 HP。
+- H2O 执行灭火效果时仅用于处理 `FIRE`，不回复 HP；H2O 也可普通出牌，普通出牌时不触发灭火效果。
 - O + O -> O2 主动 DIY 仍暂缓。
+
+## MVP 0 普通自由出牌与 tableReference
+
+普通自由出牌：
+
+- 存活的 `activePlayer` 在 `mainAction` 可以进行“普通出牌”。
+- 普通出牌可以选择任意 1 张自己手牌中的实体卡。
+- 普通出牌不需要 `targetPlayerId`。
+- 普通出牌不结算该牌原本的攻击、回复、状态、响应或 DIY 效果。
+- 普通出牌不消耗、不会设置、也不会重置 `usedDIYThisCycle`。
+- 普通出牌只作为实体牌进入 `discardPile` 一次，更新 `tableReference`，写入明确日志，并推进一次行动。
+- 普通出牌不进入 `responseWindow`。
+- 普通出牌不创建新的 `CardInstance`。
+- 有主行动效果的实体牌，玩家可选择执行原有效果，或仅普通出牌作为场面基准；两种路径必须在后续实现中保持可区分。
+- 元素牌、普通离子牌因此可在开局或任意 `mainAction` 作为无即时效果的普通出牌。
+
+场面基准牌 `tableReference`：
+
+- `tableReference` 表示最近一次 `mainAction` 中从手牌打出的实体牌。
+- `tableReference` 至少记录 `cardInstanceId`、`definitionId`、显示名称、`playedBy`、`cycle`、`round`。
+- `tableReference` 用于展示化学关联、未来技能、方程式与反应引用。
+- `mainAction` 中的普通出牌会更新 `tableReference`。
+- `mainAction` 中执行效果的实体手牌出牌也会更新 `tableReference`。
+- `responseWindow`、`statusWindow` 中打出的牌不更新 `tableReference`。
+- `virtual-diy` 与 `status` 伤害不更新 `tableReference`。
+- `PASS_ACTION` 不更新 `tableReference`。
+- 新实验周期开始时清空 `tableReference`。
+
+关联关系：
+
+- 当前 MVP 0 默认允许无视 `tableReference` 进行普通出牌。
+- 关联关系不是主行动合法性的硬门槛。
+- 当前 MVP 0 仅把关联关系用于 Debug UI 的关联提示，以及未来方程式、反应与技能引用。
+- 后续可选 UNO 变体“每周期仅一次自由出牌，其余需关联”不属于当前默认规则。
 
 ## MVP 0 状态规则
 
@@ -105,8 +140,8 @@ MVP 0 特别覆写：
 10. 若玩家不处理或无法处理，仍存在的当前状态造成 2 点伤害；伤害后状态不自动移除。
 11. 若玩家因状态伤害被淘汰，立刻停止后续状态结算。
 12. 状态处理完成后进入主行动窗口。
-13. 主行动窗口中，当前玩家可以选择：正常打出 1 张允许主行动使用且会产生即时合法效果的牌、进行 1 次主动 DIY、或放弃行动。
-14. 正常打出酸/碱攻击牌时，若目标手中有合法响应牌，可进入响应窗口。
+13. 主行动窗口中，当前玩家可以选择：普通出牌 1 张实体手牌作为场面基准、执行 1 张实体手牌的主行动效果、进行 1 次主动 DIY、或放弃行动。
+14. 执行酸/碱攻击牌效果时，若目标手中有合法响应牌，可进入响应窗口；仅普通出牌时不进入响应窗口。
 15. SO2 与“实验台起火”施加状态时不进入即时响应窗口。
 16. 响应窗口只允许打出现有手牌；不允许响应 DIY。
 17. 酸伤害可被碱中和，也可被普通 CO3^2- 或 Na2CO3 响应并生成 CO2；碱伤害可被酸中和。
@@ -134,9 +169,6 @@ MVP 0 特别覆写：
 - 多目标技能。
 - 多人座位响应顺序。
 - 私密手牌与不同玩家视角。
-- 任意无效果主行动弃牌。
-- H2O、手牌 CO2 在主行动中自由弃置。
-- Na2CO3 在主行动中自由弃置。
 - H + H -> H2、O + O -> O2、2Na+ + CO3^2- -> Na2CO3 这三条主动 DIY 配方。
 
 BaSO4 沉淀链暂缓的原因：BaCl2、Na2SO4 等零伤害盐牌如果能在主行动中正常打出，需要先定义它们的主动收益、目标、是否占用行动、是否建立场面资源、是否可被对方立即响应。否则很容易出现“为了以后反应而空打一张牌”的体验和程序判定都不清楚。
@@ -234,6 +266,15 @@ interface PlayerStatus {
   sourcePlayerId?: string;
 }
 
+interface TableReference {
+  cardInstanceId: string;
+  definitionId: string;
+  displayName: string;
+  playedBy: string;
+  cycle: number;
+  round: 1 | 2 | 3;
+}
+
 interface GameState {
   id: string;
   phase:
@@ -253,7 +294,7 @@ interface GameState {
   cardInstances: Record<string, CardInstance>;
   deck: string[];
   discardPile: string[];
-  baselineCardId?: string;
+  tableReference?: TableReference;
   pendingResponse?: PendingResponse;
   effectQueue: Effect[];
   log: GameLogEntry[];
@@ -331,32 +372,32 @@ interface StatusDefinition {
 
 ## 每种可使用卡的效果
 
-MVP 0 中，元素牌和离子牌不能在主行动中无效果打出。它们只能在 `allowedTimings` 指定的窗口使用。
+MVP 0 中，任意实体手牌都可以在 `mainAction` 走“普通出牌 / 场面基准”路径。下表“允许时机”和“主行动效果”描述的是执行原有效果路径；无即时效果的实体牌不能走执行效果路径，但可以普通出牌。
 
 | 卡牌 | 允许时机 | 主行动效果 | 响应窗口效果 | 状态处理窗口效果 |
 | --- | --- | --- | --- | --- |
-| O 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| C 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| S 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| H+ 离子 | diy-component, response | 不可主行动打出 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| OH- 离子 | diy-component, response, status-window | 不可主行动打出 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏，视为碱性吸收并移除状态 |
-| CO3 2- 离子 | diy-component, response | 不可主行动打出 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
-| Cl- 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| SO4 2- 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| Na+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| K+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| Ca2+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| H2O | status-window | 不可主行动打出 | 不可响应普通伤害 | 可处理火情并移除 `FIRE` |
-| CO2 | status-window | 不可主行动打出 | 不可响应普通伤害 | 可处理火情并移除 `FIRE` |
-| O2 | main-action | 仅可对自己使用；若自己未满 HP 且没有 `SO2_LEAK` / `FIRE`，弃置 O2 并回复 2 HP，不超过最大 HP | 不可响应 | 不可处理状态 |
-| SO2 | main-action | 使目标获得 `SO2_LEAK`，不造成即时伤害 | 不可响应 | 不可处理状态 |
-| 稀 HCl | main-action, response | 对目标造成 1 点酸性伤害，可被响应 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| 稀 H2SO4 | main-action, response | 对目标造成 1 点酸性伤害，可被响应 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| 稀 NaOH | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| 稀 KOH | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| 石灰水 Ca(OH)2 | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| Na2CO3 | response | 不可主行动打出 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
-| 实验台起火 | main-action | 选择一名其他玩家，使其获得 `FIRE` | 不可响应 | 不可处理状态 |
+| O 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| C 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| S 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| H+ 离子 | diy-component, response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| OH- 离子 | diy-component, response, status-window | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏，视为碱性吸收并移除状态 |
+| CO3 2- 离子 | diy-component, response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
+| Cl- 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| SO4 2- 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| Na+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| K+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| Ca2+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| H2O | status-window | 普通出牌：可作为场面基准，不触发灭火效果；执行效果：不可 | 不可响应普通伤害 | 执行灭火效果时可处理火情并移除 `FIRE` |
+| CO2 | status-window | 普通出牌：可作为场面基准，不触发灭火效果；执行效果：不可 | 不可响应普通伤害 | 执行灭火效果时可处理火情并移除 `FIRE` |
+| O2 | main-action | 执行效果：仅可对自己使用；若自己未满 HP 且没有 `SO2_LEAK` / `FIRE`，弃置 O2 并回复 2 HP，不超过最大 HP；也可普通出牌作为场面基准 | 不可响应 | 不可处理状态 |
+| SO2 | main-action | 执行效果：使目标获得 `SO2_LEAK`，不造成即时伤害；也可普通出牌作为场面基准 | 不可响应 | 不可处理状态 |
+| 稀 HCl | main-action, response | 执行效果：对目标造成 1 点酸性伤害，可被响应；也可普通出牌作为场面基准 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| 稀 H2SO4 | main-action, response | 执行效果：对目标造成 1 点酸性伤害，可被响应；也可普通出牌作为场面基准 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| 稀 NaOH | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| 稀 KOH | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| 石灰水 Ca(OH)2 | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| Na2CO3 | response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
+| 实验台起火 | main-action | 执行效果：选择一名其他玩家，使其获得 `FIRE`；也可普通出牌作为场面基准 | 不可响应 | 不可处理状态 |
 
 ## MVP 0 主动 DIY 配方
 
@@ -527,13 +568,10 @@ server/
 
 卡牌与行动：
 
-- 任意无效果主行动弃牌。
-- H2O、手牌 CO2 在主行动中自由弃置。
-- Na2CO3 在主行动中自由弃置。
 - H + H -> H2 主动 DIY。
 - O + O -> O2 主动 DIY。
 - 2Na+ + CO3^2- -> Na2CO3 主动 DIY。
-- 零伤害盐/离子牌在主行动中的资源收益。
+- 零伤害盐/离子牌在主行动中除普通出牌 / 场面基准之外的资源收益。
 - 卡牌构筑与自定义卡池。
 
 状态与高危模块：
