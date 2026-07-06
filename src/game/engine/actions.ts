@@ -16,4 +16,11 @@ export type GameAction =
       statusInstanceId: string;
       cardInstanceId: CardInstanceId;
     }
-  | { type: "PASS_STATUS_HANDLING"; playerId: PlayerId; statusInstanceId: string };
+  | { type: "PASS_STATUS_HANDLING"; playerId: PlayerId; statusInstanceId: string }
+  | {
+      type: "START_ACTIVE_DIY";
+      playerId: PlayerId;
+      recipeId: string;
+      componentCardInstanceIds: CardInstanceId[];
+      targetPlayerId?: PlayerId;
+    };

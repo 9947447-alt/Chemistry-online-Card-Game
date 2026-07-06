@@ -1,6 +1,7 @@
 import type { GameAction } from "./actions";
 import type { GameState } from "./types";
 import { fisherYatesShuffle } from "../../shared/random";
+import { startActiveDIY } from "./diy";
 import {
   handleStatusWithCard,
   passResponse,
@@ -49,6 +50,15 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
         state,
         action.playerId,
         action.statusInstanceId,
+        fisherYatesShuffle,
+      );
+    case "START_ACTIVE_DIY":
+      return startActiveDIY(
+        state,
+        action.playerId,
+        action.recipeId,
+        action.componentCardInstanceIds,
+        action.targetPlayerId,
         fisherYatesShuffle,
       );
     default:
