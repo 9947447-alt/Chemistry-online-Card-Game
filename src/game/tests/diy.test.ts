@@ -100,6 +100,16 @@ function putH2so4DIYComponentsInHand(state: GameState, playerId: PlayerId): Game
   return putCardInHand(nextState, playerId, "ion_so4_01");
 }
 
+function putNaohDIYComponentsInHand(state: GameState, playerId: PlayerId): GameState {
+  let nextState = putCardInHand(state, playerId, "ion_na_01");
+  return putCardInHand(nextState, playerId, "ion_oh_01");
+}
+
+function putKohDIYComponentsInHand(state: GameState, playerId: PlayerId): GameState {
+  let nextState = putCardInHand(state, playerId, "ion_k_01");
+  return putCardInHand(nextState, playerId, "ion_oh_01");
+}
+
 function countCardDefinition(state: GameState, definitionId: string): number {
   return Object.values(state.cardInstances).filter(
     (cardInstance) => cardInstance.definitionId === definitionId,
@@ -174,6 +184,34 @@ function startH2so4AttackDIY(
     playerId,
     recipeId: "diy_h2so4_from_2h_so4",
     componentCardInstanceIds: ["ion_h_01", "ion_h_02", "ion_so4_01"],
+    targetPlayerId,
+  });
+}
+
+function startNaohAttackDIY(
+  state: GameState,
+  playerId: PlayerId,
+  targetPlayerId: PlayerId,
+): GameState {
+  return engineReducer(state, {
+    type: "START_ACTIVE_DIY",
+    playerId,
+    recipeId: "diy_naoh_from_na_oh",
+    componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+    targetPlayerId,
+  });
+}
+
+function startKohAttackDIY(
+  state: GameState,
+  playerId: PlayerId,
+  targetPlayerId: PlayerId,
+): GameState {
+  return engineReducer(state, {
+    type: "START_ACTIVE_DIY",
+    playerId,
+    recipeId: "diy_koh_from_k_oh",
+    componentCardInstanceIds: ["ion_k_01", "ion_oh_01"],
     targetPlayerId,
   });
 }
@@ -1029,6 +1067,521 @@ describe("active DIY", () => {
     expect(state.discardPile.filter((cardId) => cardId === "substance_koh_dilute_01")).toHaveLength(1);
     expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
+  });
+
+  it("starts Na+ + OH- active DIY as a virtual base attack", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [player, target] = state.players;
+    state = putNaohDIYComponentsInHand(state, player.id);
+    const initialNaohCount = countCardDefinition(state, "substance_naoh_dilute");
+
+    state = startNaohAttackDIY(state, player.id, target.id);
+
+    expect(state.phase).toBe("responseWindow");
+    expect(state.activePlayerId).toBe(player.id);
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expect(state.players[1].hp).toBe(10);
+    expect(state.pendingResponse?.responderId).toBe(target.id);
+    expect(state.pendingResponse?.sourceEffect).toMatchObject({
+      type: "DAMAGE",
+      source: {
+        kind: "virtual-diy",
+        recipeId: "diy_naoh_from_na_oh",
+        displayName: "主动 DIY 生成的稀 NaOH",
+      },
+      targetPlayerId: target.id,
+      amount: 1,
+      damageKind: "base",
+    });
+    expect(state.pendingResponse?.sourceEffect.source).toMatchObject({ kind: "virtual-diy" });
+    expect(state.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_naoh_dilute")).toBe(initialNaohCount);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("starts K+ + OH- active DIY as a virtual base attack", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [player, target] = state.players;
+    state = putKohDIYComponentsInHand(state, player.id);
+    const initialKohCount = countCardDefinition(state, "substance_koh_dilute");
+
+    state = startKohAttackDIY(state, player.id, target.id);
+
+    expect(state.phase).toBe("responseWindow");
+    expect(state.activePlayerId).toBe(player.id);
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expect(state.players[1].hp).toBe(10);
+    expect(state.pendingResponse?.responderId).toBe(target.id);
+    expect(state.pendingResponse?.sourceEffect).toMatchObject({
+      type: "DAMAGE",
+      source: {
+        kind: "virtual-diy",
+        recipeId: "diy_koh_from_k_oh",
+        displayName: "主动 DIY 生成的稀 KOH",
+      },
+      targetPlayerId: target.id,
+      amount: 1,
+      damageKind: "base",
+    });
+    expect(state.pendingResponse?.sourceEffect.source).toMatchObject({ kind: "virtual-diy" });
+    expect(state.discardPile.filter((cardId) => cardId === "ion_k_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_koh_dilute")).toBe(initialKohCount);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("resolves base attack DIY through acid neutralization or pass", () => {
+    const recipes = [
+      {
+        name: "NaOH",
+        prepare: putNaohDIYComponentsInHand,
+        start: startNaohAttackDIY,
+        recipeId: "diy_naoh_from_na_oh",
+        materialDefinitionId: "substance_naoh_dilute",
+        components: ["ion_na_01", "ion_oh_01"] as const,
+      },
+      {
+        name: "KOH",
+        prepare: putKohDIYComponentsInHand,
+        start: startKohAttackDIY,
+        recipeId: "diy_koh_from_k_oh",
+        materialDefinitionId: "substance_koh_dilute",
+        components: ["ion_k_01", "ion_oh_01"] as const,
+      },
+    ];
+
+    const responseCases: {
+      name: string;
+      responseCardId?: CardInstanceId;
+      expectedHp: number;
+      expectedLog: string;
+    }[] = [
+      {
+        name: "HCl neutralization",
+        responseCardId: "substance_hcl_dilute_01",
+        expectedHp: 10,
+        expectedLog: "中和",
+      },
+      {
+        name: "H2SO4 neutralization",
+        responseCardId: "substance_h2so4_dilute_01",
+        expectedHp: 10,
+        expectedLog: "中和",
+      },
+      {
+        name: "pass",
+        expectedHp: 9,
+        expectedLog: "放弃响应",
+      },
+    ];
+
+    for (const recipe of recipes) {
+      for (const responseCase of responseCases) {
+        let state = createInitialGame({ shuffle: identityShuffle });
+        const [player, target] = state.players;
+        state = recipe.prepare(state, player.id);
+        if (responseCase.responseCardId) {
+          state = putCardInHand(state, target.id, responseCase.responseCardId);
+        }
+        const initialMaterialCount = countCardDefinition(state, recipe.materialDefinitionId);
+        expectTotalCardInstances(state);
+        expectCardZonesToBeConsistent(state);
+
+        state = recipe.start(state, player.id, target.id);
+        expect(state.phase).toBe("responseWindow");
+        expect(state.pendingResponse?.sourceEffect).toMatchObject({
+          type: "DAMAGE",
+          source: {
+            kind: "virtual-diy",
+            recipeId: recipe.recipeId,
+          },
+          damageKind: "base",
+        });
+        for (const componentId of recipe.components) {
+          expect(state.discardPile.filter((cardId) => cardId === componentId)).toHaveLength(1);
+        }
+        expectCardZonesToBeConsistent(state);
+
+        if (responseCase.responseCardId) {
+          state = engineReducer(state, {
+            type: "RESPOND_WITH_CARD",
+            playerId: target.id,
+            cardInstanceId: responseCase.responseCardId,
+          });
+        } else {
+          state = engineReducer(state, {
+            type: "PASS_RESPONSE",
+            playerId: target.id,
+          });
+        }
+
+        expect(state.pendingResponse).toBeUndefined();
+        expect(state.players[1].hp).toBe(responseCase.expectedHp);
+        expect(state.activePlayerId).toBe(target.id);
+        expect(state.roundInCycle).toBe(1);
+        for (const componentId of recipe.components) {
+          expect(state.discardPile.filter((cardId) => cardId === componentId)).toHaveLength(1);
+        }
+        if (responseCase.responseCardId) {
+          expect(state.discardPile.filter((cardId) => cardId === responseCase.responseCardId)).toHaveLength(1);
+        }
+        expect(countCardDefinition(state, recipe.materialDefinitionId)).toBe(initialMaterialCount);
+        expect(state.log.some((entry) => entry.message.includes(responseCase.expectedLog))).toBe(true);
+        expectTotalCardInstances(state);
+        expectCardZonesToBeConsistent(state);
+      }
+    }
+  });
+
+  it("rejects carbonate and base responses to base attack DIY without side effects", () => {
+    const responseCases: CardInstanceId[] = [
+      "ion_co3_01",
+      "substance_na2co3_01",
+      "substance_naoh_dilute_01",
+      "substance_koh_dilute_01",
+    ];
+
+    for (const responseCardId of responseCases) {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      const [player, target] = state.players;
+      state = putNaohDIYComponentsInHand(state, player.id);
+      state = putCardInHand(state, target.id, responseCardId);
+      state = startNaohAttackDIY(state, player.id, target.id);
+      expect(state.phase).toBe("responseWindow");
+      expect(state.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expectCardZonesToBeConsistent(state);
+
+      const rejected = engineReducer(state, {
+        type: "RESPOND_WITH_CARD",
+        playerId: target.id,
+        cardInstanceId: responseCardId,
+      });
+
+      expect(rejected).toBe(state);
+      expect(rejected.pendingResponse).toBe(state.pendingResponse);
+      expect(rejected.players[1].hp).toBe(10);
+      expect(rejected.players[1].hand).toContain(responseCardId);
+      expect(rejected.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
+      expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+      expect(rejected.discardPile).not.toContain(responseCardId);
+      expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+      expectTotalCardInstances(rejected);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("rejects invalid base attack DIY calls without side effects", () => {
+    const createReadyNaohState = () => {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      state = putNaohDIYComponentsInHand(state, state.players[0].id);
+      return state;
+    };
+    const createReadyKohState = () => {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      state = putKohDIYComponentsInHand(state, state.players[0].id);
+      return state;
+    };
+
+    const cases: { name: string; state: GameState; action: Parameters<typeof engineReducer>[1] }[] = [];
+
+    const missingComponent = createReadyNaohState();
+    cases.push({
+      name: "missing OH- component",
+      state: missingComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: missingComponent.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01"],
+        targetPlayerId: missingComponent.players[1].id,
+      },
+    });
+
+    let extraComponent = createReadyNaohState();
+    extraComponent = putCardInHand(extraComponent, extraComponent.players[0].id, "ion_oh_02");
+    cases.push({
+      name: "extra OH- component",
+      state: extraComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: extraComponent.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: extraComponent.players[1].id,
+      },
+    });
+
+    const duplicateInstance = createReadyNaohState();
+    cases.push({
+      name: "duplicate component instance",
+      state: duplicateInstance,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: duplicateInstance.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_na_01"],
+        targetPlayerId: duplicateInstance.players[1].id,
+      },
+    });
+
+    const mismatchedRecipe = createReadyNaohState();
+    cases.push({
+      name: "recipe id mismatch",
+      state: mismatchedRecipe,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: mismatchedRecipe.players[0].id,
+        recipeId: "diy_koh_from_k_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: mismatchedRecipe.players[1].id,
+      },
+    });
+
+    const missingKohComponent = createReadyKohState();
+    cases.push({
+      name: "KOH missing K+ component",
+      state: missingKohComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: missingKohComponent.players[0].id,
+        recipeId: "diy_koh_from_k_oh",
+        componentCardInstanceIds: ["ion_oh_01"],
+        targetPlayerId: missingKohComponent.players[1].id,
+      },
+    });
+
+    let extraKohComponent = createReadyKohState();
+    extraKohComponent = putCardInHand(extraKohComponent, extraKohComponent.players[0].id, "ion_oh_02");
+    cases.push({
+      name: "KOH extra OH- component",
+      state: extraKohComponent,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: extraKohComponent.players[0].id,
+        recipeId: "diy_koh_from_k_oh",
+        componentCardInstanceIds: ["ion_k_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: extraKohComponent.players[1].id,
+      },
+    });
+
+    const duplicateKohInstance = createReadyKohState();
+    cases.push({
+      name: "KOH duplicate component instance",
+      state: duplicateKohInstance,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: duplicateKohInstance.players[0].id,
+        recipeId: "diy_koh_from_k_oh",
+        componentCardInstanceIds: ["ion_k_01", "ion_k_01"],
+        targetPlayerId: duplicateKohInstance.players[1].id,
+      },
+    });
+
+    for (const targetCase of [
+      { name: "self target", targetPlayerId: "player_1" },
+      { name: "missing target", targetPlayerId: undefined },
+      { name: "unknown target", targetPlayerId: "player_missing" },
+    ] satisfies { name: string; targetPlayerId?: string }[]) {
+      const state = createReadyNaohState();
+      cases.push({
+        name: targetCase.name,
+        state,
+        action: {
+          type: "START_ACTIVE_DIY",
+          playerId: state.players[0].id,
+          recipeId: "diy_naoh_from_na_oh",
+          componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+          targetPlayerId: targetCase.targetPlayerId,
+        },
+      });
+    }
+
+    let eliminatedTarget = createReadyNaohState();
+    eliminatedTarget = updatePlayer(eliminatedTarget, eliminatedTarget.players[1].id, (player) => ({
+      ...player,
+      hp: 0,
+      eliminated: true,
+    }));
+    cases.push({
+      name: "eliminated target",
+      state: eliminatedTarget,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: eliminatedTarget.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: eliminatedTarget.players[1].id,
+      },
+    });
+
+    let eliminatedActor = createReadyNaohState();
+    eliminatedActor = updatePlayer(eliminatedActor, eliminatedActor.players[0].id, (player) => ({
+      ...player,
+      hp: 0,
+      eliminated: true,
+    }));
+    cases.push({
+      name: "eliminated actor",
+      state: eliminatedActor,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: eliminatedActor.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: eliminatedActor.players[1].id,
+      },
+    });
+
+    let nonActive = createInitialGame({ shuffle: identityShuffle });
+    nonActive = putNaohDIYComponentsInHand(nonActive, nonActive.players[1].id);
+    cases.push({
+      name: "non-active player",
+      state: nonActive,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: nonActive.players[1].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: nonActive.players[0].id,
+      },
+    });
+
+    let statusWindow = createReadyNaohState();
+    statusWindow = { ...statusWindow, phase: "statusWindow" };
+    cases.push({
+      name: "statusWindow",
+      state: statusWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: statusWindow.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: statusWindow.players[1].id,
+      },
+    });
+
+    let responseWindow = createReadyNaohState();
+    responseWindow = { ...responseWindow, phase: "responseWindow" };
+    cases.push({
+      name: "responseWindow",
+      state: responseWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: responseWindow.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: responseWindow.players[1].id,
+      },
+    });
+
+    let gameOver = createReadyNaohState();
+    gameOver = { ...gameOver, phase: "gameOver", winnerPlayerId: gameOver.players[0].id };
+    cases.push({
+      name: "gameOver",
+      state: gameOver,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: gameOver.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: gameOver.players[1].id,
+      },
+    });
+
+    let usedThisCycle = createReadyNaohState();
+    usedThisCycle = updatePlayer(usedThisCycle, usedThisCycle.players[0].id, (player) => ({
+      ...player,
+      usedDIYThisCycle: true,
+    }));
+    cases.push({
+      name: "used DIY this cycle",
+      state: usedThisCycle,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: usedThisCycle.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_na_01", "ion_oh_01"],
+        targetPlayerId: usedThisCycle.players[1].id,
+      },
+    });
+
+    for (const { state, action } of cases) {
+      expectCardZonesToBeConsistent(state);
+      const rejected = engineReducer(state, action);
+      expect(rejected).toBe(state);
+      expectNoCoreSideEffects(rejected, state);
+      expect(rejected.pendingResponse).toBe(state.pendingResponse);
+      expect(rejected.players[0].usedDIYThisCycle).toBe(state.players[0].usedDIYThisCycle);
+      expect(rejected.discardPile).not.toContain("ion_na_01");
+      expect(rejected.discardPile).not.toContain("ion_k_01");
+      expect(rejected.discardPile).not.toContain("ion_oh_01");
+      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 Na+ + OH-"))).toBe(false);
+      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 K+ + OH-"))).toBe(false);
+      expectTotalCardInstances(rejected);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("cleans up exactly once after final third-round base attack DIY responses", () => {
+    let neutralized = createInitialGame({ shuffle: identityShuffle });
+    const neutralizedActor = neutralized.players[1];
+    const neutralizedTarget = neutralized.players[0];
+    neutralized = putNaohDIYComponentsInHand(neutralized, neutralizedActor.id);
+    neutralized = putCardInHand(neutralized, neutralizedTarget.id, "substance_hcl_dilute_01");
+    neutralized = {
+      ...neutralized,
+      activePlayerId: neutralizedActor.id,
+      roundInCycle: 3,
+    };
+
+    neutralized = startNaohAttackDIY(neutralized, neutralizedActor.id, neutralizedTarget.id);
+    expectCardZonesToBeConsistent(neutralized);
+    neutralized = engineReducer(neutralized, {
+      type: "RESPOND_WITH_CARD",
+      playerId: neutralizedTarget.id,
+      cardInstanceId: "substance_hcl_dilute_01",
+    });
+
+    expect(neutralized.pendingResponse).toBeUndefined();
+    expect(neutralized.players[0].hp).toBe(10);
+    expect(neutralized.cycleNumber).toBe(2);
+    expect(neutralized.roundInCycle).toBe(1);
+    expect(neutralized.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
+    expectTotalCardInstances(neutralized);
+    expectCardZonesToBeConsistent(neutralized);
+
+    let passed = createInitialGame({ shuffle: identityShuffle });
+    const passedActor = passed.players[1];
+    const passedTarget = passed.players[0];
+    passed = putKohDIYComponentsInHand(passed, passedActor.id);
+    passed = {
+      ...passed,
+      activePlayerId: passedActor.id,
+      roundInCycle: 3,
+    };
+
+    passed = startKohAttackDIY(passed, passedActor.id, passedTarget.id);
+    expectCardZonesToBeConsistent(passed);
+    passed = engineReducer(passed, {
+      type: "PASS_RESPONSE",
+      playerId: passedTarget.id,
+    });
+
+    expect(passed.pendingResponse).toBeUndefined();
+    expect(passed.players[0].hp).toBe(9);
+    expect(passed.cycleNumber).toBe(2);
+    expect(passed.roundInCycle).toBe(1);
+    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(passed.discardPile.filter((cardId) => cardId === "ion_k_01")).toHaveLength(1);
+    expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expectTotalCardInstances(passed);
+    expectCardZonesToBeConsistent(passed);
   });
 
   it("eliminates a 1 hp target who passes an acid attack DIY and rejects later public actions", () => {

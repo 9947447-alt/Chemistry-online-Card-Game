@@ -64,6 +64,32 @@ export const diyRecipes = [
     displayName: "主动 DIY 生成的稀 H2SO4",
   },
   {
+    id: "diy_naoh_from_na_oh",
+    name: "Na+ + OH- -> 稀 NaOH",
+    requiredComponents: [
+      { definitionId: "ion_na", count: 1 },
+      { definitionId: "ion_oh", count: 1 },
+    ],
+    requiresTarget: true,
+    result: "VIRTUAL_ATTACK",
+    damageKind: "base",
+    damageAmount: 1,
+    displayName: "主动 DIY 生成的稀 NaOH",
+  },
+  {
+    id: "diy_koh_from_k_oh",
+    name: "K+ + OH- -> 稀 KOH",
+    requiredComponents: [
+      { definitionId: "ion_k", count: 1 },
+      { definitionId: "ion_oh", count: 1 },
+    ],
+    requiresTarget: true,
+    result: "VIRTUAL_ATTACK",
+    damageKind: "base",
+    damageAmount: 1,
+    displayName: "主动 DIY 生成的稀 KOH",
+  },
+  {
     id: "diy_so2_from_s_o_o",
     name: "S + O + O -> SO2",
     requiredComponents: [
