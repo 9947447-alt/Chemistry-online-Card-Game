@@ -1,4 +1,4 @@
-import type { CardInstanceId, GameState, PlayerId } from "./types";
+import type { CardInstanceId, GameState, Player, PlayerId, PlayerStatus } from "./types";
 
 export type ShuffleFunction = <T>(items: readonly T[]) => T[];
 
@@ -152,10 +152,7 @@ function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
     }
   }
 
-  return {
-    ...nextState,
-    phase: "mainAction",
-  };
+  return beginActionForPlayer(nextState, nextStartingPlayer.id);
 }
 
 export function dealInitialHands(state: GameState, shuffle: ShuffleFunction): GameState {
@@ -184,6 +181,7 @@ export function finishGameIfResolved(state: GameState): GameState {
         phase: "gameOver",
         activePlayerId: survivors[0].id,
         pendingResponse: undefined,
+        pendingStatusHandling: undefined,
         effectQueue: [],
         winnerPlayerId: survivors[0].id,
         isDraw: undefined,
@@ -198,6 +196,7 @@ export function finishGameIfResolved(state: GameState): GameState {
         ...state,
         phase: "gameOver",
         pendingResponse: undefined,
+        pendingStatusHandling: undefined,
         effectQueue: [],
         winnerPlayerId: undefined,
         isDraw: true,
@@ -213,39 +212,73 @@ function findNextAlivePlayer(state: GameState, startIndex: number): GameState["p
   return state.players.slice(startIndex).find((player) => !player.eliminated);
 }
 
+function getOrderedStatuses(player: Player): PlayerStatus[] {
+  return [...player.statuses].sort((left, right) => left.createdAt - right.createdAt);
+}
+
+export function beginActionForPlayer(state: GameState, playerId: PlayerId): GameState {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+
+  if (!player || player.eliminated) {
+    return state;
+  }
+
+  const [nextStatus] = getOrderedStatuses(player);
+
+  if (!nextStatus) {
+    return {
+      ...state,
+      activePlayerId: player.id,
+      phase: "mainAction",
+      pendingStatusHandling: undefined,
+    };
+  }
+
+  return appendLog(
+    {
+      ...state,
+      activePlayerId: player.id,
+      phase: "statusWindow",
+      pendingStatusHandling: {
+        playerId: player.id,
+        statusInstanceId: nextStatus.id,
+      },
+    },
+    `${player.name} 开始处理 ${nextStatus.statusId}。`,
+  );
+}
+
 export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunction): GameState {
   const resolvedState = finishGameIfResolved(state);
   if (resolvedState.phase === "gameOver") {
     return resolvedState;
   }
 
-  const activeIndex = state.players.findIndex((player) => player.id === state.activePlayerId);
-  const nextPlayer = findNextAlivePlayer(state, activeIndex + 1);
+  const activeIndex = resolvedState.players.findIndex((player) => player.id === resolvedState.activePlayerId);
+  const nextPlayer = findNextAlivePlayer(resolvedState, activeIndex + 1);
 
   if (nextPlayer) {
-    return {
-      ...appendLog(state, `轮到 ${nextPlayer.name} 行动。`),
-      activePlayerId: nextPlayer.id,
-      phase: "mainAction",
-    };
+    return beginActionForPlayer(appendLog(resolvedState, `轮到 ${nextPlayer.name} 行动。`), nextPlayer.id);
   }
 
-  if (state.roundInCycle < state.settings.roundsPerCycle) {
-    const nextRound = (state.roundInCycle + 1) as GameState["roundInCycle"];
-    const nextStartingPlayer = findNextAlivePlayer(state, 0);
+  if (resolvedState.roundInCycle < resolvedState.settings.roundsPerCycle) {
+    const nextRound = (resolvedState.roundInCycle + 1) as GameState["roundInCycle"];
+    const nextStartingPlayer = findNextAlivePlayer(resolvedState, 0);
 
     if (!nextStartingPlayer) {
-      return finishGameIfResolved(state);
+      return finishGameIfResolved(resolvedState);
     }
 
-    return {
-      ...appendLog(state, `进入第 ${nextRound} 实验轮次。`),
-      activePlayerId: nextStartingPlayer.id,
-      startingPlayerId: nextStartingPlayer.id,
-      roundInCycle: nextRound,
-      phase: "mainAction",
-    };
+    return beginActionForPlayer(
+      {
+        ...appendLog(resolvedState, `进入第 ${nextRound} 实验轮次。`),
+        activePlayerId: nextStartingPlayer.id,
+        startingPlayerId: nextStartingPlayer.id,
+        roundInCycle: nextRound,
+      },
+      nextStartingPlayer.id,
+    );
   }
 
-  return startNextCycle(discardAllHands(state), shuffle);
+  return startNextCycle(discardAllHands(resolvedState), shuffle);
 }

@@ -6,6 +6,7 @@ import type {
   GameState,
   Player,
   PlayerId,
+  PlayerStatus,
 } from "./types";
 import { advanceTurnFromReducer, finishGameIfResolved, type ShuffleFunction } from "./turnFlow";
 
@@ -145,11 +146,127 @@ function canGenerateCarbonDioxideAgainstAcid(
   );
 }
 
+function getOrderedStatuses(player: Player): PlayerStatus[] {
+  return [...player.statuses].sort((left, right) => left.createdAt - right.createdAt);
+}
+
+function enterNextStatusWindowOrMainAction(
+  state: GameState,
+  playerId: PlayerId,
+  afterCreatedAt: number,
+): GameState {
+  const player = getPlayer(state, playerId);
+
+  if (!player || player.eliminated) {
+    return state;
+  }
+
+  const nextStatus = getOrderedStatuses(player).find((status) => status.createdAt > afterCreatedAt);
+
+  if (!nextStatus) {
+    return {
+      ...state,
+      phase: "mainAction",
+      pendingStatusHandling: undefined,
+    };
+  }
+
+  return appendLog(
+    {
+      ...state,
+      phase: "statusWindow",
+      pendingStatusHandling: {
+        playerId,
+        statusInstanceId: nextStatus.id,
+      },
+    },
+    `${player.name} 开始处理 ${nextStatus.statusId}。`,
+  );
+}
+
+function addSo2LeakStatus(
+  state: GameState,
+  targetPlayerId: PlayerId,
+  sourcePlayerId: PlayerId,
+): GameState {
+  const target = getPlayer(state, targetPlayerId);
+
+  if (!target) {
+    return state;
+  }
+
+  const existingStatus = target.statuses.find((status) => status.statusId === "SO2_LEAK");
+
+  if (existingStatus) {
+    return appendLog(state, `${target.name} 的 SO2_LEAK 已刷新/重复施加。`);
+  }
+
+  const status: PlayerStatus = {
+    id: `status_${String(state.log.length + 1).padStart(3, "0")}_${target.id}_SO2_LEAK`,
+    statusId: "SO2_LEAK",
+    sourcePlayerId,
+    createdAt: state.log.length + 1,
+  };
+
+  return appendLog(
+    replacePlayer(state, target.id, {
+      ...target,
+      statuses: [...target.statuses, status],
+    }),
+    `${target.name} 获得 SO2_LEAK。`,
+  );
+}
+
+function removeStatusFromPlayer(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+): GameState {
+  const player = getPlayer(state, playerId);
+
+  if (!player) {
+    return state;
+  }
+
+  return replacePlayer(state, playerId, {
+    ...player,
+    statuses: player.statuses.filter((status) => status.id !== statusInstanceId),
+  });
+}
+
+function playSulfurDioxideCard(
+  state: GameState,
+  actor: Player,
+  target: Player,
+  cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
+): GameState {
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
+
+  if (!withCardDiscarded) {
+    return state;
+  }
+
+  const withStatus = addSo2LeakStatus(withCardDiscarded, target.id, actor.id);
+
+  const resolved = appendLog(
+    {
+      ...withStatus,
+      phase: "mainAction",
+      pendingResponse: undefined,
+    },
+    `${actor.name} 打出 SO2，使 ${target.name} 获得 SO2_LEAK；不造成即时伤害。`,
+  );
+
+  return advanceTurnFromReducer(resolved, shuffle);
+}
+
 export function playMainActionCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
   targetPlayerId: PlayerId | undefined,
+  shuffle: ShuffleFunction,
 ): GameState {
   const actor = getPlayer(state, playerId);
   const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
@@ -167,10 +284,16 @@ export function playMainActionCard(
     !actor.hand.includes(cardInstanceId) ||
     !definition ||
     definition.type !== "substance" ||
-    !definition.allowedTimings.includes("main-action") ||
-    definition.baseDamage !== 1 ||
-    !damageKind
+    !definition.allowedTimings.includes("main-action")
   ) {
+    return state;
+  }
+
+  if (definition.id === "substance_so2") {
+    return playSulfurDioxideCard(state, actor, target, cardInstanceId, shuffle);
+  }
+
+  if (definition.baseDamage !== 1 || !damageKind) {
     return state;
   }
 
@@ -196,6 +319,113 @@ export function playMainActionCard(
     },
     `${actor.name} 打出 ${definition.name}，对 ${target.name} 造成 1 点${damageKind === "acid" ? "酸性" : "碱性"}伤害，等待响应。`,
   );
+}
+
+export function handleStatusWithCard(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+  cardInstanceId: CardInstanceId,
+): GameState {
+  const pendingStatusHandling = state.pendingStatusHandling;
+  const player = getPlayer(state, playerId);
+  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
+  const definition = getDefinitionForCard(state, cardInstanceId);
+
+  if (
+    state.phase !== "statusWindow" ||
+    !pendingStatusHandling ||
+    pendingStatusHandling.playerId !== playerId ||
+    pendingStatusHandling.statusInstanceId !== statusInstanceId ||
+    state.activePlayerId !== playerId ||
+    !player ||
+    player.eliminated ||
+    !status ||
+    status.statusId !== "SO2_LEAK" ||
+    !player.hand.includes(cardInstanceId) ||
+    !definition ||
+    !definition.allowedTimings.includes("status-window") ||
+    !definition.tags.includes("alkaline-absorb")
+  ) {
+    return state;
+  }
+
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
+
+  if (!withCardDiscarded) {
+    return state;
+  }
+
+  const withStatusRemoved = removeStatusFromPlayer(withCardDiscarded, player.id, status.id);
+  const resolved = appendLog(
+    {
+      ...withStatusRemoved,
+      pendingStatusHandling: undefined,
+    },
+    `${player.name} 使用 ${definition.name} 碱性吸收，处理 SO2 泄漏。`,
+  );
+
+  return enterNextStatusWindowOrMainAction(resolved, player.id, status.createdAt);
+}
+
+export function passStatusHandling(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+  shuffle: ShuffleFunction,
+): GameState {
+  const pendingStatusHandling = state.pendingStatusHandling;
+  const player = getPlayer(state, playerId);
+  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
+
+  if (
+    state.phase !== "statusWindow" ||
+    !pendingStatusHandling ||
+    pendingStatusHandling.playerId !== playerId ||
+    pendingStatusHandling.statusInstanceId !== statusInstanceId ||
+    state.activePlayerId !== playerId ||
+    !player ||
+    player.eliminated ||
+    !status ||
+    status.statusId !== "SO2_LEAK"
+  ) {
+    return state;
+  }
+
+  const withDamage = applyDamage(state, {
+    type: "DAMAGE",
+    sourceId: status.id,
+    targetPlayerId: player.id,
+    amount: 2,
+    damageKind: "status",
+    canRespond: false,
+  });
+  const damagedPlayer = getPlayer(withDamage, player.id);
+  const withLog = appendLog(
+    {
+      ...withDamage,
+      pendingStatusHandling: undefined,
+    },
+    `${player.name} 未处理 SO2_LEAK，受到 2 点状态伤害；SO2_LEAK 保留。`,
+  );
+
+  const gameOverChecked = finishGameIfResolved(withLog);
+  if (gameOverChecked.phase === "gameOver") {
+    return gameOverChecked;
+  }
+
+  if (damagedPlayer?.eliminated) {
+    return advanceTurnFromReducer(
+      {
+        ...gameOverChecked,
+        phase: "mainAction",
+        pendingStatusHandling: undefined,
+      },
+      shuffle,
+    );
+  }
+
+  return enterNextStatusWindowOrMainAction(gameOverChecked, player.id, status.createdAt);
 }
 
 export function respondWithCard(

@@ -90,6 +90,11 @@ export type PendingResponse = {
   effectsAfterPass: Effect[];
 };
 
+export type PendingStatusHandling = {
+  playerId: PlayerId;
+  statusInstanceId: string;
+};
+
 export type GamePhase =
   | "setup"
   | "cycleStart"
@@ -124,6 +129,7 @@ export type GameState = {
   discardPile: CardInstanceId[];
   baselineCardId?: CardInstanceId;
   pendingResponse?: PendingResponse;
+  pendingStatusHandling?: PendingStatusHandling;
   effectQueue: Effect[];
   log: GameLogEntry[];
   winnerPlayerId?: PlayerId;

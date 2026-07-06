@@ -484,7 +484,6 @@ describe("acid/base response window", () => {
       "substance_h2o_01",
       "substance_co2_01",
       "substance_na2co3_01",
-      "substance_so2_01",
       "event_lab_fire_01",
     ];
 
