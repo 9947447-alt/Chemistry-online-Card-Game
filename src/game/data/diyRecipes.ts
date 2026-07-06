@@ -90,6 +90,19 @@ export const diyRecipes = [
     displayName: "主动 DIY 生成的稀 KOH",
   },
   {
+    id: "diy_limewater_from_ca_2oh",
+    name: "Ca2+ + 2OH- -> 石灰水 Ca(OH)2",
+    requiredComponents: [
+      { definitionId: "ion_ca", count: 1 },
+      { definitionId: "ion_oh", count: 2 },
+    ],
+    requiresTarget: true,
+    result: "VIRTUAL_ATTACK",
+    damageKind: "base",
+    damageAmount: 1,
+    displayName: "主动 DIY 生成的石灰水 Ca(OH)2",
+  },
+  {
     id: "diy_so2_from_s_o_o",
     name: "S + O + O -> SO2",
     requiredComponents: [

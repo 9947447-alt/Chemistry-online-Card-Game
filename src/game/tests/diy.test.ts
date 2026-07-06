@@ -110,6 +110,12 @@ function putKohDIYComponentsInHand(state: GameState, playerId: PlayerId): GameSt
   return putCardInHand(nextState, playerId, "ion_oh_01");
 }
 
+function putLimewaterDIYComponentsInHand(state: GameState, playerId: PlayerId): GameState {
+  let nextState = putCardInHand(state, playerId, "ion_ca_01");
+  nextState = putCardInHand(nextState, playerId, "ion_oh_01");
+  return putCardInHand(nextState, playerId, "ion_oh_02");
+}
+
 function countCardDefinition(state: GameState, definitionId: string): number {
   return Object.values(state.cardInstances).filter(
     (cardInstance) => cardInstance.definitionId === definitionId,
@@ -212,6 +218,20 @@ function startKohAttackDIY(
     playerId,
     recipeId: "diy_koh_from_k_oh",
     componentCardInstanceIds: ["ion_k_01", "ion_oh_01"],
+    targetPlayerId,
+  });
+}
+
+function startLimewaterAttackDIY(
+  state: GameState,
+  playerId: PlayerId,
+  targetPlayerId: PlayerId,
+): GameState {
+  return engineReducer(state, {
+    type: "START_ACTIVE_DIY",
+    playerId,
+    recipeId: "diy_limewater_from_ca_2oh",
+    componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
     targetPlayerId,
   });
 }
@@ -616,6 +636,76 @@ describe("active DIY", () => {
     expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("cleans up exactly once after final third-round C + O + O DIY", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const finalActor = state.players[1];
+    state = addStatusForTest(state, finalActor.id, "FIRE");
+    state = putCo2ComponentsInHand(state, finalActor.id);
+    const initialCo2Count = countCardDefinition(state, "substance_co2");
+
+    state = {
+      ...state,
+      activePlayerId: finalActor.id,
+      roundInCycle: 3,
+    };
+
+    state = startCo2DIY(state, finalActor.id);
+
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.phase).toBe("mainAction");
+    expect(state.players[1].statuses.some((status) => status.statusId === "FIRE")).toBe(false);
+    expect(state.players.every((player) => player.usedDIYThisCycle === false)).toBe(true);
+    expect(state.log.filter((entry) => entry.message.includes("主动 DIY 生成 CO2 并移除 FIRE"))).toHaveLength(1);
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_c_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_o_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_o_02")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
+    expect(state.players[0].hand).toHaveLength(10);
+    expect(state.players[1].hand).toHaveLength(10);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("cleans up exactly once after final third-round S + O + O DIY", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const finalActor = state.players[1];
+    const target = state.players[0];
+    state = putSo2ComponentsInHand(state, finalActor.id);
+    const initialSo2Count = countCardDefinition(state, "substance_so2");
+
+    state = {
+      ...state,
+      activePlayerId: finalActor.id,
+      roundInCycle: 3,
+    };
+
+    state = startSo2DIY(state, finalActor.id, target.id);
+
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.phase).toBe("statusWindow");
+    expect(state.activePlayerId).toBe(target.id);
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.pendingStatusHandling?.playerId).toBe(target.id);
+    expect(state.pendingStatusHandling?.statusInstanceId).toBe(state.players[0].statuses[0].id);
+    expect(state.players[0].statuses).toHaveLength(1);
+    expect(state.players[0].statuses[0].statusId).toBe("SO2_LEAK");
+    expect(state.players[0].hp).toBe(10);
+    expect(state.players[1].usedDIYThisCycle).toBe(false);
+    expect(state.log.filter((entry) => entry.message.includes("主动 DIY 生成 SO2"))).toHaveLength(1);
+    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_s_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_o_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "element_o_02")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_so2")).toBe(initialSo2Count);
     expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
   });
@@ -1582,6 +1672,497 @@ describe("active DIY", () => {
     expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expectTotalCardInstances(passed);
     expectCardZonesToBeConsistent(passed);
+  });
+
+  it("starts Ca2+ + 2OH- active DIY as a virtual limewater base attack", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [player, target] = state.players;
+    state = putLimewaterDIYComponentsInHand(state, player.id);
+    const initialLimewaterCount = countCardDefinition(state, "substance_caoh2_limewater");
+
+    state = startLimewaterAttackDIY(state, player.id, target.id);
+
+    expect(state.phase).toBe("responseWindow");
+    expect(state.activePlayerId).toBe(player.id);
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expect(state.players[1].hp).toBe(10);
+    expect(state.pendingResponse?.responderId).toBe(target.id);
+    expect(state.pendingResponse?.sourceEffect).toMatchObject({
+      type: "DAMAGE",
+      source: {
+        kind: "virtual-diy",
+        recipeId: "diy_limewater_from_ca_2oh",
+        displayName: "主动 DIY 生成的石灰水 Ca(OH)2",
+      },
+      targetPlayerId: target.id,
+      amount: 1,
+      damageKind: "base",
+    });
+    expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+    expect(countCardDefinition(state, "substance_caoh2_limewater")).toBe(initialLimewaterCount);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("resolves limewater attack DIY through acid neutralization or pass", () => {
+    const responseCases: {
+      name: string;
+      responseCardId?: CardInstanceId;
+      expectedHp: number;
+      expectedLog: string;
+    }[] = [
+      {
+        name: "HCl neutralization",
+        responseCardId: "substance_hcl_dilute_01",
+        expectedHp: 10,
+        expectedLog: "中和",
+      },
+      {
+        name: "H2SO4 neutralization",
+        responseCardId: "substance_h2so4_dilute_01",
+        expectedHp: 10,
+        expectedLog: "中和",
+      },
+      {
+        name: "pass",
+        expectedHp: 9,
+        expectedLog: "放弃响应",
+      },
+    ];
+
+    for (const responseCase of responseCases) {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      const [player, target] = state.players;
+      state = putLimewaterDIYComponentsInHand(state, player.id);
+      if (responseCase.responseCardId) {
+        state = putCardInHand(state, target.id, responseCase.responseCardId);
+      }
+      const initialLimewaterCount = countCardDefinition(state, "substance_caoh2_limewater");
+      expectTotalCardInstances(state);
+      expectCardZonesToBeConsistent(state);
+
+      state = startLimewaterAttackDIY(state, player.id, target.id);
+      expect(state.phase).toBe("responseWindow");
+      expect(state.pendingResponse?.sourceEffect).toMatchObject({
+        type: "DAMAGE",
+        source: {
+          kind: "virtual-diy",
+          recipeId: "diy_limewater_from_ca_2oh",
+        },
+        amount: 1,
+        damageKind: "base",
+      });
+      expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+      expectCardZonesToBeConsistent(state);
+
+      if (responseCase.responseCardId) {
+        state = engineReducer(state, {
+          type: "RESPOND_WITH_CARD",
+          playerId: target.id,
+          cardInstanceId: responseCase.responseCardId,
+        });
+      } else {
+        state = engineReducer(state, {
+          type: "PASS_RESPONSE",
+          playerId: target.id,
+        });
+
+        const repeatedPass = engineReducer(state, {
+          type: "PASS_RESPONSE",
+          playerId: target.id,
+        });
+        expect(repeatedPass).toBe(state);
+      }
+
+      expect(state.pendingResponse).toBeUndefined();
+      expect(state.players[1].hp).toBe(responseCase.expectedHp);
+      expect(state.activePlayerId).toBe(target.id);
+      expect(state.roundInCycle).toBe(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+      expect(state.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+      if (responseCase.responseCardId) {
+        expect(state.discardPile.filter((cardId) => cardId === responseCase.responseCardId)).toHaveLength(1);
+      }
+      expect(countCardDefinition(state, "substance_caoh2_limewater")).toBe(initialLimewaterCount);
+      expect(state.log.some((entry) => entry.message.includes(responseCase.expectedLog))).toBe(true);
+      expectTotalCardInstances(state);
+      expectCardZonesToBeConsistent(state);
+    }
+  });
+
+  it("rejects carbonate, OH-, and base responses to limewater attack DIY without side effects", () => {
+    const responseCases: CardInstanceId[] = [
+      "ion_co3_01",
+      "substance_na2co3_01",
+      "ion_oh_03",
+      "substance_naoh_dilute_01",
+      "substance_koh_dilute_01",
+      "substance_caoh2_limewater_01",
+    ];
+
+    for (const responseCardId of responseCases) {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      const [player, target] = state.players;
+      state = putLimewaterDIYComponentsInHand(state, player.id);
+      state = putCardInHand(state, target.id, responseCardId);
+      state = startLimewaterAttackDIY(state, player.id, target.id);
+      expect(state.phase).toBe("responseWindow");
+      expect(state.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expectCardZonesToBeConsistent(state);
+
+      const rejected = engineReducer(state, {
+        type: "RESPOND_WITH_CARD",
+        playerId: target.id,
+        cardInstanceId: responseCardId,
+      });
+
+      expect(rejected).toBe(state);
+      expect(rejected.pendingResponse).toBe(state.pendingResponse);
+      expect(rejected.players[1].hp).toBe(10);
+      expect(rejected.players[1].hand).toContain(responseCardId);
+      expect(rejected.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+      expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+      expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+      expect(rejected.discardPile).not.toContain(responseCardId);
+      expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+      expectTotalCardInstances(rejected);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("rejects invalid limewater attack DIY calls without side effects", () => {
+    const createReadyLimewaterState = () => {
+      let state = createInitialGame({ shuffle: identityShuffle });
+      state = putLimewaterDIYComponentsInHand(state, state.players[0].id);
+      return state;
+    };
+
+    const cases: { name: string; state: GameState; action: Parameters<typeof engineReducer>[1] }[] = [];
+
+    const onlyOneHydroxide = createReadyLimewaterState();
+    cases.push({
+      name: "only one OH-",
+      state: onlyOneHydroxide,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: onlyOneHydroxide.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01"],
+        targetPlayerId: onlyOneHydroxide.players[1].id,
+      },
+    });
+
+    let extraHydroxide = createReadyLimewaterState();
+    extraHydroxide = putCardInHand(extraHydroxide, extraHydroxide.players[0].id, "ion_oh_03");
+    cases.push({
+      name: "extra third OH-",
+      state: extraHydroxide,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: extraHydroxide.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02", "ion_oh_03"],
+        targetPlayerId: extraHydroxide.players[1].id,
+      },
+    });
+
+    let extraCalcium = createReadyLimewaterState();
+    extraCalcium = putCardInHand(extraCalcium, extraCalcium.players[0].id, "ion_ca_02");
+    cases.push({
+      name: "extra Ca2+",
+      state: extraCalcium,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: extraCalcium.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_ca_02", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: extraCalcium.players[1].id,
+      },
+    });
+
+    const duplicateHydroxide = createReadyLimewaterState();
+    cases.push({
+      name: "duplicate OH- instance id",
+      state: duplicateHydroxide,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: duplicateHydroxide.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_01"],
+        targetPlayerId: duplicateHydroxide.players[1].id,
+      },
+    });
+
+    const missingCalcium = createReadyLimewaterState();
+    cases.push({
+      name: "missing Ca2+",
+      state: missingCalcium,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: missingCalcium.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_oh_01", "ion_oh_02"],
+        targetPlayerId: missingCalcium.players[1].id,
+      },
+    });
+
+    const mismatchedRecipe = createReadyLimewaterState();
+    cases.push({
+      name: "recipe id mismatch",
+      state: mismatchedRecipe,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: mismatchedRecipe.players[0].id,
+        recipeId: "diy_naoh_from_na_oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: mismatchedRecipe.players[1].id,
+      },
+    });
+
+    for (const targetCase of [
+      { name: "self target", targetPlayerId: "player_1" },
+      { name: "missing target", targetPlayerId: undefined },
+      { name: "unknown target", targetPlayerId: "player_missing" },
+    ] satisfies { name: string; targetPlayerId?: string }[]) {
+      const state = createReadyLimewaterState();
+      cases.push({
+        name: targetCase.name,
+        state,
+        action: {
+          type: "START_ACTIVE_DIY",
+          playerId: state.players[0].id,
+          recipeId: "diy_limewater_from_ca_2oh",
+          componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+          targetPlayerId: targetCase.targetPlayerId,
+        },
+      });
+    }
+
+    let eliminatedTarget = createReadyLimewaterState();
+    eliminatedTarget = updatePlayer(eliminatedTarget, eliminatedTarget.players[1].id, (player) => ({
+      ...player,
+      hp: 0,
+      eliminated: true,
+    }));
+    cases.push({
+      name: "eliminated target",
+      state: eliminatedTarget,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: eliminatedTarget.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: eliminatedTarget.players[1].id,
+      },
+    });
+
+    let nonActive = createInitialGame({ shuffle: identityShuffle });
+    nonActive = putLimewaterDIYComponentsInHand(nonActive, nonActive.players[1].id);
+    cases.push({
+      name: "non-active player",
+      state: nonActive,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: nonActive.players[1].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: nonActive.players[0].id,
+      },
+    });
+
+    let statusWindow = createReadyLimewaterState();
+    statusWindow = { ...statusWindow, phase: "statusWindow" };
+    cases.push({
+      name: "statusWindow",
+      state: statusWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: statusWindow.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: statusWindow.players[1].id,
+      },
+    });
+
+    let responseWindow = createReadyLimewaterState();
+    responseWindow = { ...responseWindow, phase: "responseWindow" };
+    cases.push({
+      name: "responseWindow",
+      state: responseWindow,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: responseWindow.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: responseWindow.players[1].id,
+      },
+    });
+
+    let gameOver = createReadyLimewaterState();
+    gameOver = { ...gameOver, phase: "gameOver", winnerPlayerId: gameOver.players[0].id };
+    cases.push({
+      name: "gameOver",
+      state: gameOver,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: gameOver.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: gameOver.players[1].id,
+      },
+    });
+
+    let usedThisCycle = createReadyLimewaterState();
+    usedThisCycle = updatePlayer(usedThisCycle, usedThisCycle.players[0].id, (player) => ({
+      ...player,
+      usedDIYThisCycle: true,
+    }));
+    cases.push({
+      name: "used DIY this cycle",
+      state: usedThisCycle,
+      action: {
+        type: "START_ACTIVE_DIY",
+        playerId: usedThisCycle.players[0].id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_01", "ion_oh_01", "ion_oh_02"],
+        targetPlayerId: usedThisCycle.players[1].id,
+      },
+    });
+
+    for (const { state, action } of cases) {
+      expectCardZonesToBeConsistent(state);
+      const rejected = engineReducer(state, action);
+      expect(rejected).toBe(state);
+      expectNoCoreSideEffects(rejected, state);
+      expect(rejected.pendingResponse).toBe(state.pendingResponse);
+      expect(rejected.discardPile).not.toContain("ion_ca_01");
+      expect(rejected.discardPile).not.toContain("ion_oh_01");
+      expect(rejected.discardPile).not.toContain("ion_oh_02");
+      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 Ca2+ + 2OH-"))).toBe(false);
+      expectTotalCardInstances(rejected);
+      expectCardZonesToBeConsistent(rejected);
+    }
+  });
+
+  it("cleans up exactly once after final third-round limewater attack DIY responses", () => {
+    let neutralized = createInitialGame({ shuffle: identityShuffle });
+    const neutralizedActor = neutralized.players[1];
+    const neutralizedTarget = neutralized.players[0];
+    neutralized = putLimewaterDIYComponentsInHand(neutralized, neutralizedActor.id);
+    neutralized = putCardInHand(neutralized, neutralizedTarget.id, "substance_hcl_dilute_01");
+    neutralized = {
+      ...neutralized,
+      activePlayerId: neutralizedActor.id,
+      roundInCycle: 3,
+    };
+
+    neutralized = startLimewaterAttackDIY(neutralized, neutralizedActor.id, neutralizedTarget.id);
+    expectCardZonesToBeConsistent(neutralized);
+    neutralized = engineReducer(neutralized, {
+      type: "RESPOND_WITH_CARD",
+      playerId: neutralizedTarget.id,
+      cardInstanceId: "substance_hcl_dilute_01",
+    });
+
+    expect(neutralized.pendingResponse).toBeUndefined();
+    expect(neutralized.players[0].hp).toBe(10);
+    expect(neutralized.cycleNumber).toBe(2);
+    expect(neutralized.roundInCycle).toBe(1);
+    expect(neutralized.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+    expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
+    expectTotalCardInstances(neutralized);
+    expectCardZonesToBeConsistent(neutralized);
+
+    let passed = createInitialGame({ shuffle: identityShuffle });
+    const passedActor = passed.players[1];
+    const passedTarget = passed.players[0];
+    passed = putLimewaterDIYComponentsInHand(passed, passedActor.id);
+    passed = {
+      ...passed,
+      activePlayerId: passedActor.id,
+      roundInCycle: 3,
+    };
+
+    passed = startLimewaterAttackDIY(passed, passedActor.id, passedTarget.id);
+    expectCardZonesToBeConsistent(passed);
+    passed = engineReducer(passed, {
+      type: "PASS_RESPONSE",
+      playerId: passedTarget.id,
+    });
+
+    expect(passed.pendingResponse).toBeUndefined();
+    expect(passed.players[0].hp).toBe(9);
+    expect(passed.cycleNumber).toBe(2);
+    expect(passed.roundInCycle).toBe(1);
+    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(passed.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+    expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+    expectTotalCardInstances(passed);
+    expectCardZonesToBeConsistent(passed);
+  });
+
+  it("eliminates a 1 hp target who passes a limewater attack DIY and rejects later public actions", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [actor, target] = state.players;
+    state = putLimewaterDIYComponentsInHand(state, actor.id);
+    state = updatePlayer(state, target.id, (player) => ({ ...player, hp: 1 }));
+
+    state = startLimewaterAttackDIY(state, actor.id, target.id);
+    state = engineReducer(state, {
+      type: "PASS_RESPONSE",
+      playerId: target.id,
+    });
+
+    expect(state.pendingResponse).toBeUndefined();
+    expect(state.players[1]).toMatchObject({ hp: 0, eliminated: true });
+    expect(state.phase).toBe("gameOver");
+    expect(state.winnerPlayerId).toBe(actor.id);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
+    expect(state.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+
+    const actions: Parameters<typeof engineReducer>[1][] = [
+      {
+        type: "PLAY_CARD",
+        playerId: actor.id,
+        cardInstanceId: "substance_hcl_dilute_01",
+        targetPlayerId: target.id,
+      },
+      { type: "RESPOND_WITH_CARD", playerId: target.id, cardInstanceId: "substance_hcl_dilute_01" },
+      { type: "PASS_RESPONSE", playerId: target.id },
+      {
+        type: "HANDLE_STATUS_WITH_CARD",
+        playerId: target.id,
+        statusInstanceId: "status_missing",
+        cardInstanceId: "substance_h2o_01",
+      },
+      { type: "PASS_STATUS_HANDLING", playerId: target.id, statusInstanceId: "status_missing" },
+      { type: "PASS_ACTION", playerId: actor.id },
+      {
+        type: "START_ACTIVE_DIY",
+        playerId: actor.id,
+        recipeId: "diy_limewater_from_ca_2oh",
+        componentCardInstanceIds: ["ion_ca_02", "ion_oh_03", "ion_oh_04"],
+        targetPlayerId: target.id,
+      },
+    ];
+
+    for (const action of actions) {
+      const rejected = engineReducer(state, action);
+      expect(rejected).toBe(state);
+      expectCardZonesToBeConsistent(rejected);
+    }
   });
 
   it("eliminates a 1 hp target who passes an acid attack DIY and rejects later public actions", () => {
