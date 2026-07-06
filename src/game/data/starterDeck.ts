@@ -6,7 +6,7 @@ export type StarterDeckEntry = {
 };
 
 export const starterDeck = [
-  { definitionId: "element_o", count: 6 },
+  { definitionId: "element_o", count: 4 },
   { definitionId: "element_c", count: 3 },
   { definitionId: "element_s", count: 3 },
   { definitionId: "ion_h", count: 5 },
@@ -19,6 +19,7 @@ export const starterDeck = [
   { definitionId: "ion_ca", count: 2 },
   { definitionId: "substance_h2o", count: 3 },
   { definitionId: "substance_co2", count: 4 },
+  { definitionId: "substance_o2", count: 2 },
   { definitionId: "substance_so2", count: 4 },
   { definitionId: "substance_hcl_dilute", count: 3 },
   { definitionId: "substance_h2so4_dilute", count: 2 },

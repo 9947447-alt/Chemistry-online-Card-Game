@@ -150,6 +150,12 @@ function getOrderedStatuses(player: Player): PlayerStatus[] {
   return [...player.statuses].sort((left, right) => left.createdAt - right.createdAt);
 }
 
+function hasRecoveryBlockingStatus(player: Player): boolean {
+  return player.statuses.some(
+    (status) => status.statusId === "SO2_LEAK" || status.statusId === "FIRE",
+  );
+}
+
 function enterNextStatusWindowOrMainAction(
   state: GameState,
   playerId: PlayerId,
@@ -289,6 +295,49 @@ function playLabFireCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
+function playOxygenRecoveryCard(
+  state: GameState,
+  actor: Player,
+  cardInstanceId: CardInstanceId,
+  targetPlayerId: PlayerId | undefined,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (
+    targetPlayerId !== actor.id ||
+    actor.hp >= actor.maxHp ||
+    hasRecoveryBlockingStatus(actor)
+  ) {
+    return state;
+  }
+
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
+
+  if (!withCardDiscarded) {
+    return state;
+  }
+
+  const updatedActor = getPlayer(withCardDiscarded, actor.id);
+  if (!updatedActor) {
+    return state;
+  }
+
+  const healedHp = Math.min(actor.maxHp, actor.hp + 2);
+  const withHealing = replacePlayer(withCardDiscarded, actor.id, {
+    ...updatedActor,
+    hp: healedHp,
+  });
+  const resolved = appendLog(
+    {
+      ...withHealing,
+      phase: "mainAction",
+      pendingResponse: undefined,
+    },
+    `${actor.name} 使用 O2，回复 ${healedHp - actor.hp} HP。`,
+  );
+
+  return advanceTurnFromReducer(resolved, shuffle);
+}
+
 export function playMainActionCard(
   state: GameState,
   playerId: PlayerId,
@@ -306,13 +355,18 @@ export function playMainActionCard(
     playerId !== state.activePlayerId ||
     !actor ||
     actor.eliminated ||
-    !target ||
-    target.id === actor.id ||
-    target.eliminated ||
     !actor.hand.includes(cardInstanceId) ||
     !definition ||
     !definition.allowedTimings.includes("main-action")
   ) {
+    return state;
+  }
+
+  if (definition.id === "substance_o2") {
+    return playOxygenRecoveryCard(state, actor, cardInstanceId, targetPlayerId, shuffle);
+  }
+
+  if (!target || target.id === actor.id || target.eliminated) {
     return state;
   }
 

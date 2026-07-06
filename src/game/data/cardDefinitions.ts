@@ -124,6 +124,16 @@ export const cardDefinitions = [
     rulesText: "MVP 0 中仅用于火情状态处理窗口。",
   },
   {
+    id: "substance_o2",
+    name: "O2",
+    type: "substance",
+    formula: "O2",
+    elements: ["O"],
+    tags: [],
+    allowedTimings: ["main-action"],
+    rulesText: "MVP 0 中仅可在主行动对自己使用，回复 2 HP。",
+  },
+  {
     id: "substance_so2",
     name: "SO2",
     type: "substance",
