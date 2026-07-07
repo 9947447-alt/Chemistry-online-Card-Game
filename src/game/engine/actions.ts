@@ -2,6 +2,7 @@ import type { CardInstanceId, PlayerId } from "./types";
 
 export type GameAction =
   | { type: "PASS_ACTION"; playerId: PlayerId }
+  | { type: "PLAY_REFERENCE_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | {
       type: "PLAY_CARD";
       playerId: PlayerId;

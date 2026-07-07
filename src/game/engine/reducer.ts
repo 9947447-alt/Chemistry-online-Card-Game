@@ -7,6 +7,7 @@ import {
   passResponse,
   passStatusHandling,
   playMainActionCard,
+  playReferenceCard,
   respondWithCard,
 } from "./resolution";
 import { advanceTurnFromReducer } from "./turnFlow";
@@ -34,6 +35,8 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
         action.targetPlayerId,
         fisherYatesShuffle,
       );
+    case "PLAY_REFERENCE_CARD":
+      return playReferenceCard(state, action.playerId, action.cardInstanceId, fisherYatesShuffle);
     case "RESPOND_WITH_CARD":
       return respondWithCard(state, action.playerId, action.cardInstanceId, fisherYatesShuffle);
     case "PASS_RESPONSE":

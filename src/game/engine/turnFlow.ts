@@ -142,6 +142,7 @@ function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
     roundInCycle: 1,
     activePlayerId: nextStartingPlayer.id,
     startingPlayerId: nextStartingPlayer.id,
+    tableReference: undefined,
   };
 
   nextState = appendLog(nextState, `进入第 ${nextState.cycleNumber} 实验周期。`);

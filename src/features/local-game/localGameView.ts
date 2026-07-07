@@ -1,5 +1,6 @@
 import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
+import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -83,14 +84,78 @@ export function describePendingStatusHandling(state: GameState) {
   return `${player.name} 处理 ${status.statusId} (${status.id})`;
 }
 
+export function describeTableReference(state: GameState) {
+  const tableReference = state.tableReference;
+
+  if (!tableReference) {
+    return "暂无场面基准牌";
+  }
+
+  return `${tableReference.displayName} · ${getPlayerName(state, tableReference.playedBy)} · 第 ${tableReference.cycle} 周期 / 第 ${tableReference.round} 轮`;
+}
+
 export function isMainActionCard(definition: CardDefinition) {
   return definition.allowedTimings.includes("main-action");
 }
 
+function hasRecoveryBlockingStatus(player: Player) {
+  return player.statuses.some(
+    (status) => status.statusId === "SO2_LEAK" || status.statusId === "FIRE",
+  );
+}
+
+export function canExecuteMainActionEffect(
+  state: GameState,
+  player: Player,
+  cardInstanceId: CardInstanceId,
+) {
+  const definition = getCardDefinition(state, cardInstanceId);
+  const hasOpponentTarget = getOpponentTargets(state, player.id).length > 0;
+
+  if (
+    !definition ||
+    !definition.allowedTimings.includes("main-action") ||
+    !canPlayCardAgainstTableReference(state, player.id, cardInstanceId)
+  ) {
+    return false;
+  }
+
+  if (definition.id === "substance_o2") {
+    return player.hp < player.maxHp && !hasRecoveryBlockingStatus(player);
+  }
+
+  if (definition.id === "substance_so2" || definition.id === "event_lab_fire") {
+    return hasOpponentTarget;
+  }
+
+  return definition.type === "substance" && definition.baseDamage === 1 && hasOpponentTarget;
+}
+
+export function canPlayAgainstCurrentTableReference(
+  state: GameState,
+  player: Player,
+  cardInstanceId: CardInstanceId,
+) {
+  return canPlayCardAgainstTableReference(state, player.id, cardInstanceId);
+}
+
+export function describeTableReferenceAssociation(
+  state: GameState,
+  player: Player,
+  cardInstanceId: CardInstanceId,
+) {
+  if (!state.tableReference) {
+    return "可建立首张基准牌";
+  }
+
+  return canPlayAgainstCurrentTableReference(state, player, cardInstanceId)
+    ? "可关联出牌"
+    : "与当前基准牌不关联";
+}
+
 export function getMainActionCards(state: GameState, player: Player) {
   return player.hand.filter((cardInstanceId) => {
-    const definition = getCardDefinition(state, cardInstanceId);
-    return Boolean(definition && isMainActionCard(definition));
+    return canExecuteMainActionEffect(state, player, cardInstanceId);
   });
 }
 

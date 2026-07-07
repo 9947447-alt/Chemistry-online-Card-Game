@@ -2,6 +2,7 @@ import type { GameState } from "../../../game/engine/types";
 import {
   describePendingResponse,
   describePendingStatusHandling,
+  describeTableReference,
   getPlayerName,
   getTotalCardCount,
 } from "../localGameView";
@@ -66,6 +67,10 @@ export function GameSummary({ game, error, onReset }: GameSummaryProps) {
       <div className="state-readout">
         <strong>pendingStatusHandling</strong>
         <span>{describePendingStatusHandling(game)}</span>
+      </div>
+      <div className="state-readout">
+        <strong>tableReference</strong>
+        <span>{describeTableReference(game)}</span>
       </div>
       <div className="summary-actions">
         {error ? <p className="error-banner">{error}</p> : <p className="quiet-banner">等待操作</p>}

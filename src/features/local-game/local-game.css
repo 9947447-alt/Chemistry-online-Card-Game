@@ -173,6 +173,84 @@ dd {
   grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
 }
 
+.action-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.action-card {
+  align-items: start;
+  background: #fbfcfd;
+  border: 1px solid #ccd6de;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  padding: 10px;
+}
+
+.action-card:hover {
+  border-color: #38766b;
+}
+
+.action-card.is-selected {
+  background: #eaf5f1;
+  border-color: #2d6b5f;
+  box-shadow: inset 0 0 0 1px #2d6b5f;
+}
+
+.action-card > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.action-card strong {
+  color: #17212b;
+  font-size: 0.96rem;
+  overflow-wrap: anywhere;
+}
+
+.action-card span {
+  color: #5d6e7a;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.action-card .association-line {
+  border-radius: 6px;
+  display: inline-flex;
+  font-weight: 800;
+  justify-self: start;
+  padding: 3px 6px;
+}
+
+.association-line.is-allowed {
+  background: #e6f4ee;
+  color: #226048;
+}
+
+.association-line.is-blocked {
+  background: #fdeaea;
+  color: #9c2323;
+}
+
+.action-card__actions {
+  align-self: stretch;
+  display: grid;
+  gap: 8px;
+}
+
+.action-card__actions .primary-button {
+  width: 100%;
+}
+
+.compact-field {
+  grid-column: 1 / -1;
+}
+
 .debug-card {
   background: #fbfcfd;
   border: 1px solid #ccd6de;
@@ -367,5 +445,9 @@ select {
   .player-panel__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .action-card {
+    grid-template-columns: 1fr;
   }
 }

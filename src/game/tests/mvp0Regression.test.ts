@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialGame } from "../engine/createInitialGame";
+import type { GameAction } from "../engine/actions";
 import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
@@ -264,13 +265,14 @@ describe("MVP 0 engine regression", () => {
     expect(state.winnerPlayerId).toBe(state.players[0].id);
     expectCardZonesToBeConsistent(state);
 
-    const actions = [
+    const actions: GameAction[] = [
       {
         type: "PLAY_CARD",
         playerId: state.players[0].id,
         cardInstanceId: "substance_naoh_dilute_01",
         targetPlayerId: state.players[1].id,
       },
+      { type: "PLAY_REFERENCE_CARD", playerId: state.players[0].id, cardInstanceId: "element_o_01" },
       { type: "RESPOND_WITH_CARD", playerId: state.players[1].id, cardInstanceId: "substance_naoh_dilute_01" },
       { type: "PASS_RESPONSE", playerId: state.players[1].id },
       {
@@ -280,8 +282,15 @@ describe("MVP 0 engine regression", () => {
         cardInstanceId: "substance_h2o_01",
       },
       { type: "PASS_STATUS_HANDLING", playerId: state.players[1].id, statusInstanceId: "status_missing" },
+      {
+        type: "START_ACTIVE_DIY",
+        playerId: state.players[0].id,
+        recipeId: "diy_hcl_from_h_cl",
+        componentCardInstanceIds: ["ion_h_01", "ion_cl_01"],
+        targetPlayerId: state.players[1].id,
+      },
       { type: "PASS_ACTION", playerId: state.players[0].id },
-    ] as const;
+    ];
 
     for (const action of actions) {
       const rejected = engineReducer(state, action);

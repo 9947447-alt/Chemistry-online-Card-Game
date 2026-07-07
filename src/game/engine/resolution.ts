@@ -1,4 +1,5 @@
 import { cardDefinitions } from "../data/cardDefinitions";
+import { canPlayCardAgainstTableReference } from "./cardAssociation";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -37,6 +38,25 @@ function getDefinitionForCard(
 ): CardDefinition | undefined {
   const instance = state.cardInstances[cardInstanceId];
   return instance ? definitionsById.get(instance.definitionId) : undefined;
+}
+
+function setTableReference(
+  state: GameState,
+  actor: Player,
+  cardInstanceId: CardInstanceId,
+  definition: CardDefinition,
+): GameState {
+  return {
+    ...state,
+    tableReference: {
+      cardInstanceId,
+      definitionId: definition.id,
+      displayName: definition.name,
+      playedBy: actor.id,
+      cycle: state.cycleNumber,
+      round: state.roundInCycle,
+    },
+  };
 }
 
 function getCardHolder(state: GameState, cardInstanceId: CardInstanceId): Player | undefined {
@@ -275,6 +295,7 @@ function playSulfurDioxideCard(
   state: GameState,
   actor: Player,
   target: Player,
+  definition: CardDefinition,
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
@@ -287,11 +308,16 @@ function playSulfurDioxideCard(
   const withStatus = addStatusIfMissing(withCardDiscarded, target.id, actor.id, "SO2_LEAK");
 
   const resolved = appendLog(
-    {
-      ...withStatus,
-      phase: "mainAction",
-      pendingResponse: undefined,
-    },
+    setTableReference(
+      {
+        ...withStatus,
+        phase: "mainAction",
+        pendingResponse: undefined,
+      },
+      actor,
+      cardInstanceId,
+      definition,
+    ),
     `${actor.name} 打出 SO2，使 ${target.name} 获得 SO2_LEAK；不造成即时伤害。`,
   );
 
@@ -302,6 +328,7 @@ function playLabFireCard(
   state: GameState,
   actor: Player,
   target: Player,
+  definition: CardDefinition,
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
@@ -314,11 +341,16 @@ function playLabFireCard(
   const withStatus = addStatusIfMissing(withCardDiscarded, target.id, actor.id, "FIRE");
 
   const resolved = appendLog(
-    {
-      ...withStatus,
-      phase: "mainAction",
-      pendingResponse: undefined,
-    },
+    setTableReference(
+      {
+        ...withStatus,
+        phase: "mainAction",
+        pendingResponse: undefined,
+      },
+      actor,
+      cardInstanceId,
+      definition,
+    ),
     `${actor.name} 打出实验台起火，使 ${target.name} 获得 FIRE；不造成即时伤害。`,
   );
 
@@ -328,6 +360,7 @@ function playLabFireCard(
 function playOxygenRecoveryCard(
   state: GameState,
   actor: Player,
+  definition: CardDefinition,
   cardInstanceId: CardInstanceId,
   targetPlayerId: PlayerId | undefined,
   shuffle: ShuffleFunction,
@@ -357,12 +390,61 @@ function playOxygenRecoveryCard(
     hp: healedHp,
   });
   const resolved = appendLog(
-    {
-      ...withHealing,
-      phase: "mainAction",
-      pendingResponse: undefined,
-    },
+    setTableReference(
+      {
+        ...withHealing,
+        phase: "mainAction",
+        pendingResponse: undefined,
+      },
+      actor,
+      cardInstanceId,
+      definition,
+    ),
     `${actor.name} 使用 O2，回复 ${healedHp - actor.hp} HP。`,
+  );
+
+  return advanceTurnFromReducer(resolved, shuffle);
+}
+
+export function playReferenceCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
+): GameState {
+  const actor = getPlayer(state, playerId);
+  const definition = getDefinitionForCard(state, cardInstanceId);
+
+  if (
+    state.phase !== "mainAction" ||
+    playerId !== state.activePlayerId ||
+    !actor ||
+    actor.eliminated ||
+    !actor.hand.includes(cardInstanceId) ||
+    !definition ||
+    !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
+  ) {
+    return state;
+  }
+
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
+
+  if (!withCardDiscarded) {
+    return state;
+  }
+
+  const resolved = appendLog(
+    setTableReference(
+      {
+        ...withCardDiscarded,
+        phase: "mainAction",
+        pendingResponse: undefined,
+      },
+      actor,
+      cardInstanceId,
+      definition,
+    ),
+    `${actor.name} 普通出牌 ${definition.name}，作为场面基准；不触发原有效果。`,
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
@@ -387,13 +469,14 @@ export function playMainActionCard(
     actor.eliminated ||
     !actor.hand.includes(cardInstanceId) ||
     !definition ||
-    !definition.allowedTimings.includes("main-action")
+    !definition.allowedTimings.includes("main-action") ||
+    !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
   ) {
     return state;
   }
 
   if (definition.id === "substance_o2") {
-    return playOxygenRecoveryCard(state, actor, cardInstanceId, targetPlayerId, shuffle);
+    return playOxygenRecoveryCard(state, actor, definition, cardInstanceId, targetPlayerId, shuffle);
   }
 
   if (!target || target.id === actor.id || target.eliminated) {
@@ -401,11 +484,11 @@ export function playMainActionCard(
   }
 
   if (definition.id === "substance_so2") {
-    return playSulfurDioxideCard(state, actor, target, cardInstanceId, shuffle);
+    return playSulfurDioxideCard(state, actor, target, definition, cardInstanceId, shuffle);
   }
 
   if (definition.id === "event_lab_fire") {
-    return playLabFireCard(state, actor, target, cardInstanceId, shuffle);
+    return playLabFireCard(state, actor, target, definition, cardInstanceId, shuffle);
   }
 
   if (definition.type !== "substance") {
@@ -429,16 +512,21 @@ export function playMainActionCard(
   };
 
   return appendLog(
-    {
-      ...state,
-      phase: "responseWindow",
-      pendingResponse: {
-        responderId: target.id,
-        sourceEffect,
-        chainDepth: 1,
-        effectsAfterPass: [sourceEffect],
+    setTableReference(
+      {
+        ...state,
+        phase: "responseWindow",
+        pendingResponse: {
+          responderId: target.id,
+          sourceEffect,
+          chainDepth: 1,
+          effectsAfterPass: [sourceEffect],
+        },
       },
-    },
+      actor,
+      cardInstanceId,
+      definition,
+    ),
     `${actor.name} 打出 ${definition.name}，对 ${target.name} 造成 1 点${damageKind === "acid" ? "酸性" : "碱性"}伤害，等待响应。`,
   );
 }

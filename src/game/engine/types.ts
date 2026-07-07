@@ -17,6 +17,11 @@ export type Tag =
   | "neutralizer"
   | "fire-source";
 
+export type ElementCategory =
+  | "nonmetal"
+  | "metal"
+  | "halogen";
+
 export type CardDefinitionId = string;
 export type CardInstanceId = string;
 export type PlayerId = string;
@@ -32,6 +37,7 @@ export type CardDefinition = {
   type: CardType;
   formula?: string;
   elements?: string[];
+  elementCategory?: ElementCategory;
   ionsProvided?: string[];
   tags: Tag[];
   baseDamage?: number;
@@ -131,6 +137,15 @@ export type GameLogEntry = {
   message: string;
 };
 
+export type TableReference = {
+  cardInstanceId: CardInstanceId;
+  definitionId: CardDefinitionId;
+  displayName: string;
+  playedBy: PlayerId;
+  cycle: number;
+  round: 1 | 2 | 3;
+};
+
 export type GameSettings = {
   playersPerGame: 2;
   handSize: number;
@@ -148,7 +163,7 @@ export type GameState = {
   cardInstances: Record<CardInstanceId, CardInstance>;
   deck: CardInstanceId[];
   discardPile: CardInstanceId[];
-  baselineCardId?: CardInstanceId;
+  tableReference?: TableReference;
   pendingResponse?: PendingResponse;
   pendingStatusHandling?: PendingStatusHandling;
   effectQueue: Effect[];
