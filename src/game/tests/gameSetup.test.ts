@@ -15,10 +15,11 @@ describe("createInitialGame", () => {
   it("leaves the correct number of cards in the deck", () => {
     const state = createInitialGame({ shuffle: identityShuffle });
 
-    expect(starterDeckSize).toBe(70);
-    expect(state.deck).toHaveLength(50);
+    expect(starterDeckSize).toBe(68);
+    expect(state.deck).toHaveLength(48);
     expect(state.discardPile).toHaveLength(0);
-    expect(Object.keys(state.cardInstances)).toHaveLength(70);
+    expect(Object.keys(state.cardInstances)).toHaveLength(starterDeckSize);
+    expect(Object.values(state.cardInstances).some((card) => card.definitionId === "event_lab_fire")).toBe(false);
     expectCardZonesToBeConsistent(state);
   });
 });

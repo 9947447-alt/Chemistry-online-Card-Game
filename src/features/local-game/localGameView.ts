@@ -124,7 +124,7 @@ export function canExecuteMainActionEffect(
     return player.hp < player.maxHp && !hasRecoveryBlockingStatus(player);
   }
 
-  if (definition.id === "substance_so2" || definition.id === "event_lab_fire") {
+  if (definition.id === "substance_so2") {
     return hasOpponentTarget;
   }
 

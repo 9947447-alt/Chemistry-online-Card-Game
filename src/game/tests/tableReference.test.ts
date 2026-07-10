@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { starterDeckSize } from "../data/starterDeck";
 import { identityShuffle } from "../../shared/random";
 import { createInitialGame } from "../engine/createInitialGame";
 import { areCardDefinitionsAssociated } from "../engine/cardAssociation";
@@ -27,15 +28,6 @@ const oxygenReference: NonNullable<GameState["tableReference"]> = {
   cardInstanceId: "element_o_01",
   definitionId: "element_o",
   displayName: "O",
-  playedBy: "player_1",
-  cycle: 1,
-  round: 1,
-};
-
-const labFireReference: NonNullable<GameState["tableReference"]> = {
-  cardInstanceId: "event_lab_fire_01",
-  definitionId: "event_lab_fire",
-  displayName: "实验台起火",
   playedBy: "player_1",
   cycle: 1,
   round: 1,
@@ -185,7 +177,7 @@ function expectDiscardedOnce(state: GameState, cardInstanceId: CardInstanceId): 
 }
 
 function expectTotalCardInstances(state: GameState): void {
-  expect(Object.keys(state.cardInstances)).toHaveLength(70);
+  expect(Object.keys(state.cardInstances)).toHaveLength(starterDeckSize);
 }
 
 describe("tableReference and reference card play", () => {
@@ -272,101 +264,19 @@ describe("tableReference and reference card play", () => {
     expectCardZonesToBeConsistent(rejectedEffect);
   });
 
-  it("allows HCl to execute its main action effect against lab fire tableReference", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
+  it("does not create lab fire card instances in the ordinary starter deck", () => {
+    const state = createInitialGame({ shuffle: identityShuffle });
+
+    expect(Object.values(state.cardInstances).some((card) => card.definitionId === "event_lab_fire")).toBe(false);
+    expect(state.deck.some((cardId) => cardId.startsWith("event_lab_fire"))).toBe(false);
+    expect(state.players.some((player) => player.hand.some((cardId) => cardId.startsWith("event_lab_fire")))).toBe(false);
+    expectTotalCardInstances(state);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("rejects ordinary play attempts with the role-only lab fire id without side effects", () => {
+    const state = createInitialGame({ shuffle: identityShuffle });
     const [player, target] = state.players;
-    state = putCardInHand(state, player.id, "substance_hcl_dilute_01");
-    state = { ...state, tableReference: labFireReference };
-
-    const resolved = playMainActionCard(
-      state,
-      player.id,
-      "substance_hcl_dilute_01",
-      target.id,
-    );
-
-    expect(resolved.phase).toBe("responseWindow");
-    expect(resolved.pendingResponse?.responderId).toBe(target.id);
-    expect(resolved.pendingResponse?.sourceEffect.source).toEqual({
-      kind: "card",
-      cardInstanceId: "substance_hcl_dilute_01",
-    });
-    expect(resolved.players[1].hp).toBe(10);
-    expect(resolved.discardPile).not.toContain("substance_hcl_dilute_01");
-    expectReference(resolved, "substance_hcl_dilute_01", player.id, "稀 HCl");
-    expectTotalCardInstances(resolved);
-    expectCardZonesToBeConsistent(resolved);
-  });
-
-  it("allows Na+ to be played as a reference card against lab fire tableReference", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
-    const [player, nextPlayer] = state.players;
-    state = putCardInHand(state, player.id, "ion_na_01");
-    state = { ...state, tableReference: labFireReference };
-
-    const resolved = playReferenceCard(state, player.id, "ion_na_01");
-
-    expect(resolved.phase).toBe("mainAction");
-    expect(resolved.activePlayerId).toBe(nextPlayer.id);
-    expectDiscardedOnce(resolved, "ion_na_01");
-    expectReference(resolved, "ion_na_01", player.id, "Na+");
-    expectTotalCardInstances(resolved);
-    expectCardZonesToBeConsistent(resolved);
-  });
-
-  it("allows O2 recovery to execute against lab fire tableReference", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
-    const [player, nextPlayer] = state.players;
-    state = putCardInHand(state, player.id, "substance_o2_01");
-    state = setHp(state, player.id, 7);
-    state = { ...state, tableReference: labFireReference };
-
-    const resolved = playMainActionCard(
-      state,
-      player.id,
-      "substance_o2_01",
-      player.id,
-    );
-
-    expect(resolved.phase).toBe("mainAction");
-    expect(resolved.activePlayerId).toBe(nextPlayer.id);
-    expect(resolved.players[0].hp).toBe(9);
-    expect(resolved.pendingResponse).toBeUndefined();
-    expectDiscardedOnce(resolved, "substance_o2_01");
-    expectReference(resolved, "substance_o2_01", player.id, "O2");
-    expectTotalCardInstances(resolved);
-    expectCardZonesToBeConsistent(resolved);
-  });
-
-  it("allows SO2 status effect to execute against lab fire tableReference", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
-    const [player, target] = state.players;
-    state = putCardInHand(state, player.id, "substance_so2_01");
-    state = { ...state, tableReference: labFireReference };
-
-    const resolved = playMainActionCard(
-      state,
-      player.id,
-      "substance_so2_01",
-      target.id,
-    );
-
-    expect(resolved.phase).toBe("statusWindow");
-    expect(resolved.activePlayerId).toBe(target.id);
-    expect(resolved.players[1].statuses.map((status) => status.statusId)).toContain("SO2_LEAK");
-    expect(resolved.pendingStatusHandling?.playerId).toBe(target.id);
-    expect(resolved.pendingResponse).toBeUndefined();
-    expectDiscardedOnce(resolved, "substance_so2_01");
-    expectReference(resolved, "substance_so2_01", player.id, "SO2");
-    expectTotalCardInstances(resolved);
-    expectCardZonesToBeConsistent(resolved);
-  });
-
-  it("does not let lab fire candidate ignore a non-lab-fire tableReference", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
-    const [player, target] = state.players;
-    state = putCardInHand(state, player.id, "event_lab_fire_01");
-    state = { ...state, tableReference: oxygenReference };
 
     const rejectedReference = playReferenceCard(state, player.id, "event_lab_fire_01");
     expect(rejectedReference).toBe(state);

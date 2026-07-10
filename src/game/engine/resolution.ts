@@ -324,39 +324,6 @@ function playSulfurDioxideCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
-function playLabFireCard(
-  state: GameState,
-  actor: Player,
-  target: Player,
-  definition: CardDefinition,
-  cardInstanceId: CardInstanceId,
-  shuffle: ShuffleFunction,
-): GameState {
-  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
-
-  if (!withCardDiscarded) {
-    return state;
-  }
-
-  const withStatus = addStatusIfMissing(withCardDiscarded, target.id, actor.id, "FIRE");
-
-  const resolved = appendLog(
-    setTableReference(
-      {
-        ...withStatus,
-        phase: "mainAction",
-        pendingResponse: undefined,
-      },
-      actor,
-      cardInstanceId,
-      definition,
-    ),
-    `${actor.name} 打出实验台起火，使 ${target.name} 获得 FIRE；不造成即时伤害。`,
-  );
-
-  return advanceTurnFromReducer(resolved, shuffle);
-}
-
 function playOxygenRecoveryCard(
   state: GameState,
   actor: Player,
@@ -485,10 +452,6 @@ export function playMainActionCard(
 
   if (definition.id === "substance_so2") {
     return playSulfurDioxideCard(state, actor, target, definition, cardInstanceId, shuffle);
-  }
-
-  if (definition.id === "event_lab_fire") {
-    return playLabFireCard(state, actor, target, definition, cardInstanceId, shuffle);
   }
 
   if (definition.type !== "substance") {

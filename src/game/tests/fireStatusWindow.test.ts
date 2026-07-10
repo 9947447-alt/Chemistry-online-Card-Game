@@ -52,30 +52,24 @@ function updatePlayer(
   };
 }
 
-function createFireScenario(
-  eventCardId: CardInstanceId = "event_lab_fire_01",
-  handlerCardId?: CardInstanceId,
-): GameState {
+function createFireScenario(handlerCardId?: CardInstanceId): GameState {
   let state = createInitialGame({ shuffle: identityShuffle });
-  const [attacker, target] = state.players;
+  const [, target] = state.players;
 
-  state = putCardInHand(state, attacker.id, eventCardId);
   if (handlerCardId) {
     state = putCardInHand(state, target.id, handlerCardId);
   }
 
-  return state;
-}
-
-function playFireEvent(state: GameState, eventCardId: CardInstanceId = "event_lab_fire_01"): GameState {
-  const [attacker, target] = state.players;
-
-  return engineReducer(state, {
-    type: "PLAY_CARD",
-    playerId: attacker.id,
-    cardInstanceId: eventCardId,
-    targetPlayerId: target.id,
-  });
+  state = addStatusForTest(state, target.id, "FIRE", 1);
+  return {
+    ...state,
+    activePlayerId: target.id,
+    phase: "statusWindow",
+    pendingStatusHandling: {
+      playerId: target.id,
+      statusInstanceId: "status_test_FIRE_1",
+    },
+  };
 }
 
 function currentStatusId(state: GameState): string {
@@ -136,11 +130,9 @@ function expectNoCoreSideEffects(actual: GameState, expected: GameState): void {
 }
 
 describe("FIRE status window", () => {
-  it("applies FIRE without immediate damage or response window", () => {
-    let state = createFireScenario();
+  it("processes an existing FIRE status without immediate damage or response window", () => {
+    const state = createFireScenario();
     const [, target] = state.players;
-
-    state = playFireEvent(state);
 
     expect(state.phase).toBe("statusWindow");
     expect(state.activePlayerId).toBe(target.id);
@@ -149,12 +141,11 @@ describe("FIRE status window", () => {
     expect(state.players[1].hp).toBe(10);
     expect(state.players[1].statuses).toHaveLength(1);
     expect(state.players[1].statuses[0].statusId).toBe("FIRE");
-    expect(state.discardPile.filter((cardId) => cardId === "event_lab_fire_01")).toHaveLength(1);
     expectCardZonesToBeConsistent(state);
   });
 
   it("enters statusWindow at the target's next action start", () => {
-    const state = playFireEvent(createFireScenario());
+    const state = createFireScenario();
 
     expect(state.phase).toBe("statusWindow");
     expect(state.pendingStatusHandling?.playerId).toBe(state.players[1].id);
@@ -163,7 +154,7 @@ describe("FIRE status window", () => {
   });
 
   it("uses H2O to remove FIRE without damage", () => {
-    let state = playFireEvent(createFireScenario("event_lab_fire_01", "substance_h2o_01"));
+    let state = createFireScenario("substance_h2o_01");
     const target = state.players[1];
     const statusInstanceId = currentStatusId(state);
 
@@ -183,10 +174,9 @@ describe("FIRE status window", () => {
   });
 
   it("uses a hand CO2 card to remove FIRE without creating extra CO2", () => {
-    let state = createFireScenario("event_lab_fire_01", "substance_co2_01");
+    let state = createFireScenario("substance_co2_01");
     const initialCardInstanceCount = Object.keys(state.cardInstances).length;
     const initialCo2Count = countCardDefinition(state, "substance_co2");
-    state = playFireEvent(state);
     const target = state.players[1];
     const statusInstanceId = currentStatusId(state);
 
@@ -208,7 +198,7 @@ describe("FIRE status window", () => {
   });
 
   it("keeps FIRE after passing and triggers it again on the next action start", () => {
-    let state = playFireEvent(createFireScenario());
+    let state = createFireScenario();
     const target = state.players[1];
     const statusInstanceId = currentStatusId(state);
 
@@ -235,7 +225,6 @@ describe("FIRE status window", () => {
     let state = createFireScenario();
     const targetId = state.players[1].id;
     state = updatePlayer(state, targetId, (player) => ({ ...player, hp: 2 }));
-    state = playFireEvent(state);
 
     state = engineReducer(state, {
       type: "PASS_STATUS_HANDLING",
@@ -303,41 +292,8 @@ describe("FIRE status window", () => {
     expectCardZonesToBeConsistent(state);
   });
 
-  it("refreshes duplicate FIRE without stacking or double damage", () => {
-    let state = createFireScenario("event_lab_fire_01");
-    const attackerId = state.players[0].id;
-    const targetId = state.players[1].id;
-
-    state = playFireEvent(state);
-    const originalStatusId = currentStatusId(state);
-    state = engineReducer(state, {
-      type: "PASS_STATUS_HANDLING",
-      playerId: targetId,
-      statusInstanceId: originalStatusId,
-    });
-    state = passCurrentAction(state);
-    state = putCardInHand(state, attackerId, "event_lab_fire_02");
-    state = playFireEvent(state, "event_lab_fire_02");
-
-    expect(state.players[1].statuses).toHaveLength(1);
-    expect(state.players[1].statuses[0].id).toBe(originalStatusId);
-    expect(state.log.some((entry) => entry.message.includes("FIRE 已刷新/重复施加"))).toBe(true);
-
-    state = engineReducer(state, {
-      type: "PASS_STATUS_HANDLING",
-      playerId: targetId,
-      statusInstanceId: originalStatusId,
-    });
-
-    expect(state.players[1].hp).toBe(6);
-    expect(state.players[1].statuses).toHaveLength(1);
-    expect(state.discardPile.filter((cardId) => cardId === "event_lab_fire_01")).toHaveLength(1);
-    expect(state.discardPile.filter((cardId) => cardId === "event_lab_fire_02")).toHaveLength(1);
-    expectCardZonesToBeConsistent(state);
-  });
-
   it("rejects invalid FIRE handling attempts without side effects", () => {
-    let state = playFireEvent(createFireScenario("event_lab_fire_01", "substance_h2o_01"));
+    let state = createFireScenario("substance_h2o_01");
     const [nonActivePlayer, activePlayer] = state.players;
     const statusInstanceId = currentStatusId(state);
 
@@ -378,7 +334,6 @@ describe("FIRE status window", () => {
     state = putCardInHand(state, activePlayer.id, "substance_koh_dilute_01");
     state = putCardInHand(state, activePlayer.id, "substance_caoh2_limewater_01");
     state = putCardInHand(state, activePlayer.id, "substance_na2co3_01");
-    state = putCardInHand(state, activePlayer.id, "event_lab_fire_02");
 
     for (const invalidCardId of [
       "ion_oh_01",
@@ -386,7 +341,6 @@ describe("FIRE status window", () => {
       "substance_koh_dilute_01",
       "substance_caoh2_limewater_01",
       "substance_na2co3_01",
-      "event_lab_fire_02",
     ] satisfies CardInstanceId[]) {
       const rejected = engineReducer(state, {
         type: "HANDLE_STATUS_WITH_CARD",
@@ -419,38 +373,6 @@ describe("FIRE status window", () => {
     expect(rejectedEliminated.players[1].eliminated).toBe(true);
     expect(rejectedEliminated.discardPile).toEqual(noPendingState.discardPile);
     expectCardZonesToBeConsistent(rejectedEliminated);
-  });
-
-  it("enters FIRE statusWindow after a final third-round fire event starts the target's next action", () => {
-    let state = createInitialGame({ shuffle: identityShuffle });
-    const target = state.players[0];
-    const finalActor = state.players[1];
-
-    state = putCardInHand(state, finalActor.id, "event_lab_fire_01");
-    state = {
-      ...state,
-      activePlayerId: finalActor.id,
-      roundInCycle: 3,
-    };
-
-    state = engineReducer(state, {
-      type: "PLAY_CARD",
-      playerId: finalActor.id,
-      cardInstanceId: "event_lab_fire_01",
-      targetPlayerId: target.id,
-    });
-
-    expect(state.cycleNumber).toBe(2);
-    expect(state.roundInCycle).toBe(1);
-    expect(state.activePlayerId).toBe(target.id);
-    expect(state.phase).toBe("statusWindow");
-    expect(state.pendingStatusHandling?.playerId).toBe(target.id);
-    expect(state.players[0].statuses).toHaveLength(1);
-    expect(state.players[0].statuses[0].statusId).toBe("FIRE");
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
-    expect(state.discardPile.filter((cardId) => cardId === "event_lab_fire_01")).toHaveLength(1);
-    expectCardZonesToBeConsistent(state);
   });
 
   it("keeps FIRE through cleanup and triggers FIRE statusWindow in the new cycle", () => {
@@ -486,7 +408,7 @@ describe("FIRE status window", () => {
   });
 
   it("rejects invalid PASS_STATUS_HANDLING calls for FIRE without side effects", () => {
-    const baseState = playFireEvent(createFireScenario());
+    const baseState = createFireScenario();
     const [nonActivePlayer, activePlayer] = baseState.players;
     const statusInstanceId = currentStatusId(baseState);
 

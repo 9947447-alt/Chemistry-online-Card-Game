@@ -260,15 +260,17 @@ describe("O2 recovery", () => {
     }
   });
 
-  it("keeps the starter deck at 70 cards with 4 O elements and 2 O2 substances", () => {
+  it("keeps O/O2 counts while excluding the role-only lab fire skill from the starter deck", () => {
     const state = createInitialGame({ shuffle: identityShuffle });
 
-    expect(starterDeckSize).toBe(70);
+    expect(starterDeckSize).toBe(68);
     expect(starterDeck.find((entry) => entry.definitionId === "element_o")?.count).toBe(4);
     expect(starterDeck.find((entry) => entry.definitionId === "substance_o2")?.count).toBe(2);
-    expect(Object.keys(state.cardInstances)).toHaveLength(70);
+    expect(starterDeck.some((entry) => entry.definitionId === "event_lab_fire")).toBe(false);
+    expect(Object.keys(state.cardInstances)).toHaveLength(starterDeckSize);
     expect(countCardDefinition(state, "element_o")).toBe(4);
     expect(countCardDefinition(state, "substance_o2")).toBe(2);
+    expect(countCardDefinition(state, "event_lab_fire")).toBe(0);
     expectCardZonesToBeConsistent(state);
   });
 });

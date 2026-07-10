@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { starterDeckSize } from "../data/starterDeck";
 import { createInitialGame } from "../engine/createInitialGame";
 import { engineReducer } from "../engine/reducer";
 import type { GameState, Player } from "../engine/types";
@@ -65,7 +66,7 @@ describe("turn flow", () => {
     expect(state.players[1].hand).toHaveLength(10);
     expect(new Set(state.players[0].hand).size).toBe(10);
     expect(new Set(state.players[1].hand).size).toBe(10);
-    expect(state.deck).toHaveLength(30);
+    expect(state.deck).toHaveLength(starterDeckSize - 40);
     expectCardZonesToBeConsistent(state);
   });
 
@@ -85,7 +86,7 @@ describe("turn flow", () => {
     expect(state.cycleNumber).toBe(2);
     expect(state.players[0].hand).toHaveLength(10);
     expect(state.players[1].hand).toHaveLength(10);
-    expect(state.deck).toHaveLength(50);
+    expect(state.deck).toHaveLength(starterDeckSize - 20);
     expect(state.discardPile).toHaveLength(0);
     expect(state.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
     expectCardZonesToBeConsistent(state);

@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { starterDeckSize } from "../data/starterDeck";
 import type { CardInstanceId, GameState } from "../engine/types";
 
 export function expectCardZonesToBeConsistent(state: GameState): void {
@@ -28,7 +29,7 @@ export function expectCardZonesToBeConsistent(state: GameState): void {
   }
 
   const allInstanceIds = Object.keys(state.cardInstances);
-  expect(allInstanceIds).toHaveLength(70);
+  expect(allInstanceIds).toHaveLength(starterDeckSize);
   expect(locations.size).toBe(allInstanceIds.length);
   expect([...locations.keys()].sort()).toEqual(allInstanceIds.sort());
 }

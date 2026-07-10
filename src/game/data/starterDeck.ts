@@ -27,7 +27,6 @@ export const starterDeck = [
   { definitionId: "substance_koh_dilute", count: 2 },
   { definitionId: "substance_caoh2_limewater", count: 2 },
   { definitionId: "substance_na2co3", count: 2 },
-  { definitionId: "event_lab_fire", count: 2 },
 ] satisfies StarterDeckEntry[];
 
 export const starterDeckSize = starterDeck.reduce((total, entry) => total + entry.count, 0);

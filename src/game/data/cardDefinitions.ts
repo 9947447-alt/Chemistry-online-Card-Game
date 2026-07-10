@@ -222,8 +222,8 @@ export const cardDefinitions = [
     name: "实验台起火",
     type: "event",
     tags: ["fire-source"],
-    allowedTimings: ["main-action"],
-    rulesText: "MVP 0 中选择一名其他玩家，使其获得 FIRE；不造成即时伤害。",
+    allowedTimings: [],
+    rulesText: "角色“手残党党委书记”的未来专属主动技能占位；不进入普通主牌堆，不能从手牌打出。",
   },
 ] satisfies CardDefinition[];
 

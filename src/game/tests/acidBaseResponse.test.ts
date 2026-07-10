@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { starterDeckSize } from "../data/starterDeck";
 import { createInitialGame } from "../engine/createInitialGame";
 import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, Effect, GameState, Player, PlayerId } from "../engine/types";
@@ -73,7 +74,7 @@ function countCardDefinition(state: GameState, definitionId: string): number {
 }
 
 function expectTotalCardInstances(state: GameState): void {
-  expect(Object.keys(state.cardInstances)).toHaveLength(70);
+  expect(Object.keys(state.cardInstances)).toHaveLength(starterDeckSize);
 }
 
 function startAttack(

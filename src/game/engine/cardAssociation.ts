@@ -92,18 +92,10 @@ function hasGasAbsorptionRelationship(reference: CardDefinition, candidate: Card
   );
 }
 
-function isUniversalLabFireReference(reference: CardDefinition) {
-  return reference.id === "event_lab_fire";
-}
-
 export function areCardDefinitionsAssociated(
   reference: CardDefinition,
   candidate: CardDefinition,
 ): boolean {
-  if (isUniversalLabFireReference(reference)) {
-    return true;
-  }
-
   if (reference.id === candidate.id) {
     return true;
   }

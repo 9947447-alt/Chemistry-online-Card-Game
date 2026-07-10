@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { starterDeckSize } from "../data/starterDeck";
 import { createInitialGame } from "../engine/createInitialGame";
 import type { GameAction } from "../engine/actions";
 import { engineReducer } from "../engine/reducer";
@@ -87,7 +88,7 @@ function countCardDefinition(state: GameState, definitionId: string): number {
 }
 
 function expectCardInstanceCount(state: GameState): void {
-  expect(Object.keys(state.cardInstances)).toHaveLength(70);
+  expect(Object.keys(state.cardInstances)).toHaveLength(starterDeckSize);
 }
 
 describe("MVP 0 engine regression", () => {
@@ -97,8 +98,9 @@ describe("MVP 0 engine regression", () => {
     expectCardInstanceCount(state);
     expect(state.players[0].hand).toHaveLength(10);
     expect(state.players[1].hand).toHaveLength(10);
-    expect(state.deck).toHaveLength(50);
+    expect(state.deck).toHaveLength(starterDeckSize - 20);
     expect(state.discardPile).toHaveLength(0);
+    expect(countCardDefinition(state, "event_lab_fire")).toBe(0);
     expectCardZonesToBeConsistent(state);
   });
 
