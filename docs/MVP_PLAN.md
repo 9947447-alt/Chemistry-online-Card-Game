@@ -553,7 +553,9 @@ server/
 
 Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻结口径。本节只安排实现顺序，不新增、删减或解释角色规则。
 
-### 8A：角色数据结构与基础挂载
+### 8A：角色数据结构与基础挂载（已完成）
+
+实现状态：角色静态定义、玩家挂载、`maxHp`、角色次数状态与周期/轮次重置、Debug UI 只读展示已完成；所有具体角色技能效果仍未实现。
 
 - 增加 `CharacterId`、`CharacterDefinition` 和 7 个角色静态定义。
 - 为 `Player` 挂载 `characterId`，接入角色 `maxHp` 与初始 HP。

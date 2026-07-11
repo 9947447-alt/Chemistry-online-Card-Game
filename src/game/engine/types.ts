@@ -26,6 +26,72 @@ export type CardDefinitionId = string;
 export type CardInstanceId = string;
 export type PlayerId = string;
 
+export type CharacterId =
+  | "laboratory_teacher"
+  | "chemical_factory_ceo"
+  | "clumsy_party_secretary"
+  | "caustic_soda_captain"
+  | "acid_king"
+  | "chemistry_enthusiast"
+  | "sulfuric_acid_factory_director";
+
+export type CharacterSkillId =
+  | "lesson_preparation"
+  | "extra_lesson"
+  | "capital_reserve"
+  | "emergency_supply"
+  | "exhaust_leak"
+  | "lab_fire"
+  | "exothermic_accident"
+  | "strong_alkali_protection"
+  | "alkali_recovery"
+  | "strong_alkali_mastery"
+  | "acid_corrosion"
+  | "acid_resistant_layer"
+  | "diy_experiment"
+  | "experiment_counterattack"
+  | "exhaust_discharge"
+  | "sulfuric_acid_process"
+  | "sulfate_byproduct";
+
+export type CharacterSkillType = "active" | "passive" | "response";
+
+export type CharacterSkillImplementationStatus =
+  | "display-only-8a"
+  | "planned-8b"
+  | "planned-8c"
+  | "deferred";
+
+export type CharacterSkillDefinition = {
+  id: CharacterSkillId;
+  name: string;
+  type: CharacterSkillType;
+  rulesText: string;
+  implementationStatus: CharacterSkillImplementationStatus;
+  implementationNote?: string;
+};
+
+export type CharacterDefinition = {
+  id: CharacterId;
+  name: string;
+  maxHp: number;
+  skills: readonly CharacterSkillDefinition[];
+};
+
+export type CharacterUsageKey =
+  | "laboratory_teacher_extra_lesson"
+  | "chemical_factory_ceo_emergency_supply"
+  | "clumsy_party_secretary_shared_active"
+  | "caustic_soda_captain_alkali_recovery"
+  | "chemistry_enthusiast_counterattack"
+  | "sulfuric_acid_factory_director_exhaust_discharge"
+  | "sulfuric_acid_factory_director_sulfate_byproduct";
+
+export type CharacterUsageState = {
+  perCycle: Partial<Record<CharacterUsageKey, number>>;
+  perRound: Partial<Record<CharacterUsageKey, number>>;
+};
+
 export type CardZone =
   | { type: "deck" }
   | { type: "hand"; playerId: PlayerId }
@@ -64,12 +130,14 @@ export type PlayerStatus = {
 export type Player = {
   id: PlayerId;
   name: string;
+  characterId: CharacterId;
   hp: number;
   maxHp: number;
   hand: CardInstanceId[];
   statuses: PlayerStatus[];
   eliminated: boolean;
   usedDIYThisCycle: boolean;
+  characterUsage: CharacterUsageState;
 };
 
 export type AttackSource =

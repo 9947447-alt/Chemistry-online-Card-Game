@@ -148,6 +148,24 @@ describe("O2 recovery", () => {
     expectCardZonesToBeConsistent(state);
   });
 
+  it("does not recover chemistry enthusiast above character maxHp 8", () => {
+    let state = createInitialGame({
+      characterIds: ["chemistry_enthusiast", "chemical_factory_ceo"],
+      shuffle: identityShuffle,
+    });
+    const playerId = state.players[0].id;
+    state = putCardInHand(state, playerId, "substance_o2_01");
+    state = setHp(state, playerId, 7);
+
+    state = playO2(state, playerId, playerId);
+
+    expect(state.players[0].characterId).toBe("chemistry_enthusiast");
+    expect(state.players[0].hp).toBe(8);
+    expect(state.players[0].maxHp).toBe(8);
+    expect(state.discardPile.filter((cardId) => cardId === "substance_o2_01")).toHaveLength(1);
+    expectCardZonesToBeConsistent(state);
+  });
+
   it("rejects O2 at full HP without side effects", () => {
     const state = createO2State(10);
     const playerId = state.players[0].id;

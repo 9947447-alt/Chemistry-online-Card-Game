@@ -139,6 +139,69 @@ dd {
   margin: 4px 0 0;
 }
 
+.character-readout {
+  border-top: 1px solid #e1e7ec;
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.character-readout__heading,
+.character-skill-list__heading {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.character-readout__heading h3 {
+  color: #182026;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.character-readout__heading span,
+.character-skill-list__heading span {
+  color: #60717f;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.character-skill-list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.character-skill-list li {
+  border-top: 1px solid #edf1f4;
+  padding: 9px 0;
+}
+
+.character-skill-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.character-skill-list strong {
+  color: #24313b;
+  font-size: 0.84rem;
+}
+
+.character-skill-list p {
+  color: #52606d;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.character-skill-list .character-skill-list__note {
+  color: #8a4b05;
+  font-weight: 700;
+}
+
 .active-pill,
 .ok-pill,
 .warn-pill {

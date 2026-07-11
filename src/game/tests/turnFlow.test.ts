@@ -6,6 +6,15 @@ import type { GameState, Player } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
 
+const existingReference: NonNullable<GameState["tableReference"]> = {
+  cardInstanceId: "element_o_01",
+  definitionId: "element_o",
+  displayName: "O",
+  playedBy: "player_1",
+  cycle: 1,
+  round: 1,
+};
+
 function passCurrentAction(state: GameState): GameState {
   return engineReducer(state, {
     type: "PASS_ACTION",
@@ -70,6 +79,111 @@ describe("turn flow", () => {
     expectCardZonesToBeConsistent(state);
   });
 
+  it("preserves character usage during a player switch within the same round", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    const [playerOne, playerTwo] = state.players;
+    state = {
+      ...state,
+      tableReference: existingReference,
+      players: state.players.map((player) =>
+        player.id === playerOne.id
+          ? {
+              ...player,
+              usedDIYThisCycle: true,
+              characterUsage: {
+                perCycle: { laboratory_teacher_extra_lesson: 1 },
+                perRound: {
+                  sulfuric_acid_factory_director_sulfate_byproduct: 1,
+                },
+              },
+            }
+          : player,
+      ),
+    };
+
+    state = passCurrentAction(state);
+
+    expect(state.activePlayerId).toBe(playerTwo.id);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.cycleNumber).toBe(1);
+    expect(state.players[0].characterUsage.perRound).toEqual({
+      sulfuric_acid_factory_director_sulfate_byproduct: 1,
+    });
+    expect(state.players[0].characterUsage.perCycle).toEqual({
+      laboratory_teacher_extra_lesson: 1,
+    });
+    expect(state.players[0].usedDIYThisCycle).toBe(true);
+    expect(state.tableReference).toEqual(existingReference);
+    expect(state.players[1].characterUsage).toEqual({ perCycle: {}, perRound: {} });
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("clears only per-round character usage at a new round", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    state = {
+      ...state,
+      activePlayerId: state.players[1].id,
+      tableReference: existingReference,
+      players: state.players.map((player, index) => ({
+        ...player,
+        usedDIYThisCycle: true,
+        characterUsage: {
+          perCycle: {
+            [index === 0
+              ? "laboratory_teacher_extra_lesson"
+              : "chemical_factory_ceo_emergency_supply"]: 1,
+          },
+          perRound: {
+            sulfuric_acid_factory_director_sulfate_byproduct: 1,
+          },
+        },
+      })),
+    };
+
+    state = passCurrentAction(state);
+
+    expect(state.roundInCycle).toBe(2);
+    expect(state.cycleNumber).toBe(1);
+    expect(state.players[0].characterUsage.perCycle).toEqual({
+      laboratory_teacher_extra_lesson: 1,
+    });
+    expect(state.players[1].characterUsage.perCycle).toEqual({
+      chemical_factory_ceo_emergency_supply: 1,
+    });
+    expect(state.players.every((player) => Object.keys(player.characterUsage.perRound).length === 0)).toBe(true);
+    expect(state.players.every((player) => player.usedDIYThisCycle)).toBe(true);
+    expect(state.tableReference).toEqual(existingReference);
+    expectCardZonesToBeConsistent(state);
+  });
+
+  it("clears per-cycle and per-round character usage at a new cycle", () => {
+    let state = createInitialGame({ shuffle: identityShuffle });
+    state = {
+      ...state,
+      activePlayerId: state.players[1].id,
+      roundInCycle: 3,
+      tableReference: existingReference,
+      players: state.players.map((player) => ({
+        ...player,
+        usedDIYThisCycle: true,
+        characterUsage: {
+          perCycle: { clumsy_party_secretary_shared_active: 1 },
+          perRound: { sulfuric_acid_factory_director_sulfate_byproduct: 1 },
+        },
+      })),
+    };
+
+    state = passCurrentAction(state);
+
+    expect(state.cycleNumber).toBe(2);
+    expect(state.roundInCycle).toBe(1);
+    expect(state.players.every((player) => Object.keys(player.characterUsage.perCycle).length === 0)).toBe(true);
+    expect(state.players.every((player) => Object.keys(player.characterUsage.perRound).length === 0)).toBe(true);
+    expect(state.players.every((player) => !player.usedDIYThisCycle)).toBe(true);
+    expect(state.tableReference).toBeUndefined();
+    expectCardZonesToBeConsistent(state);
+  });
+
   it("shuffles the discard pile back into the deck when the main deck is exhausted", () => {
     let state = createInitialGame({ shuffle: identityShuffle });
 
@@ -114,12 +228,17 @@ describe("turn flow", () => {
     const thirdPlayer: Player = {
       id: "player_3",
       name: "玩家 C",
+      characterId: "acid_king",
       hp: 10,
       maxHp: 10,
       hand: [],
       statuses: [],
       eliminated: false,
       usedDIYThisCycle: false,
+      characterUsage: {
+        perCycle: {},
+        perRound: {},
+      },
     };
     const withThirdPlayer: GameState = {
       ...state,

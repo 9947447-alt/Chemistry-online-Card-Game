@@ -1,4 +1,8 @@
 import type { CardInstanceId, GameState, Player, PlayerId, PlayerStatus } from "./types";
+import {
+  resetCharacterUsageForNewCycle,
+  resetCharacterUsageForNewRound,
+} from "./characterUsage";
 
 export type ShuffleFunction = <T>(items: readonly T[]) => T[];
 
@@ -143,6 +147,7 @@ function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
     activePlayerId: nextStartingPlayer.id,
     startingPlayerId: nextStartingPlayer.id,
     tableReference: undefined,
+    players: state.players.map(resetCharacterUsageForNewCycle),
   };
 
   nextState = appendLog(nextState, `进入第 ${nextState.cycleNumber} 实验周期。`);
@@ -276,6 +281,7 @@ export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunctio
         activePlayerId: nextStartingPlayer.id,
         startingPlayerId: nextStartingPlayer.id,
         roundInCycle: nextRound,
+        players: resolvedState.players.map(resetCharacterUsageForNewRound),
       },
       nextStartingPlayer.id,
     );
