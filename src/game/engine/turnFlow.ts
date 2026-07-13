@@ -7,6 +7,10 @@ import { getAllowedDrawCount } from "./handCapacity";
 
 export type ShuffleFunction = <T>(items: readonly T[]) => T[];
 
+export function getAvailableDrawCardCount(state: GameState): number {
+  return state.deck.length + state.discardPile.length;
+}
+
 function appendLog(state: GameState, message: string): GameState {
   const nextIndex = state.log.length + 1;
   return {

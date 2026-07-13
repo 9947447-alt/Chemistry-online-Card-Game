@@ -2,6 +2,7 @@ import type { GameAction } from "./actions";
 import type { GameState } from "./types";
 import { fisherYatesShuffle } from "../../shared/random";
 import { startActiveDIY } from "./diy";
+import { activateCharacterSkill } from "./characterSkills";
 import {
   handleStatusWithCard,
   passResponse,
@@ -25,6 +26,13 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
   }
 
   switch (action.type) {
+    case "ACTIVATE_CHARACTER_SKILL":
+      return activateCharacterSkill(
+        state,
+        action.playerId,
+        action.skillId,
+        fisherYatesShuffle,
+      );
     case "CONFIRM_LABORATORY_PREPARATION":
       return confirmLaboratoryPreparation(
         state,

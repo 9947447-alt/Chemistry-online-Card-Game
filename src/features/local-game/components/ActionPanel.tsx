@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import type { GameAction } from "../../../game/engine/actions";
-import type { CardInstanceId, GameState, PlayerId } from "../../../game/engine/types";
+import type {
+  CardInstanceId,
+  CharacterSkillId,
+  CharacterUsageKey,
+  GameState,
+  PlayerId,
+} from "../../../game/engine/types";
 import {
   canPlayAgainstCurrentTableReference,
   canExecuteMainActionEffect,
@@ -28,6 +34,23 @@ export function ActionPanel({
   const activePlayer = getActivePlayer(game);
   const targets = activePlayer ? getOpponentTargets(game, activePlayer.id) : [];
   const [targetByCardId, setTargetByCardId] = useState<Record<CardInstanceId, PlayerId>>({});
+  const activeCharacterSkill: {
+    id: CharacterSkillId;
+    name: string;
+    usageKey: CharacterUsageKey;
+  } | undefined = activePlayer?.characterId === "laboratory_teacher"
+    ? {
+        id: "extra_lesson",
+        name: "补课",
+        usageKey: "laboratory_teacher_extra_lesson",
+      }
+    : activePlayer?.characterId === "chemical_factory_ceo"
+      ? {
+          id: "emergency_supply",
+          name: "紧急调货",
+          usageKey: "chemical_factory_ceo_emergency_supply",
+        }
+      : undefined;
   const executableCardIds = useMemo(() => {
     if (!activePlayer) {
       return new Set<CardInstanceId>();
@@ -60,6 +83,32 @@ export function ActionPanel({
         </button>
       </div>
       <p className="panel-note">当前行动玩家：{activePlayer.name}</p>
+      {activeCharacterSkill ? (
+        <div className="character-active-skill">
+          <div>
+            <strong>{activeCharacterSkill.name}</strong>
+            <span>手牌不超过 4 张 · 每周期一次 · 发动后结束行动</span>
+          </div>
+          <button
+            className="primary-button"
+            disabled={
+              activePlayer.hand.length > 4 ||
+              Boolean(activePlayer.characterUsage.perCycle[activeCharacterSkill.usageKey]) ||
+              game.deck.length + game.discardPile.length === 0
+            }
+            onClick={() =>
+              dispatchGameAction({
+                type: "ACTIVATE_CHARACTER_SKILL",
+                playerId: activePlayer.id,
+                skillId: activeCharacterSkill.id,
+              })
+            }
+            type="button"
+          >
+            发动{activeCharacterSkill.name}
+          </button>
+        </div>
+      ) : null}
       <p className="empty-note">普通出牌不需要目标，不触发原有效果，只更新场面基准并推进一次行动。</p>
       <div className="action-card-list">
         {activePlayer.hand.map((cardInstanceId) => {

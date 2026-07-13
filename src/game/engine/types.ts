@@ -59,6 +59,7 @@ export type CharacterSkillType = "active" | "passive" | "response";
 export type CharacterSkillImplementationStatus =
   | "display-only-8a"
   | "implemented-8b-1"
+  | "implemented-8b-2"
   | "planned-8b"
   | "planned-8c"
   | "deferred";

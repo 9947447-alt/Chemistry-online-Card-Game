@@ -41,7 +41,7 @@ describe("Phase 8A character definitions", () => {
     }
   });
 
-  it("marks only the implemented 8B-1 passives as complete", () => {
+  it("tracks the implemented 8B-1 passives and 8B-2 active skills", () => {
     const teacherSkills = getCharacterDefinition("laboratory_teacher").skills;
     const ceoSkills = getCharacterDefinition("chemical_factory_ceo").skills;
 
@@ -52,10 +52,10 @@ describe("Phase 8A character definitions", () => {
       "implemented-8b-1",
     );
     expect(teacherSkills.find((skill) => skill.id === "extra_lesson")?.implementationStatus).toBe(
-      "planned-8b",
+      "implemented-8b-2",
     );
     expect(ceoSkills.find((skill) => skill.id === "emergency_supply")?.implementationStatus).toBe(
-      "planned-8b",
+      "implemented-8b-2",
     );
   });
 

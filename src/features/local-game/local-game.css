@@ -421,6 +421,33 @@ select {
   white-space: nowrap;
 }
 
+.character-active-skill {
+  align-items: center;
+  border-bottom: 1px solid #e1e7ec;
+  border-top: 1px solid #e1e7ec;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  padding: 10px 0;
+}
+
+.character-active-skill div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.character-active-skill strong {
+  color: #24313b;
+  font-size: 0.9rem;
+}
+
+.character-active-skill span {
+  color: #52606d;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .preparation-candidate-grid {
   display: grid;
   gap: 8px;
@@ -526,6 +553,10 @@ select {
   }
 
   .action-card {
+    grid-template-columns: 1fr;
+  }
+
+  .character-active-skill {
     grid-template-columns: 1fr;
   }
 

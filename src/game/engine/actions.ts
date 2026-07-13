@@ -1,6 +1,11 @@
-import type { CardInstanceId, PlayerId } from "./types";
+import type { CardInstanceId, CharacterSkillId, PlayerId } from "./types";
 
 export type GameAction =
+  | {
+      type: "ACTIVATE_CHARACTER_SKILL";
+      playerId: PlayerId;
+      skillId: CharacterSkillId;
+    }
   | {
       type: "CONFIRM_LABORATORY_PREPARATION";
       playerId: PlayerId;
