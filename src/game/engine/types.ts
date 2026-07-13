@@ -9,6 +9,8 @@ export type PlayTiming =
 export type Tag =
   | "acid"
   | "base"
+  | "strong-acid"
+  | "strong-alkali"
   | "carbonate"
   | "harmful-gas"
   | "aqueous"

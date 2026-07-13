@@ -37,11 +37,28 @@
 
 ## 四、强酸、强碱与虚拟 DIY 边界
 
-- 强酸、强碱角色加成只读取实体 `CardDefinition` 上正式冻结的游戏标签。
-- 不根据现实化学知识、化学式相似或离子来源临时推断标签。
-- 主动 DIY 构建的稀 HCl、稀 H2SO4、稀 NaOH、稀 KOH、稀 Ca(OH)2 不自动获得角色所需的“实体强酸”或“实体强碱”加成。
-- DIY 继续按自己的虚拟效果与稀溶液伤害规则结算。
-- 本轮不新增或修改卡牌标签；正式标签映射是 Phase 8C 实现前的独立数据校准任务。
+`strong-acid` 和 `strong-alkali` 是角色规则专用的实体物质标签，只能由实体 `CardDefinition.tags` 明确声明。它们不能替代现有 `acid` / `base`：`acid` / `base` 继续用于既有攻击类型、响应、关联及其他已经实现的规则。一张实体强酸牌必须同时具有 `acid` 和 `strong-acid`；一张实体强碱牌必须同时具有 `base` 和 `strong-alkali`。
+
+正式映射如下：
+
+| 实体 `CardDefinition.id` | 保留标签 | 新增角色标签 |
+| --- | --- | --- |
+| `substance_hcl_dilute` | `acid` | `strong-acid` |
+| `substance_h2so4_dilute` | `acid` | `strong-acid` |
+| `substance_naoh_dilute` | `base` | `strong-alkali` |
+| `substance_koh_dilute` | `base` | `strong-alkali` |
+| `substance_caoh2_limewater` | `base` | `strong-alkali` |
+
+除表中五个实体物质定义外，当前任何其他卡牌均不得获得 `strong-acid` 或 `strong-alkali`。特别是：
+
+- Ca(OH)2 / 石灰水正式纳入实体 `strong-alkali` 映射。
+- H+、OH- 及其他全部离子牌、全部元素牌均排除。
+- H2O、O2、CO2、SO2、Na2CO3、`event_lab_fire` 均排除。
+- 状态与角色定义不使用这两个卡牌标签。
+- 主动 DIY 构建的虚拟稀 HCl、稀 H2SO4、稀 NaOH、稀 KOH、稀 Ca(OH)2 / 石灰水全部排除；它们仍只有各自普通酸性或碱性伤害属性，不读取或复用同名实体 `CardDefinition` 的标签对象。
+- 引擎和角色效果不得根据卡牌中文名、化学式字符串、card ID 命名规律、`ionsProvided` 或现实化学知识临时推断这两个标签。
+
+Phase 8C-0A 只完成上述标签数据与规则冻结；伤害上下文、伤害修饰及相关角色技能尚未接入。
 
 ## 五、普通 DAMAGE 修饰顺序
 
