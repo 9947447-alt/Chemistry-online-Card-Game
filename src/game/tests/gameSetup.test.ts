@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { starterDeckSize } from "../data/starterDeck";
-import { createInitialGame } from "../engine/createInitialGame";
+import { createMvp0TestGame as createInitialGame } from "./createTestGame";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
 

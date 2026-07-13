@@ -3,6 +3,7 @@ import {
   resetCharacterUsageForNewCycle,
   resetCharacterUsageForNewRound,
 } from "./characterUsage";
+import { getAllowedDrawCount } from "./handCapacity";
 
 export type ShuffleFunction = <T>(items: readonly T[]) => T[];
 
@@ -67,15 +68,22 @@ function recycleDiscardIntoDeck(state: GameState, shuffle: ShuffleFunction): Gam
   );
 }
 
-function drawCardsForPlayer(
+export function drawCardsForPlayer(
   state: GameState,
   playerId: PlayerId,
   count: number,
   shuffle: ShuffleFunction,
 ): GameState {
-  let nextState = state;
+  const player = state.players.find((candidate) => candidate.id === playerId);
 
-  for (let drawn = 0; drawn < count; drawn += 1) {
+  if (!player || player.eliminated) {
+    return state;
+  }
+
+  let nextState = state;
+  const allowedDrawCount = getAllowedDrawCount(player, count);
+
+  for (let drawn = 0; drawn < allowedDrawCount; drawn += 1) {
     nextState = recycleDiscardIntoDeck(nextState, shuffle);
 
     const [cardId, ...remainingDeck] = nextState.deck;
@@ -94,6 +102,159 @@ function drawCardsForPlayer(
   }
 
   return nextState;
+}
+
+function getCycleDrawCount(player: Player, defaultHandSize: number): number {
+  if (player.characterId === "laboratory_teacher") {
+    return 20;
+  }
+
+  if (player.characterId === "chemical_factory_ceo") {
+    return 14;
+  }
+
+  return defaultHandSize;
+}
+
+export function dealCycleStartHands(state: GameState, shuffle: ShuffleFunction): GameState {
+  let nextState = state;
+  const preparationSelections: NonNullable<
+    GameState["pendingLaboratoryPreparation"]
+  >["remainingSelections"] = [];
+
+  for (const originalPlayer of state.players) {
+    if (originalPlayer.eliminated) {
+      continue;
+    }
+
+    const playerBeforeDraw = nextState.players.find(
+      (candidate) => candidate.id === originalPlayer.id,
+    );
+
+    if (!playerBeforeDraw) {
+      continue;
+    }
+
+    const existingHandIds = new Set(playerBeforeDraw.hand);
+    nextState = drawCardsForPlayer(
+      nextState,
+      playerBeforeDraw.id,
+      getCycleDrawCount(playerBeforeDraw, nextState.settings.handSize),
+      shuffle,
+    );
+
+    if (playerBeforeDraw.characterId === "laboratory_teacher") {
+      const playerAfterDraw = nextState.players.find(
+        (candidate) => candidate.id === playerBeforeDraw.id,
+      );
+      const selection = {
+        playerId: playerBeforeDraw.id,
+        candidateCardInstanceIds:
+          playerAfterDraw?.hand.filter((cardId) => !existingHandIds.has(cardId)) ?? [],
+      };
+
+      if (selection.candidateCardInstanceIds.length !== 20) {
+        return {
+          ...nextState,
+          phase: "setup",
+          pendingLaboratoryPreparation: undefined,
+        };
+      }
+
+      preparationSelections.push(selection);
+    }
+  }
+
+  const [currentSelection, ...remainingSelections] = preparationSelections;
+
+  if (!currentSelection) {
+    return {
+      ...nextState,
+      pendingLaboratoryPreparation: undefined,
+    };
+  }
+
+  return {
+    ...nextState,
+    phase: "preparationSelection",
+    pendingLaboratoryPreparation: {
+      ...currentSelection,
+      keepCount: 10,
+      remainingSelections,
+    },
+  };
+}
+
+function isValidLaboratoryPreparationSelection(
+  state: GameState,
+  selection: NonNullable<
+    GameState["pendingLaboratoryPreparation"]
+  >["remainingSelections"][number],
+): boolean {
+  const player = state.players.find((candidate) => candidate.id === selection.playerId);
+
+  if (!Array.isArray(selection.candidateCardInstanceIds)) {
+    return false;
+  }
+
+  const candidateIds = new Set(selection.candidateCardInstanceIds);
+
+  return (
+    player?.characterId === "laboratory_teacher" &&
+    !player.eliminated &&
+    selection.candidateCardInstanceIds.length === 20 &&
+    candidateIds.size === 20 &&
+    selection.candidateCardInstanceIds.every((cardId) => {
+      const instance = state.cardInstances[cardId];
+      return (
+        player.hand.includes(cardId) &&
+        instance?.ownerId === player.id &&
+        instance.zone.type === "hand" &&
+        instance.zone.playerId === player.id
+      );
+    })
+  );
+}
+
+function isValidLaboratoryPreparationConfirmation(
+  state: GameState,
+  playerId: PlayerId,
+  keptCardInstanceIds: CardInstanceId[],
+): boolean {
+  const pending = state.pendingLaboratoryPreparation;
+
+  if (
+    state.phase !== "preparationSelection" ||
+    !pending ||
+    !Array.isArray(pending.remainingSelections) ||
+    pending.keepCount !== 10 ||
+    pending.playerId !== playerId ||
+    !isValidLaboratoryPreparationSelection(state, pending)
+  ) {
+    return false;
+  }
+
+  const remainingPlayerIds = pending.remainingSelections.map((selection) => selection.playerId);
+  const uniqueRemainingPlayerIds = new Set(remainingPlayerIds);
+
+  if (
+    uniqueRemainingPlayerIds.size !== remainingPlayerIds.length ||
+    uniqueRemainingPlayerIds.has(pending.playerId) ||
+    !pending.remainingSelections.every((selection) =>
+      isValidLaboratoryPreparationSelection(state, selection),
+    )
+  ) {
+    return false;
+  }
+
+  const keptIds = new Set(keptCardInstanceIds);
+  const candidateIds = new Set(pending.candidateCardInstanceIds);
+
+  return (
+    keptCardInstanceIds.length === 10 &&
+    keptIds.size === 10 &&
+    keptCardInstanceIds.every((cardId) => candidateIds.has(cardId))
+  );
 }
 
 function discardAllHands(state: GameState): GameState {
@@ -152,25 +313,81 @@ function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
 
   nextState = appendLog(nextState, `进入第 ${nextState.cycleNumber} 实验周期。`);
 
-  for (const player of nextState.players) {
-    if (!player.eliminated) {
-      nextState = drawCardsForPlayer(nextState, player.id, nextState.settings.handSize, shuffle);
-    }
+  nextState = dealCycleStartHands(nextState, shuffle);
+
+  if (nextState.phase !== "cycleStart") {
+    return nextState;
   }
 
   return beginActionForPlayer(nextState, nextStartingPlayer.id);
 }
 
-export function dealInitialHands(state: GameState, shuffle: ShuffleFunction): GameState {
-  let nextState = state;
+export function confirmLaboratoryPreparation(
+  state: GameState,
+  playerId: PlayerId,
+  keptCardInstanceIds: CardInstanceId[],
+): GameState {
+  const pending = state.pendingLaboratoryPreparation;
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  const keptIds = new Set(keptCardInstanceIds);
 
-  for (const player of nextState.players) {
-    if (!player.eliminated) {
-      nextState = drawCardsForPlayer(nextState, player.id, nextState.settings.handSize, shuffle);
-    }
+  if (
+    !pending ||
+    !player ||
+    !isValidLaboratoryPreparationConfirmation(state, playerId, keptCardInstanceIds)
+  ) {
+    return state;
   }
 
-  return nextState;
+  const discardedIds = pending.candidateCardInstanceIds.filter((cardId) => !keptIds.has(cardId));
+  const discardedIdSet = new Set(discardedIds);
+  const cardInstances = { ...state.cardInstances };
+
+  for (const cardId of discardedIds) {
+    cardInstances[cardId] = {
+      ...cardInstances[cardId],
+      ownerId: undefined,
+      zone: { type: "discard" },
+    };
+  }
+
+  const resolved = appendLog(
+    {
+      ...state,
+      players: state.players.map((candidate) =>
+        candidate.id === playerId
+          ? {
+              ...candidate,
+              hand: candidate.hand.filter((cardId) => !discardedIdSet.has(cardId)),
+            }
+          : candidate,
+      ),
+      cardInstances,
+      discardPile: [...state.discardPile, ...discardedIds],
+    },
+    `${player.name} 完成备课，保留 ${pending.keepCount} 张牌。`,
+  );
+  const [nextSelection, ...remainingSelections] = pending.remainingSelections;
+
+  if (nextSelection) {
+    return {
+      ...resolved,
+      phase: "preparationSelection",
+      pendingLaboratoryPreparation: {
+        ...nextSelection,
+        keepCount: 10,
+        remainingSelections,
+      },
+    };
+  }
+
+  return beginActionForPlayer(
+    {
+      ...resolved,
+      pendingLaboratoryPreparation: undefined,
+    },
+    resolved.startingPlayerId,
+  );
 }
 
 export function finishGameIfResolved(state: GameState): GameState {

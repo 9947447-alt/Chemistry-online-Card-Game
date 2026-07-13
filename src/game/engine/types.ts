@@ -58,6 +58,7 @@ export type CharacterSkillType = "active" | "passive" | "response";
 
 export type CharacterSkillImplementationStatus =
   | "display-only-8a"
+  | "implemented-8b-1"
   | "planned-8b"
   | "planned-8c"
   | "deferred";
@@ -190,9 +191,20 @@ export type PendingStatusHandling = {
   statusInstanceId: string;
 };
 
+export type LaboratoryPreparationSelection = {
+  playerId: PlayerId;
+  candidateCardInstanceIds: CardInstanceId[];
+};
+
+export type PendingLaboratoryPreparation = LaboratoryPreparationSelection & {
+  keepCount: 10;
+  remainingSelections: LaboratoryPreparationSelection[];
+};
+
 export type GamePhase =
   | "setup"
   | "cycleStart"
+  | "preparationSelection"
   | "actionStart"
   | "statusWindow"
   | "mainAction"
@@ -234,6 +246,7 @@ export type GameState = {
   tableReference?: TableReference;
   pendingResponse?: PendingResponse;
   pendingStatusHandling?: PendingStatusHandling;
+  pendingLaboratoryPreparation?: PendingLaboratoryPreparation;
   effectQueue: Effect[];
   log: GameLogEntry[];
   winnerPlayerId?: PlayerId;

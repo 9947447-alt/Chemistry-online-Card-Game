@@ -16,6 +16,7 @@ const skillTypeLabels: Record<CharacterSkillType, string> = {
 
 const implementationStatusLabels: Record<CharacterSkillImplementationStatus, string> = {
   "display-only-8a": "8A 仅展示",
+  "implemented-8b-1": "8B-1 已实现",
   "planned-8b": "8B 计划实现",
   "planned-8c": "8C 计划实现",
   deferred: "延期",
@@ -26,9 +27,18 @@ type PlayerPanelProps = {
   player: Player;
   selectedCardId?: CardInstanceId;
   onSelectCard: (cardInstanceId: CardInstanceId) => void;
+  handSelectionDisabled?: boolean;
+  showActivePlayerIndicator?: boolean;
 };
 
-export function PlayerPanel({ game, player, selectedCardId, onSelectCard }: PlayerPanelProps) {
+export function PlayerPanel({
+  game,
+  player,
+  selectedCardId,
+  onSelectCard,
+  handSelectionDisabled = false,
+  showActivePlayerIndicator = true,
+}: PlayerPanelProps) {
   const character = getCharacterDefinition(player.characterId);
   const statusText = player.statuses.length > 0
     ? player.statuses.map((status) => `${status.statusId} (${status.id})`).join(", ")
@@ -41,7 +51,9 @@ export function PlayerPanel({ game, player, selectedCardId, onSelectCard }: Play
           <h2 id={`${player.id}-title`}>{player.name}</h2>
           <p>{player.id} · {character.name}</p>
         </div>
-        {game.activePlayerId === player.id ? <span className="active-pill">当前行动</span> : null}
+        {showActivePlayerIndicator && game.activePlayerId === player.id ? (
+          <span className="active-pill">当前行动</span>
+        ) : null}
       </div>
       <dl className="player-stats">
         <div>
@@ -96,10 +108,11 @@ export function PlayerPanel({ game, player, selectedCardId, onSelectCard }: Play
         {player.hand.map((cardInstanceId) => (
           <CardDebugCard
             cardInstanceId={cardInstanceId}
+            disabled={handSelectionDisabled}
             game={game}
             key={cardInstanceId}
-            onSelect={onSelectCard}
-            selected={selectedCardId === cardInstanceId}
+            onSelect={handSelectionDisabled ? undefined : onSelectCard}
+            selected={!handSelectionDisabled && selectedCardId === cardInstanceId}
           />
         ))}
       </div>

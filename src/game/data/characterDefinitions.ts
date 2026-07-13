@@ -11,7 +11,7 @@ export const characterDefinitions = [
         name: "备课",
         type: "passive",
         rulesText: "周期开始摸 20 张，选择 10 张作为手牌，其余弃置。",
-        implementationStatus: "planned-8b",
+        implementationStatus: "implemented-8b-1",
       },
       {
         id: "extra_lesson",
@@ -32,7 +32,7 @@ export const characterDefinitions = [
         name: "资金储备",
         type: "passive",
         rulesText: "周期开始摸 14 张；手牌上限始终为 14。",
-        implementationStatus: "planned-8b",
+        implementationStatus: "implemented-8b-1",
       },
       {
         id: "emergency_supply",

@@ -3,7 +3,7 @@ import { getCharacterDefinition } from "../data/characterDefinitions";
 import { fisherYatesShuffle } from "../../shared/random";
 import type { CardInstance, CharacterId, GameState, Player } from "./types";
 import { createEmptyCharacterUsage } from "./characterUsage";
-import { dealInitialHands } from "./turnFlow";
+import { beginActionForPlayer, dealCycleStartHands } from "./turnFlow";
 
 export type CreateInitialGameOptions = {
   gameId?: string;
@@ -91,10 +91,11 @@ export function createInitialGame(options: CreateInitialGameOptions = {}): GameS
     },
   };
 
-  state = dealInitialHands(state, shuffle);
+  state = dealCycleStartHands(state, shuffle);
 
-  return {
-    ...state,
-    phase: "mainAction",
-  };
+  if (state.phase !== "cycleStart") {
+    return state;
+  }
+
+  return beginActionForPlayer(state, state.startingPlayerId);
 }

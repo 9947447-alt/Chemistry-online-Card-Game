@@ -408,10 +408,25 @@ select {
 
 .action-panel,
 .diy-panel,
+.preparation-panel,
 .response-panel,
 .status-panel {
   display: grid;
   gap: 12px;
+}
+
+.selection-count {
+  color: #244b64;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.preparation-candidate-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: min(58vh, 640px);
+  overflow-y: auto;
 }
 
 .recipe-list {
@@ -511,6 +526,10 @@ select {
   }
 
   .action-card {
+    grid-template-columns: 1fr;
+  }
+
+  .preparation-candidate-grid {
     grid-template-columns: 1fr;
   }
 }

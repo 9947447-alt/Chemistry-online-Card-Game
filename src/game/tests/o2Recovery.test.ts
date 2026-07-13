@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { starterDeck, starterDeckSize } from "../data/starterDeck";
-import { createInitialGame } from "../engine/createInitialGame";
+import { createMvp0TestGame as createInitialGame } from "./createTestGame";
 import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";

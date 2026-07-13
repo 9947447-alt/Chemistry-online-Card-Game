@@ -10,14 +10,27 @@ import {
   playReferenceCard,
   respondWithCard,
 } from "./resolution";
-import { advanceTurnFromReducer } from "./turnFlow";
+import { advanceTurnFromReducer, confirmLaboratoryPreparation } from "./turnFlow";
 
 export function engineReducer(state: GameState, action: GameAction): GameState {
   if (state.phase === "gameOver") {
     return state;
   }
 
+  if (
+    state.phase === "preparationSelection" &&
+    action.type !== "CONFIRM_LABORATORY_PREPARATION"
+  ) {
+    return state;
+  }
+
   switch (action.type) {
+    case "CONFIRM_LABORATORY_PREPARATION":
+      return confirmLaboratoryPreparation(
+        state,
+        action.playerId,
+        action.keptCardInstanceIds,
+      );
     case "PASS_ACTION":
       if (
         action.playerId !== state.activePlayerId ||

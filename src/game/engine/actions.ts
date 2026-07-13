@@ -1,6 +1,11 @@
 import type { CardInstanceId, PlayerId } from "./types";
 
 export type GameAction =
+  | {
+      type: "CONFIRM_LABORATORY_PREPARATION";
+      playerId: PlayerId;
+      keptCardInstanceIds: CardInstanceId[];
+    }
   | { type: "PASS_ACTION"; playerId: PlayerId }
   | { type: "PLAY_REFERENCE_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | {

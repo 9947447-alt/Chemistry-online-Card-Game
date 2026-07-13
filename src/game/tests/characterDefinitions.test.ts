@@ -41,6 +41,24 @@ describe("Phase 8A character definitions", () => {
     }
   });
 
+  it("marks only the implemented 8B-1 passives as complete", () => {
+    const teacherSkills = getCharacterDefinition("laboratory_teacher").skills;
+    const ceoSkills = getCharacterDefinition("chemical_factory_ceo").skills;
+
+    expect(teacherSkills.find((skill) => skill.id === "lesson_preparation")?.implementationStatus).toBe(
+      "implemented-8b-1",
+    );
+    expect(ceoSkills.find((skill) => skill.id === "capital_reserve")?.implementationStatus).toBe(
+      "implemented-8b-1",
+    );
+    expect(teacherSkills.find((skill) => skill.id === "extra_lesson")?.implementationStatus).toBe(
+      "planned-8b",
+    );
+    expect(ceoSkills.find((skill) => skill.id === "emergency_supply")?.implementationStatus).toBe(
+      "planned-8b",
+    );
+  });
+
   it("mounts the default debug characters with empty usage state", () => {
     const state = createInitialGame({ shuffle: identityShuffle });
 
