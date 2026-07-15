@@ -6,6 +6,7 @@ import {
   createStatusDamageContext,
   getAcidBaseDamageTag,
 } from "./damageContext";
+import { applyDamage } from "./damage";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -108,28 +109,6 @@ function moveCardFromHandToDiscard(
       hand: holder.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
     },
   );
-}
-
-function applyDamage(state: GameState, effect: Extract<Effect, { type: "DAMAGE" }>): GameState {
-  const target = getPlayer(state, effect.context.targetPlayerId);
-
-  if (!target || target.eliminated) {
-    return state;
-  }
-
-  const nextHp = Math.max(0, target.hp - effect.context.baseAmount);
-  const isEliminated = nextHp === 0;
-  const nextState = replacePlayer(state, target.id, {
-    ...target,
-    hp: nextHp,
-    eliminated: isEliminated,
-  });
-
-  if (isEliminated && !target.eliminated) {
-    return appendLog(nextState, `${target.name} HP 降至 0，被淘汰。`);
-  }
-
-  return nextState;
 }
 
 function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
@@ -583,7 +562,7 @@ export function passStatusHandling(
     return state;
   }
 
-  const withDamage = applyDamage(state, {
+  const appliedDamage = applyDamage(state, {
     type: "DAMAGE",
     context: createStatusDamageContext({
       statusInstanceId: status.id,
@@ -592,13 +571,14 @@ export function passStatusHandling(
       baseAmount: 2,
     }),
   });
+  const withDamage = appliedDamage.state;
   const damagedPlayer = getPlayer(withDamage, player.id);
   const withLog = appendLog(
     {
       ...withDamage,
       pendingStatusHandling: undefined,
     },
-    `${player.name} 未处理 ${status.statusId}，受到 2 点状态伤害；${status.statusId} 保留。`,
+    `${player.name} 未处理 ${status.statusId}，受到 ${appliedDamage.resolution.finalAmount} 点状态伤害；${status.statusId} 保留。`,
   );
 
   const gameOverChecked = finishGameIfResolved(withLog);
@@ -703,7 +683,8 @@ export function passResponse(
     return state;
   }
 
-  const withDamage = applyDamage(state, sourceEffect);
+  const appliedDamage = applyDamage(state, sourceEffect);
+  const withDamage = appliedDamage.state;
   const withAttackDiscarded = discardAttackSourceCardIfNeeded(
     withDamage,
     sourceEffect.context.source,
@@ -719,7 +700,7 @@ export function passResponse(
       phase: "mainAction",
       pendingResponse: undefined,
     },
-    `${target.name} 放弃响应，受到 ${sourceEffect.context.baseAmount} 点${damageKind === "acid" ? "酸性" : "碱性"}伤害。`,
+    `${target.name} 放弃响应，受到 ${appliedDamage.resolution.finalAmount} 点${damageKind === "acid" ? "酸性" : "碱性"}伤害。`,
   );
 
   const gameOverChecked = finishGameIfResolved(resolved);

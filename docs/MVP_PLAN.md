@@ -348,6 +348,30 @@ interface DamageContext {
   responsePolicy: ResponsePolicy;
 }
 
+type DamageModifierSource = {
+  readonly kind: "character-skill";
+  readonly sourcePlayerId: string;
+  readonly skillId: CharacterSkillId;
+};
+
+interface DamageAmountModifier {
+  readonly source: DamageModifierSource;
+  readonly amount: number;
+}
+
+interface DamageModifierSet {
+  readonly setValue?: DamageAmountModifier;
+  readonly increase?: DamageAmountModifier;
+  readonly immunity?: { readonly source: DamageModifierSource };
+  readonly reduction?: DamageAmountModifier;
+  readonly minimum?: DamageAmountModifier;
+}
+
+interface LoseHpTarget {
+  readonly targetPlayerId: string;
+  readonly amount: number;
+}
+
 type Effect =
   | { type: "DAMAGE"; context: DamageContext }
   | { type: "HEAL"; sourceId: string; targetPlayerId: string; amount: number }
@@ -532,6 +556,7 @@ src/
       resolution.ts
       turnFlow.ts
       damage.ts
+      loseHp.ts
       reactions.ts
       diy.ts
       statuses.ts
@@ -603,9 +628,11 @@ Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻�
 
 ### 8C：复杂技能与通用修饰层
 
-- 实现状态：8C-0A 已完成实体 `strong-acid` / `strong-alkali` 精确标签映射与数据冻结；8C-0B 已完成 `DamageSource`、`DamageTag`、`ResponsePolicy` 与 `DamageContext` 的行为等价迁移。当前伤害仍直接使用 `baseAmount`，角色技能尚未读取新上下文；8C-1 八步伤害修饰管线及后续仍未实现。
-- 实现多目标结算与响应、独立“失去体力”效果。
-- 实现通用伤害修饰顺序，以及免疫、减伤、设定值、增伤和单次伤害上限。
+- 实现状态：8C-0A 已完成实体 `strong-acid` / `strong-alkali` 精确标签映射与数据冻结；8C-0B 已完成统一 `DamageContext`；8C-1 已完成普通 `DAMAGE` 八步修饰管线、只读阶段 trace、最终实际伤害接入，以及独立批量失去体力基础设施。
+- 8C-1 当前不接入具体角色修饰器；没有修饰器时，实体/DIY 仍为 1 点，`FIRE` / `SO2_LEAK` 仍为 2 点。多个同阶段修饰器的优先级和叠加方式尚未冻结，因此当前每阶段至多接收一个已经解析的修饰。
+- 独立失去体力不属于 `DAMAGE`，不进入响应或普通伤害管线；批量输入先原子校验，全部 HP 更新后再统一淘汰和判断胜负。本阶段未新增 action，也未接入“强放热事故”。
+- 多目标结算与响应仍未实现。
+- 具体免疫、减伤、设定值、增伤和最低值角色规则仍未接入。
 - 实现“实验反击”及追击选择窗口、“硫酸工艺”等伤害修饰技能。
 - 完成实体强酸、实体强碱及正式伤害标签映射；不将虚拟 DIY 稀酸、稀碱自动视为实体强酸、强碱。
 - 通用反应事件系统完成后再启用“硫酸盐副产”。
