@@ -503,7 +503,7 @@ describe("tableReference and reference card play", () => {
       targetPlayerId: diyTarget.id,
     });
     expect(diyState.phase).toBe("responseWindow");
-    expect(diyState.pendingResponse?.sourceEffect.source.kind).toBe("virtual-diy");
+    expect(diyState.pendingResponse?.sourceEffect.context.source.kind).toBe("diy");
     expect(diyState.tableReference).toEqual(existingReference);
     expectCardZonesToBeConsistent(diyState);
   });

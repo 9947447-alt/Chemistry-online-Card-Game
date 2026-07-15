@@ -1,8 +1,15 @@
 import { cardDefinitions } from "../data/cardDefinitions";
+import { diyRecipes } from "../data/diyRecipes";
 import { canPlayCardAgainstTableReference } from "./cardAssociation";
+import {
+  createCardDamageContext,
+  createStatusDamageContext,
+  getAcidBaseDamageTag,
+} from "./damageContext";
 import type {
   CardDefinition,
   CardInstanceId,
+  DamageEffect,
   DamageSource,
   Effect,
   GameState,
@@ -19,6 +26,7 @@ export function resolveEffects(effects: Effect[]): Effect[] {
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
+const diyRecipesById = new Map(diyRecipes.map((recipe) => [recipe.id, recipe]));
 
 function appendLog(state: GameState, message: string): GameState {
   const nextIndex = state.log.length + 1;
@@ -103,13 +111,13 @@ function moveCardFromHandToDiscard(
 }
 
 function applyDamage(state: GameState, effect: Extract<Effect, { type: "DAMAGE" }>): GameState {
-  const target = getPlayer(state, effect.targetPlayerId);
+  const target = getPlayer(state, effect.context.targetPlayerId);
 
   if (!target || target.eliminated) {
     return state;
   }
 
-  const nextHp = Math.max(0, target.hp - effect.amount);
+  const nextHp = Math.max(0, target.hp - effect.context.baseAmount);
   const isEliminated = nextHp === 0;
   const nextState = replacePlayer(state, target.id, {
     ...target,
@@ -156,7 +164,7 @@ function canNeutralize(
 }
 
 function canGenerateCarbonDioxideAgainstAcid(
-  incomingDamageKind: "acid" | "base" | "status",
+  incomingDamageKind: "acid" | "base",
   responseDefinition: CardDefinition,
 ): boolean {
   const isCarbonateResponder =
@@ -170,14 +178,16 @@ function canGenerateCarbonDioxideAgainstAcid(
   );
 }
 
-function getDamageSourceName(state: GameState, source: DamageSource): string {
+function getDamageSourceName(source: DamageSource): string {
   switch (source.kind) {
     case "card":
-      return getDefinitionForCard(state, source.cardInstanceId)?.name ?? "未知卡牌";
-    case "virtual-diy":
-      return source.displayName;
+      return definitionsById.get(source.cardDefinitionId)?.name ?? "未知卡牌";
+    case "diy":
+      return diyRecipesById.get(source.recipeId)?.displayName ?? "未知主动 DIY";
     case "status":
-      return source.displayName;
+      return source.statusId;
+    case "character-skill":
+      return source.skillId;
     default: {
       const exhaustiveSource: never = source;
       return exhaustiveSource;
@@ -462,16 +472,15 @@ export function playMainActionCard(
     return state;
   }
 
-  const sourceEffect: Effect = {
+  const sourceEffect: DamageEffect = {
     type: "DAMAGE",
-    source: {
-      kind: "card",
+    context: createCardDamageContext({
+      sourcePlayerId: actor.id,
       cardInstanceId,
-    },
-    targetPlayerId: target.id,
-    amount: 1,
-    damageKind,
-    canRespond: true,
+      definition,
+      targetPlayerId: target.id,
+      baseAmount: definition.baseDamage,
+    }),
   };
 
   return appendLog(
@@ -576,15 +585,12 @@ export function passStatusHandling(
 
   const withDamage = applyDamage(state, {
     type: "DAMAGE",
-    source: {
-      kind: "status",
+    context: createStatusDamageContext({
       statusInstanceId: status.id,
-      displayName: status.statusId,
-    },
-    targetPlayerId: player.id,
-    amount: 2,
-    damageKind: "status",
-    canRespond: false,
+      statusId: status.statusId,
+      targetPlayerId: player.id,
+      baseAmount: 2,
+    }),
   });
   const damagedPlayer = getPlayer(withDamage, player.id);
   const withLog = appendLog(
@@ -623,29 +629,32 @@ export function respondWithCard(
   const pendingResponse = state.pendingResponse;
   const responder = getPlayer(state, playerId);
   const sourceEffect = pendingResponse?.sourceEffect;
+  const damageContext = sourceEffect?.context;
+  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
-  const attackName = sourceEffect?.type === "DAMAGE" ? getDamageSourceName(state, sourceEffect.source) : "";
+  const attackName = sourceEffect ? getDamageSourceName(sourceEffect.context.source) : "";
   const isCarbonateResponse =
-    sourceEffect?.type === "DAMAGE" &&
+    damageKind === "acid" &&
     responseDefinition &&
-    canGenerateCarbonDioxideAgainstAcid(sourceEffect.damageKind, responseDefinition);
+    canGenerateCarbonDioxideAgainstAcid(damageKind, responseDefinition);
 
   if (
     state.phase !== "responseWindow" ||
     !pendingResponse ||
     pendingResponse.responderId !== playerId ||
-    sourceEffect?.type !== "DAMAGE" ||
-    (sourceEffect.damageKind !== "acid" && sourceEffect.damageKind !== "base") ||
+    !sourceEffect ||
+    damageContext?.responsePolicy !== "acid-base" ||
+    !damageKind ||
     !responder ||
     responder.eliminated ||
     !responder.hand.includes(cardInstanceId) ||
     !responseDefinition ||
-    (!canNeutralize(sourceEffect.damageKind, responseDefinition) && !isCarbonateResponse)
+    (!canNeutralize(damageKind, responseDefinition) && !isCarbonateResponse)
   ) {
     return state;
   }
 
-  const withAttackDiscarded = discardAttackSourceCardIfNeeded(state, sourceEffect.source);
+  const withAttackDiscarded = discardAttackSourceCardIfNeeded(state, sourceEffect.context.source);
   if (!withAttackDiscarded) {
     return state;
   }
@@ -676,14 +685,16 @@ export function passResponse(
 ): GameState {
   const pendingResponse = state.pendingResponse;
   const sourceEffect = pendingResponse?.sourceEffect;
+  const damageContext = sourceEffect?.context;
+  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
   const responder = getPlayer(state, playerId);
-  const target = sourceEffect?.type === "DAMAGE" ? getPlayer(state, sourceEffect.targetPlayerId) : undefined;
+  const target = damageContext ? getPlayer(state, damageContext.targetPlayerId) : undefined;
 
   if (
     state.phase !== "responseWindow" ||
     !pendingResponse ||
     pendingResponse.responderId !== playerId ||
-    sourceEffect?.type !== "DAMAGE" ||
+    !sourceEffect ||
     !responder ||
     responder.eliminated ||
     !target ||
@@ -693,7 +704,10 @@ export function passResponse(
   }
 
   const withDamage = applyDamage(state, sourceEffect);
-  const withAttackDiscarded = discardAttackSourceCardIfNeeded(withDamage, sourceEffect.source);
+  const withAttackDiscarded = discardAttackSourceCardIfNeeded(
+    withDamage,
+    sourceEffect.context.source,
+  );
 
   if (!withAttackDiscarded) {
     return state;
@@ -705,7 +719,7 @@ export function passResponse(
       phase: "mainAction",
       pendingResponse: undefined,
     },
-    `${target.name} 放弃响应，受到 ${sourceEffect.amount} 点${sourceEffect.damageKind === "acid" ? "酸性" : "碱性"}伤害。`,
+    `${target.name} 放弃响应，受到 ${sourceEffect.context.baseAmount} 点${damageKind === "acid" ? "酸性" : "碱性"}伤害。`,
   );
 
   const gameOverChecked = finishGameIfResolved(resolved);

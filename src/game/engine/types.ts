@@ -144,33 +144,53 @@ export type Player = {
   characterUsage: CharacterUsageState;
 };
 
-export type AttackSource =
+export type DamageSource =
   | {
       kind: "card";
+      sourcePlayerId: PlayerId;
       cardInstanceId: CardInstanceId;
+      cardDefinitionId: CardDefinitionId;
     }
   | {
-      kind: "virtual-diy";
+      kind: "diy";
+      sourcePlayerId: PlayerId;
       recipeId: string;
-      displayName: string;
-    };
-
-export type DamageSource =
-  | AttackSource
+    }
   | {
       kind: "status";
+      sourcePlayerId: null;
       statusInstanceId: string;
-      displayName: string;
+      statusId: StatusId;
+    }
+  | {
+      kind: "character-skill";
+      sourcePlayerId: PlayerId;
+      skillId: CharacterSkillId;
     };
+
+export type DamageTag =
+  | "acid"
+  | "base"
+  | "strong-acid"
+  | "strong-alkali"
+  | "so2"
+  | "fire"
+  | "status";
+
+export type ResponsePolicy = "acid-base" | "alkali-absorption" | "none";
+
+export type DamageContext = {
+  targetPlayerId: PlayerId;
+  baseAmount: number;
+  source: DamageSource;
+  tags: readonly DamageTag[];
+  responsePolicy: ResponsePolicy;
+};
 
 export type Effect =
   | {
       type: "DAMAGE";
-      source: DamageSource;
-      targetPlayerId: PlayerId;
-      amount: number;
-      damageKind: "acid" | "base" | "status";
-      canRespond: boolean;
+      context: DamageContext;
     }
   | { type: "HEAL"; sourceId: string; targetPlayerId: PlayerId; amount: number }
   | { type: "DRAW"; playerId: PlayerId; count: number }

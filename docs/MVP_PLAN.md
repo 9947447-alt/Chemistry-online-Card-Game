@@ -224,6 +224,8 @@ type PlayTiming =
 type Tag =
   | "acid"
   | "base"
+  | "strong-acid"
+  | "strong-alkali"
   | "carbonate"
   | "harmful-gas"
   | "aqueous"
@@ -321,8 +323,33 @@ type Action =
   | { type: "PASS_STATUS_HANDLING"; playerId: string; statusInstanceId: string }
   | { type: "PASS_ACTION"; playerId: string };
 
+type DamageSource =
+  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string }
+  | { kind: "diy"; sourcePlayerId: string; recipeId: string }
+  | { kind: "status"; sourcePlayerId: null; statusInstanceId: string; statusId: "SO2_LEAK" | "FIRE" }
+  | { kind: "character-skill"; sourcePlayerId: string; skillId: CharacterSkillId };
+
+type DamageTag =
+  | "acid"
+  | "base"
+  | "strong-acid"
+  | "strong-alkali"
+  | "so2"
+  | "fire"
+  | "status";
+
+type ResponsePolicy = "acid-base" | "alkali-absorption" | "none";
+
+interface DamageContext {
+  targetPlayerId: string;
+  baseAmount: number;
+  source: DamageSource;
+  tags: readonly DamageTag[];
+  responsePolicy: ResponsePolicy;
+}
+
 type Effect =
-  | { type: "DAMAGE"; sourceId: string; targetPlayerId: string; amount: number; damageKind: "acid" | "base" | "status"; canRespond: boolean }
+  | { type: "DAMAGE"; context: DamageContext }
   | { type: "HEAL"; sourceId: string; targetPlayerId: string; amount: number }
   | { type: "DRAW"; playerId: string; count: number }
   | { type: "DISCARD"; playerId: string; cardInstanceIds: string[] }
@@ -333,7 +360,7 @@ type Effect =
 
 interface PendingResponse {
   responderId: string;
-  sourceEffect: Effect;
+  sourceEffect: Extract<Effect, { type: "DAMAGE" }>;
   chainDepth: number;
   effectsAfterPass: Effect[];
 }
@@ -576,7 +603,7 @@ Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻�
 
 ### 8C：复杂技能与通用修饰层
 
-- 实现状态：8C-0A 已完成实体 `strong-acid` / `strong-alkali` 精确标签映射与数据冻结；角色技能尚未读取这些标签。8C-0B“统一伤害上下文”为下一阶段；8C-1 及后续仍未实现。
+- 实现状态：8C-0A 已完成实体 `strong-acid` / `strong-alkali` 精确标签映射与数据冻结；8C-0B 已完成 `DamageSource`、`DamageTag`、`ResponsePolicy` 与 `DamageContext` 的行为等价迁移。当前伤害仍直接使用 `baseAmount`，角色技能尚未读取新上下文；8C-1 八步伤害修饰管线及后续仍未实现。
 - 实现多目标结算与响应、独立“失去体力”效果。
 - 实现通用伤害修饰顺序，以及免疫、减伤、设定值、增伤和单次伤害上限。
 - 实现“实验反击”及追击选择窗口、“硫酸工艺”等伤害修饰技能。

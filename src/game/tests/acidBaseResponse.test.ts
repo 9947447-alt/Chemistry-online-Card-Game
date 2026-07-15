@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { starterDeckSize } from "../data/starterDeck";
 import { createMvp0TestGame as createInitialGame } from "./createTestGame";
 import { engineReducer } from "../engine/reducer";
+import { createDIYDamageContext } from "../engine/damageContext";
 import type { CardInstanceId, Effect, GameState, Player, PlayerId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
@@ -103,17 +104,17 @@ function createVirtualDIYResponseGame(
   const activePlayerIndex = options.activePlayerIndex ?? 0;
   const activePlayer = state.players[activePlayerIndex];
   const responder = state.players[activePlayerIndex === 0 ? 1 : 0];
+  const damageKind = options.damageKind ?? "acid";
   const sourceEffect: Extract<Effect, { type: "DAMAGE" }> = {
     type: "DAMAGE",
-    source: {
-      kind: "virtual-diy",
-      recipeId: "test_virtual_diy_attack",
-      displayName: options.damageKind === "base" ? "虚拟 DIY 碱性攻击" : "虚拟 DIY 酸性攻击",
-    },
-    targetPlayerId: responder.id,
-    amount: 1,
-    damageKind: options.damageKind ?? "acid",
-    canRespond: true,
+    context: createDIYDamageContext({
+      sourcePlayerId: activePlayer.id,
+      recipeId:
+        damageKind === "base" ? "diy_naoh_from_na_oh" : "diy_hcl_from_h_cl",
+      targetPlayerId: responder.id,
+      baseAmount: 1,
+      damageKind,
+    }),
   };
 
   if (responderCardId) {
@@ -156,13 +157,18 @@ describe("acid/base response window", () => {
     expect(state.pendingResponse?.responderId).toBe(responder.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "card",
-        cardInstanceId: "substance_hcl_dilute_01",
+      context: {
+        source: {
+          kind: "card",
+          sourcePlayerId: attacker.id,
+          cardInstanceId: "substance_hcl_dilute_01",
+          cardDefinitionId: "substance_hcl_dilute",
+        },
+        targetPlayerId: responder.id,
+        baseAmount: 1,
+        tags: ["acid", "strong-acid"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: responder.id,
-      amount: 1,
-      damageKind: "acid",
     });
 
     state = engineReducer(state, {
@@ -197,13 +203,18 @@ describe("acid/base response window", () => {
 
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "card",
-        cardInstanceId: "substance_naoh_dilute_01",
+      context: {
+        source: {
+          kind: "card",
+          sourcePlayerId: attacker.id,
+          cardInstanceId: "substance_naoh_dilute_01",
+          cardDefinitionId: "substance_naoh_dilute",
+        },
+        targetPlayerId: responder.id,
+        baseAmount: 1,
+        tags: ["base", "strong-alkali"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: responder.id,
-      amount: 1,
-      damageKind: "base",
     });
 
     state = engineReducer(state, {
@@ -353,7 +364,7 @@ describe("acid/base response window", () => {
       {
         name: "base neutralization",
         responseCardId: "substance_naoh_dilute_01",
-        expectedLogText: "中和 虚拟 DIY 酸性攻击",
+        expectedLogText: "中和 主动 DIY 生成的稀 HCl",
       },
     ];
 
@@ -414,7 +425,9 @@ describe("acid/base response window", () => {
     expect(neutralized.pendingResponse).toBeUndefined();
     expect(neutralized.players[1].hp).toBe(10);
     expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
-    expect(neutralized.log.some((entry) => entry.message.includes("中和 虚拟 DIY 碱性攻击"))).toBe(true);
+    expect(
+      neutralized.log.some((entry) => entry.message.includes("中和 主动 DIY 生成的稀 NaOH")),
+    ).toBe(true);
     expectTotalCardInstances(neutralized);
     expectCardZonesToBeConsistent(neutralized);
 
@@ -459,7 +472,7 @@ describe("acid/base response window", () => {
       });
 
       expect(rejected).toBe(state);
-      expect(rejected.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expect(rejected.pendingResponse?.sourceEffect.context.tags).toContain("base");
       expect(rejected.players[1].hand).toContain("substance_na2co3_01");
       expect(rejected.discardPile).not.toContain("substance_na2co3_01");
       expectCardZonesToBeConsistent(rejected);
@@ -491,7 +504,7 @@ describe("acid/base response window", () => {
       });
 
       expect(rejected).toBe(state);
-      expect(rejected.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expect(rejected.pendingResponse?.sourceEffect.context.tags).toContain("base");
       expect(rejected.players[1].hp).toBe(10);
       expect(rejected.players[1].hand).toContain("ion_co3_01");
       expect(rejected.discardPile).not.toContain("ion_co3_01");

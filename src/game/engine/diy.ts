@@ -1,5 +1,6 @@
 import { cardDefinitions } from "../data/cardDefinitions";
 import { diyRecipes, type DIYRecipe } from "../data/diyRecipes";
+import { createDIYDamageContext } from "./damageContext";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -283,15 +284,13 @@ export function startActiveDIY(
 
     const sourceEffect: DamageEffect = {
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
+      context: createDIYDamageContext({
+        sourcePlayerId: player.id,
         recipeId: matchedRecipe.id,
-        displayName: matchedRecipe.displayName,
-      },
-      targetPlayerId: target.id,
-      amount: matchedRecipe.damageAmount,
-      damageKind: matchedRecipe.damageKind,
-      canRespond: true,
+        targetPlayerId: target.id,
+        baseAmount: matchedRecipe.damageAmount,
+        damageKind: matchedRecipe.damageKind,
+      }),
     };
 
     return appendLog(

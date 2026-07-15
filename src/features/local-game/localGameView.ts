@@ -1,6 +1,7 @@
 import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
 import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
+import { getAcidBaseDamageTag } from "../../game/engine/damageContext";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -36,16 +37,20 @@ export function formatList(items: readonly string[]) {
   return items.length > 0 ? items.join(", ") : "无";
 }
 
-export function describeDamageSource(state: GameState, effect: DamageEffect) {
-  switch (effect.source.kind) {
+export function describeDamageSource(effect: DamageEffect) {
+  const source = effect.context.source;
+
+  switch (source.kind) {
     case "card":
-      return getCardDefinition(state, effect.source.cardInstanceId)?.name ?? "未知卡牌";
-    case "virtual-diy":
-      return effect.source.displayName;
+      return cardDefinitionById.get(source.cardDefinitionId)?.name ?? "未知卡牌";
+    case "diy":
+      return diyRecipes.find((recipe) => recipe.id === source.recipeId)?.displayName ?? "未知主动 DIY";
     case "status":
-      return effect.source.displayName;
+      return source.statusId;
+    case "character-skill":
+      return source.skillId;
     default: {
-      const exhaustiveSource: never = effect.source;
+      const exhaustiveSource: never = source;
       return exhaustiveSource;
     }
   }
@@ -60,9 +65,8 @@ export function describePendingResponse(state: GameState) {
 
   const effect = pendingResponse.sourceEffect;
   return `${getPlayerName(state, pendingResponse.responderId)} 响应 ${describeDamageSource(
-    state,
     effect,
-  )}：${effect.amount} 点 ${effect.damageKind} 伤害，chainDepth ${pendingResponse.chainDepth}`;
+  )}：${effect.context.baseAmount} 点 ${effect.context.tags.join("+")} 伤害，chainDepth ${pendingResponse.chainDepth}`;
 }
 
 export function describePendingStatusHandling(state: GameState) {
@@ -184,9 +188,14 @@ function canCarbonateRespond(incomingDamageKind: "acid" | "base", responseDefini
 }
 
 export function getResponseCards(state: GameState, player: Player) {
-  const damageKind = state.pendingResponse?.sourceEffect.damageKind;
+  const context = state.pendingResponse?.sourceEffect.context;
+  const damageKind = context ? getAcidBaseDamageTag(context) : undefined;
 
-  if (state.phase !== "responseWindow" || (damageKind !== "acid" && damageKind !== "base")) {
+  if (
+    state.phase !== "responseWindow" ||
+    context?.responsePolicy !== "acid-base" ||
+    !damageKind
+  ) {
     return [];
   }
 

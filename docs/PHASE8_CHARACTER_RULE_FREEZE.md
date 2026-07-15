@@ -60,6 +60,34 @@
 
 Phase 8C-0A 只完成上述标签数据与规则冻结；伤害上下文、伤害修饰及相关角色技能尚未接入。
 
+### Phase 8C-0B：统一伤害上下文
+
+所有当前普通 `DAMAGE` 统一携带一个结构化 `DamageContext`，由以下字段组成：
+
+- `targetPlayerId`：当前伤害目标。
+- `baseAmount`：进入未来修饰管线前的非负基础伤害值。
+- `source`：强类型 `DamageSource` 判别联合。
+- `tags`：去重且顺序稳定的 `DamageTag[]`。
+- `responsePolicy`：明确的响应策略。
+
+`DamageSource` 当前冻结为四类：
+
+- `card`：保存实际出牌者 `sourcePlayerId`、真实 `cardInstanceId` 和稳定的 `cardDefinitionId`。
+- `diy`：保存发动者 `sourcePlayerId` 和 `recipeId`；不得包含或伪造结果 `CardInstance`。
+- `status`：保存具体 `statusId` 与状态实例 ID；当前伤害上下文的 `sourcePlayerId` 固定为 `null`，不得把状态持有者或 `PlayerStatus` 中尚未正式冻结的来源字段猜作攻击者。
+- `character-skill`：预留 `sourcePlayerId` 与 `skillId` 的强类型分支；Phase 8C-0B 不产生新的角色技能伤害。
+
+`DamageTag` 与当前生成规则如下：
+
+- 实体酸碱攻击只从明确的 `CardDefinition.tags` 读取 `acid` / `base` / `strong-acid` / `strong-alkali`。
+- 虚拟 DIY 只从 recipe 已冻结的伤害种类生成 `acid` 或 `base`，不得获得实体强酸、强碱标签。
+- `FIRE` 状态伤害使用 `status` + `fire`；`SO2_LEAK` 状态伤害使用 `status` + `so2`。
+- 不根据名称、化学式、card ID、离子来源或现实知识推断伤害标签。
+
+`ResponsePolicy` 当前包括 `acid-base`、`alkali-absorption` 和 `none`。已有实体与虚拟酸碱攻击使用 `acid-base`；已有行动开始状态伤害使用 `none`。`alkali-absorption` 只为未来正式技能入口预留，本阶段不创建即时 SO2 伤害或新响应窗口。
+
+Phase 8C-0B 是行为等价的数据迁移：当前结算仍直接按 `baseAmount` 扣除 HP。八步伤害修饰管线、`loseHp`、多目标结算、实验反击及所有新角色技能仍未实现。未来若需要把状态施加者作为伤害来源，必须另行冻结状态来源追踪规则。
+
 ## 五、普通 DAMAGE 修饰顺序
 
 普通 `DAMAGE` 按以下固定顺序结算：

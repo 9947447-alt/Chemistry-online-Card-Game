@@ -725,14 +725,17 @@ describe("active DIY", () => {
     expect(state.pendingResponse?.responderId).toBe(target.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
-        recipeId: "diy_hcl_from_h_cl",
-        displayName: "主动 DIY 生成的稀 HCl",
+      context: {
+        source: {
+          kind: "diy",
+          sourcePlayerId: player.id,
+          recipeId: "diy_hcl_from_h_cl",
+        },
+        targetPlayerId: target.id,
+        baseAmount: 1,
+        tags: ["acid"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: target.id,
-      amount: 1,
-      damageKind: "acid",
     });
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_cl_01")).toHaveLength(1);
@@ -755,14 +758,17 @@ describe("active DIY", () => {
     expect(state.pendingResponse?.responderId).toBe(target.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
-        recipeId: "diy_h2so4_from_2h_so4",
-        displayName: "主动 DIY 生成的稀 H2SO4",
+      context: {
+        source: {
+          kind: "diy",
+          sourcePlayerId: player.id,
+          recipeId: "diy_h2so4_from_2h_so4",
+        },
+        targetPlayerId: target.id,
+        baseAmount: 1,
+        tags: ["acid"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: target.id,
-      amount: 1,
-      damageKind: "acid",
     });
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_02")).toHaveLength(1);
@@ -836,8 +842,8 @@ describe("active DIY", () => {
 
         state = recipe.start(state, player.id, target.id);
         expect(state.phase).toBe("responseWindow");
-        expect(state.pendingResponse?.sourceEffect.source).toMatchObject({
-          kind: "virtual-diy",
+        expect(state.pendingResponse?.sourceEffect.context.source).toMatchObject({
+          kind: "diy",
           recipeId: recipe.recipeId,
         });
         expectCardZonesToBeConsistent(state);
@@ -1175,16 +1181,19 @@ describe("active DIY", () => {
     expect(state.pendingResponse?.responderId).toBe(target.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
-        recipeId: "diy_naoh_from_na_oh",
-        displayName: "主动 DIY 生成的稀 NaOH",
+      context: {
+        source: {
+          kind: "diy",
+          sourcePlayerId: player.id,
+          recipeId: "diy_naoh_from_na_oh",
+        },
+        targetPlayerId: target.id,
+        baseAmount: 1,
+        tags: ["base"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: target.id,
-      amount: 1,
-      damageKind: "base",
     });
-    expect(state.pendingResponse?.sourceEffect.source).toMatchObject({ kind: "virtual-diy" });
+    expect(state.pendingResponse?.sourceEffect.context.source).toMatchObject({ kind: "diy" });
     expect(state.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(countCardDefinition(state, "substance_naoh_dilute")).toBe(initialNaohCount);
@@ -1207,16 +1216,19 @@ describe("active DIY", () => {
     expect(state.pendingResponse?.responderId).toBe(target.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
-        recipeId: "diy_koh_from_k_oh",
-        displayName: "主动 DIY 生成的稀 KOH",
+      context: {
+        source: {
+          kind: "diy",
+          sourcePlayerId: player.id,
+          recipeId: "diy_koh_from_k_oh",
+        },
+        targetPlayerId: target.id,
+        baseAmount: 1,
+        tags: ["base"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: target.id,
-      amount: 1,
-      damageKind: "base",
     });
-    expect(state.pendingResponse?.sourceEffect.source).toMatchObject({ kind: "virtual-diy" });
+    expect(state.pendingResponse?.sourceEffect.context.source).toMatchObject({ kind: "diy" });
     expect(state.discardPile.filter((cardId) => cardId === "ion_k_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(countCardDefinition(state, "substance_koh_dilute")).toBe(initialKohCount);
@@ -1285,11 +1297,13 @@ describe("active DIY", () => {
         expect(state.phase).toBe("responseWindow");
         expect(state.pendingResponse?.sourceEffect).toMatchObject({
           type: "DAMAGE",
-          source: {
-            kind: "virtual-diy",
-            recipeId: recipe.recipeId,
+          context: {
+            source: {
+              kind: "diy",
+              recipeId: recipe.recipeId,
+            },
+            tags: ["base"],
           },
-          damageKind: "base",
         });
         for (const componentId of recipe.components) {
           expect(state.discardPile.filter((cardId) => cardId === componentId)).toHaveLength(1);
@@ -1342,7 +1356,7 @@ describe("active DIY", () => {
       state = putCardInHand(state, target.id, responseCardId);
       state = startNaohAttackDIY(state, player.id, target.id);
       expect(state.phase).toBe("responseWindow");
-      expect(state.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expect(state.pendingResponse?.sourceEffect.context.tags).toEqual(["base"]);
       expectCardZonesToBeConsistent(state);
 
       const rejected = engineReducer(state, {
@@ -1690,14 +1704,17 @@ describe("active DIY", () => {
     expect(state.pendingResponse?.responderId).toBe(target.id);
     expect(state.pendingResponse?.sourceEffect).toMatchObject({
       type: "DAMAGE",
-      source: {
-        kind: "virtual-diy",
-        recipeId: "diy_limewater_from_ca_2oh",
-        displayName: "主动 DIY 生成的石灰水 Ca(OH)2",
+      context: {
+        source: {
+          kind: "diy",
+          sourcePlayerId: player.id,
+          recipeId: "diy_limewater_from_ca_2oh",
+        },
+        targetPlayerId: target.id,
+        baseAmount: 1,
+        tags: ["base"],
+        responsePolicy: "acid-base",
       },
-      targetPlayerId: target.id,
-      amount: 1,
-      damageKind: "base",
     });
     expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
@@ -1748,12 +1765,14 @@ describe("active DIY", () => {
       expect(state.phase).toBe("responseWindow");
       expect(state.pendingResponse?.sourceEffect).toMatchObject({
         type: "DAMAGE",
-        source: {
-          kind: "virtual-diy",
-          recipeId: "diy_limewater_from_ca_2oh",
+        context: {
+          source: {
+            kind: "diy",
+            recipeId: "diy_limewater_from_ca_2oh",
+          },
+          baseAmount: 1,
+          tags: ["base"],
         },
-        amount: 1,
-        damageKind: "base",
       });
       expect(state.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
       expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
@@ -1813,7 +1832,7 @@ describe("active DIY", () => {
       state = putCardInHand(state, target.id, responseCardId);
       state = startLimewaterAttackDIY(state, player.id, target.id);
       expect(state.phase).toBe("responseWindow");
-      expect(state.pendingResponse?.sourceEffect).toMatchObject({ damageKind: "base" });
+      expect(state.pendingResponse?.sourceEffect.context.tags).toEqual(["base"]);
       expectCardZonesToBeConsistent(state);
 
       const rejected = engineReducer(state, {
