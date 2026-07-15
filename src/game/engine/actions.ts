@@ -1,11 +1,31 @@
-import type { CardInstanceId, CharacterSkillId, PlayerId } from "./types";
+import type { CardInstanceId, PlayerId } from "./types";
 
-export type GameAction =
+export type ActivateCharacterSkillAction =
   | {
       type: "ACTIVATE_CHARACTER_SKILL";
       playerId: PlayerId;
-      skillId: CharacterSkillId;
+      skillId:
+        | "extra_lesson"
+        | "emergency_supply"
+        | "exhaust_leak"
+        | "lab_fire"
+        | "exothermic_accident";
     }
+  | {
+      type: "ACTIVATE_CHARACTER_SKILL";
+      playerId: PlayerId;
+      skillId: "alkali_recovery";
+      cardInstanceId: CardInstanceId;
+    }
+  | {
+      type: "ACTIVATE_CHARACTER_SKILL";
+      playerId: PlayerId;
+      skillId: "exhaust_discharge";
+      targetPlayerId: PlayerId;
+    };
+
+export type GameAction =
+  | ActivateCharacterSkillAction
   | {
       type: "CONFIRM_LABORATORY_PREPARATION";
       playerId: PlayerId;

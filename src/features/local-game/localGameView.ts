@@ -2,6 +2,8 @@ import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
 import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
 import { getAcidBaseDamageTag } from "../../game/engine/damageContext";
+import { isAlkalineAbsorptionDefinition } from "../../game/engine/multiTargetResponse";
+import { canRecoverHp } from "../../game/engine/recovery";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -102,12 +104,6 @@ export function isMainActionCard(definition: CardDefinition) {
   return definition.allowedTimings.includes("main-action");
 }
 
-function hasRecoveryBlockingStatus(player: Player) {
-  return player.statuses.some(
-    (status) => status.statusId === "SO2_LEAK" || status.statusId === "FIRE",
-  );
-}
-
 export function canExecuteMainActionEffect(
   state: GameState,
   player: Player,
@@ -125,7 +121,7 @@ export function canExecuteMainActionEffect(
   }
 
   if (definition.id === "substance_o2") {
-    return player.hp < player.maxHp && !hasRecoveryBlockingStatus(player);
+    return canRecoverHp(player);
   }
 
   if (definition.id === "substance_so2") {
@@ -188,14 +184,35 @@ function canCarbonateRespond(incomingDamageKind: "acid" | "base", responseDefini
 }
 
 export function getResponseCards(state: GameState, player: Player) {
-  const context = state.pendingResponse?.sourceEffect.context;
-  const damageKind = context ? getAcidBaseDamageTag(context) : undefined;
+  const pendingResponse = state.pendingResponse;
+  const context = pendingResponse?.sourceEffect.context;
 
   if (
     state.phase !== "responseWindow" ||
-    context?.responsePolicy !== "acid-base" ||
-    !damageKind
+    !pendingResponse ||
+    pendingResponse.responderId !== player.id
   ) {
+    return [];
+  }
+
+  if (context?.responsePolicy === "alkali-absorption") {
+    return player.hand.filter((cardInstanceId) => {
+      const instance = state.cardInstances[cardInstanceId];
+      const definition = getCardDefinition(state, cardInstanceId);
+      return Boolean(
+        instance &&
+          instance.ownerId === player.id &&
+          instance.zone.type === "hand" &&
+          instance.zone.playerId === player.id &&
+          definition &&
+          isAlkalineAbsorptionDefinition(definition),
+      );
+    });
+  }
+
+  const damageKind = context ? getAcidBaseDamageTag(context) : undefined;
+
+  if (context?.responsePolicy !== "acid-base" || !damageKind) {
     return [];
   }
 
@@ -203,6 +220,25 @@ export function getResponseCards(state: GameState, player: Player) {
     const definition = getCardDefinition(state, cardInstanceId);
     return Boolean(
       definition && (canNeutralize(damageKind, definition) || canCarbonateRespond(damageKind, definition)),
+    );
+  });
+}
+
+export function getAlkaliRecoveryCards(state: GameState, player: Player) {
+  if (!canRecoverHp(player)) {
+    return [];
+  }
+
+  return player.hand.filter((cardInstanceId) => {
+    const instance = state.cardInstances[cardInstanceId];
+    const definition = getCardDefinition(state, cardInstanceId);
+    return Boolean(
+      instance &&
+        instance.ownerId === player.id &&
+        instance.zone.type === "hand" &&
+        instance.zone.playerId === player.id &&
+        definition?.type === "substance" &&
+        definition.tags.includes("strong-alkali"),
     );
   });
 }

@@ -29,8 +29,7 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
     case "ACTIVATE_CHARACTER_SKILL":
       return activateCharacterSkill(
         state,
-        action.playerId,
-        action.skillId,
+        action,
         fisherYatesShuffle,
       );
     case "CONFIRM_LABORATORY_PREPARATION":

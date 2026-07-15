@@ -75,10 +75,31 @@ describe("Phase 8A character definitions", () => {
       "sulfuric_acid_process",
     ]);
     expect(
-      getCharacterDefinition("caustic_soda_captain").skills.find(
-        (skill) => skill.id === "alkali_recovery",
+      getCharacterDefinition("chemistry_enthusiast").skills.find(
+        (skill) => skill.id === "experiment_counterattack",
       )?.implementationStatus,
-    ).toBe("planned-8b");
+    ).toBe("planned-8c");
+    expect(
+      getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
+        (skill) => skill.id === "sulfate_byproduct",
+      )?.implementationStatus,
+    ).toBe("deferred");
+  });
+
+  it("marks exactly the five Phase 8C-3 active skills as implemented", () => {
+    const implementedSkillIds = characterDefinitions.flatMap((definition) =>
+      definition.skills
+        .filter((skill) => skill.implementationStatus === "implemented-8c-3")
+        .map((skill) => skill.id),
+    );
+
+    expect(implementedSkillIds).toEqual([
+      "exhaust_leak",
+      "lab_fire",
+      "exothermic_accident",
+      "alkali_recovery",
+      "exhaust_discharge",
+    ]);
     expect(
       getCharacterDefinition("chemistry_enthusiast").skills.find(
         (skill) => skill.id === "experiment_counterattack",

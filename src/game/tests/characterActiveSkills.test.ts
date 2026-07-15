@@ -5,7 +5,6 @@ import { createInitialGame } from "../engine/createInitialGame";
 import { engineReducer } from "../engine/reducer";
 import type {
   CardInstanceId,
-  CharacterSkillId,
   GameState,
   PlayerId,
 } from "../engine/types";
@@ -137,7 +136,7 @@ function moveAvailableCardsToPlayer(
 
 function activateSkill(
   state: GameState,
-  skillId: CharacterSkillId,
+  skillId: SkillTestCase["skillId"],
   playerId = state.activePlayerId,
 ): GameState {
   return engineReducer(state, {
@@ -226,7 +225,7 @@ describe("Phase 8B-2 active draw skills", () => {
     });
   });
 
-  it("rejects mismatched roles, non-active players, and unimplemented skills", () => {
+  it("rejects mismatched roles, non-active players, and other roles' active skills", () => {
     const teacherState = createSkillState(teacherSkill, 4);
     const ceoState = createSkillState(ceoSkill, 4);
 
@@ -259,13 +258,19 @@ describe("Phase 8B-2 active draw skills", () => {
       skillId: "extra_lesson",
     });
 
-    for (const skillId of ["lab_fire", "alkali_recovery", "sulfate_byproduct"] satisfies CharacterSkillId[]) {
+    for (const skillId of ["lab_fire", "exhaust_leak", "exothermic_accident"] as const) {
       expectRejected(teacherState, {
         type: "ACTIVATE_CHARACTER_SKILL",
         playerId: teacherState.activePlayerId,
         skillId,
       });
     }
+    expectRejected(teacherState, {
+      type: "ACTIVATE_CHARACTER_SKILL",
+      playerId: teacherState.activePlayerId,
+      skillId: "alkali_recovery",
+      cardInstanceId: "substance_naoh_dilute_01",
+    });
   });
 
   it.each(["preparationSelection", "responseWindow", "statusWindow", "gameOver"] as const)(

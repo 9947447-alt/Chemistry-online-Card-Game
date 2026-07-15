@@ -30,7 +30,7 @@ export function LocalGamePage() {
             {game.players.map((player) => (
               <PlayerPanel
                 game={game}
-                handSelectionDisabled={game.phase === "preparationSelection"}
+                handSelectionDisabled={game.phase !== "mainAction"}
                 key={player.id}
                 onSelectCard={setSelectedCardId}
                 player={player}

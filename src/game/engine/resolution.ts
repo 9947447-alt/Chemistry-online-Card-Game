@@ -7,6 +7,12 @@ import {
   getAcidBaseDamageTag,
 } from "./damageContext";
 import { applyDamage } from "./damage";
+import {
+  isMultiTargetPendingResponse,
+  passMultiTargetDamageResponse,
+  respondToMultiTargetDamage,
+} from "./multiTargetResponse";
+import { canRecoverHp } from "./recovery";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -189,12 +195,6 @@ function getOrderedStatuses(player: Player): PlayerStatus[] {
   return [...player.statuses].sort((left, right) => left.createdAt - right.createdAt);
 }
 
-function hasRecoveryBlockingStatus(player: Player): boolean {
-  return player.statuses.some(
-    (status) => status.statusId === "SO2_LEAK" || status.statusId === "FIRE",
-  );
-}
-
 function enterNextStatusWindowOrMainAction(
   state: GameState,
   playerId: PlayerId,
@@ -323,8 +323,7 @@ function playOxygenRecoveryCard(
 ): GameState {
   if (
     targetPlayerId !== actor.id ||
-    actor.hp >= actor.maxHp ||
-    hasRecoveryBlockingStatus(actor)
+    !canRecoverHp(actor)
   ) {
     return state;
   }
@@ -606,6 +605,10 @@ export function respondWithCard(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
+  if (isMultiTargetPendingResponse(state)) {
+    return respondToMultiTargetDamage(state, playerId, cardInstanceId, shuffle);
+  }
+
   const pendingResponse = state.pendingResponse;
   const responder = getPlayer(state, playerId);
   const sourceEffect = pendingResponse?.sourceEffect;
@@ -663,6 +666,10 @@ export function passResponse(
   playerId: PlayerId,
   shuffle: ShuffleFunction,
 ): GameState {
+  if (isMultiTargetPendingResponse(state)) {
+    return passMultiTargetDamageResponse(state, playerId, shuffle);
+  }
+
   const pendingResponse = state.pendingResponse;
   const sourceEffect = pendingResponse?.sourceEffect;
   const damageContext = sourceEffect?.context;

@@ -63,6 +63,7 @@ export type CharacterSkillImplementationStatus =
   | "implemented-8b-1"
   | "implemented-8b-2"
   | "implemented-8c-2"
+  | "implemented-8c-3"
   | "planned-8b"
   | "planned-8c"
   | "deferred";
@@ -203,12 +204,38 @@ export type Effect =
 
 export type DamageEffect = Extract<Effect, { type: "DAMAGE" }>;
 
-export type PendingResponse = {
+export type MultiTargetResponseResult = Readonly<{
+  targetPlayerId: PlayerId;
+  outcome: "absorbed" | "damaged";
+  finalDamage: number;
+}>;
+
+export type MultiTargetResponseSequence = Readonly<{
+  sourcePlayerId: PlayerId;
+  sourceSkillId: "exhaust_leak";
+  targetPlayerIds: readonly PlayerId[];
+  remainingTargetPlayerIds: readonly PlayerId[];
+  completedResults: readonly MultiTargetResponseResult[];
+  finishBehavior: "exhaust-leak";
+}>;
+
+type SinglePendingResponse = {
   responderId: PlayerId;
   sourceEffect: DamageEffect;
   chainDepth: number;
   effectsAfterPass: Effect[];
+  multiTargetSequence?: never;
 };
+
+export type MultiTargetPendingResponse = {
+  responderId: PlayerId;
+  sourceEffect: DamageEffect;
+  chainDepth: number;
+  effectsAfterPass: Effect[];
+  multiTargetSequence: MultiTargetResponseSequence;
+};
+
+export type PendingResponse = SinglePendingResponse | MultiTargetPendingResponse;
 
 export type PendingStatusHandling = {
   playerId: PlayerId;

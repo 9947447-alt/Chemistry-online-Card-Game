@@ -1,6 +1,7 @@
 import type {
   CardDefinition,
   CardInstanceId,
+  CharacterSkillId,
   DamageContext,
   DamageSource,
   DamageTag,
@@ -120,6 +121,25 @@ export function createStatusDamageContext(input: {
     },
     ["status", statusTag],
     "none",
+  );
+}
+
+export function createExhaustLeakDamageContext(input: {
+  sourcePlayerId: PlayerId;
+  targetPlayerId: PlayerId;
+  baseAmount: number;
+  skillId: Extract<CharacterSkillId, "exhaust_leak">;
+}): DamageContext {
+  return createDamageContext(
+    input.targetPlayerId,
+    input.baseAmount,
+    {
+      kind: "character-skill",
+      sourcePlayerId: input.sourcePlayerId,
+      skillId: input.skillId,
+    },
+    ["so2"],
+    "alkali-absorption",
   );
 }
 
