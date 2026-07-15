@@ -59,6 +59,38 @@ describe("Phase 8A character definitions", () => {
     );
   });
 
+  it("marks exactly the six Phase 8C-2 DAMAGE passives as implemented", () => {
+    const implementedSkillIds = characterDefinitions.flatMap((definition) =>
+      definition.skills
+        .filter((skill) => skill.implementationStatus === "implemented-8c-2")
+        .map((skill) => skill.id),
+    );
+
+    expect(implementedSkillIds).toEqual([
+      "strong_alkali_protection",
+      "strong_alkali_mastery",
+      "acid_corrosion",
+      "acid_resistant_layer",
+      "diy_experiment",
+      "sulfuric_acid_process",
+    ]);
+    expect(
+      getCharacterDefinition("caustic_soda_captain").skills.find(
+        (skill) => skill.id === "alkali_recovery",
+      )?.implementationStatus,
+    ).toBe("planned-8b");
+    expect(
+      getCharacterDefinition("chemistry_enthusiast").skills.find(
+        (skill) => skill.id === "experiment_counterattack",
+      )?.implementationStatus,
+    ).toBe("planned-8c");
+    expect(
+      getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
+        (skill) => skill.id === "sulfate_byproduct",
+      )?.implementationStatus,
+    ).toBe("deferred");
+  });
+
   it("mounts the default debug characters with empty usage state", () => {
     const state = createInitialGame({ shuffle: identityShuffle });
 

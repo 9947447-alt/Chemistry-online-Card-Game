@@ -6,7 +6,8 @@ import {
   type DamageModifierSet,
   type DamageModifierSource,
 } from "../engine/damage";
-import { createStatusDamageContext } from "../engine/damageContext";
+import { cardDefinitions } from "../data/cardDefinitions";
+import { createCardDamageContext, createStatusDamageContext } from "../engine/damageContext";
 import type { DamageContext, DamageEffect } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { createMvp0TestGame as createInitialGame } from "./createTestGame";
@@ -226,17 +227,30 @@ describe("Phase 8C-1 normal DAMAGE pipeline", () => {
     expect(applied.state.log).toBe(state.log);
   });
 
-  it("applies only the resolved final amount to HP", () => {
-    const state = createInitialGame({ shuffle: identityShuffle });
+  it("applies only the collected production final amount to HP", () => {
+    const state = createInitialGame({
+      characterIds: ["acid_king", "clumsy_party_secretary"],
+      shuffle: identityShuffle,
+    });
     const target = state.players[1];
+    const definition = cardDefinitions.find(
+      (candidate) => candidate.id === "substance_hcl_dilute",
+    );
+    if (!definition) {
+      throw new Error("Expected the real HCl definition.");
+    }
     const effect: DamageEffect = {
       type: "DAMAGE",
-      context: createContext(2),
+      context: createCardDamageContext({
+        sourcePlayerId: state.players[0].id,
+        cardInstanceId: "substance_hcl_dilute_01",
+        definition,
+        targetPlayerId: target.id,
+        baseAmount: 1,
+      }),
     };
 
-    const applied = applyDamage(state, effect, {
-      increase: { source: attackerModifierSource, amount: 5 },
-    });
+    const applied = applyDamage(state, effect);
 
     expect(applied.resolution.finalAmount).toBe(3);
     expect(applied.state.players[1].hp).toBe(target.hp - 3);

@@ -5,6 +5,7 @@ import type {
   GameState,
   PlayerId,
 } from "./types";
+import { collectDamageModifiers } from "./damageModifiers";
 
 export const normalDamageCap = 3;
 
@@ -197,8 +198,8 @@ function appendLog(state: GameState, message: string): GameState {
 export function applyDamage(
   state: GameState,
   effect: DamageEffect,
-  modifiers: DamageModifierSet = noDamageModifiers,
 ): AppliedDamage {
+  const modifiers = collectDamageModifiers(state, effect.context);
   const resolution = resolveNormalDamage(effect.context, modifiers);
   const target = state.players.find((player) => player.id === effect.context.targetPlayerId);
 

@@ -304,7 +304,7 @@ export function startActiveDIY(
           effectsAfterPass: [sourceEffect],
         },
       },
-      `${player.name} 主动 DIY 使用 ${matchedRecipe.name}，生成虚拟 ${matchedRecipe.displayName}，对 ${target.name} 造成 ${matchedRecipe.damageAmount} 点${matchedRecipe.damageKind === "acid" ? "酸性" : "碱性"}伤害，等待响应；不创建实体卡牌。`,
+      `${player.name} 主动 DIY 使用 ${matchedRecipe.name}，生成虚拟 ${matchedRecipe.displayName}，对 ${target.name} 的${matchedRecipe.damageKind === "acid" ? "酸性" : "碱性"}伤害基础值为 ${matchedRecipe.damageAmount} 点，等待响应；不创建实体卡牌。`,
     );
   }
 

@@ -4,8 +4,8 @@ import {
 } from "../engine/createInitialGame";
 
 const ordinaryTestCharacters: NonNullable<CreateInitialGameOptions["characterIds"]> = [
-  "acid_king",
-  "sulfuric_acid_factory_director",
+  "clumsy_party_secretary",
+  "clumsy_party_secretary",
 ];
 
 export function createMvp0TestGame(options: CreateInitialGameOptions = {}) {

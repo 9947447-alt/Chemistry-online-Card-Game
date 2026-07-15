@@ -478,7 +478,7 @@ export function playMainActionCard(
       cardInstanceId,
       definition,
     ),
-    `${actor.name} 打出 ${definition.name}，对 ${target.name} 造成 1 点${damageKind === "acid" ? "酸性" : "碱性"}伤害，等待响应。`,
+    `${actor.name} 打出 ${definition.name}，对 ${target.name} 的${damageKind === "acid" ? "酸性" : "碱性"}伤害基础值为 1 点，等待响应。`,
   );
 }
 
