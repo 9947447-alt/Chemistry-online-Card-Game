@@ -7,12 +7,12 @@ import {
 import {
   isCharacterSelection,
   type ConfiguringLocalGameSession,
-  type LocalGameSessionAction,
+  type LocalGameSessionCommand,
 } from "../localGameSession";
 
 type CharacterSelectionPanelProps = {
   session: ConfiguringLocalGameSession;
-  dispatch: (action: LocalGameSessionAction) => void;
+  dispatch: (command: LocalGameSessionCommand) => void;
 };
 
 export function CharacterSelectionPanel({

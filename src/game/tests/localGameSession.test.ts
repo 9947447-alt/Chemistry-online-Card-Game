@@ -31,19 +31,44 @@ function configureAndStart(
     type: "SELECT_CHARACTER",
     playerIndex: 0,
     characterId: characterIds[0],
-  }, createGame);
+  });
   state = localGameSessionReducer(state, {
     type: "SELECT_CHARACTER",
     playerIndex: 1,
     characterId: characterIds[1],
-  }, createGame);
-  state = localGameSessionReducer(state, { type: "START_LOCAL_GAME" }, createGame);
+  });
+  const game = createGame(state.characterIds);
+  state = localGameSessionReducer(state, {
+    type: "APPLY_STARTED_LOCAL_GAME",
+    expectedRevision: state.revision,
+    characterIds: state.characterIds,
+    game,
+  });
 
   if (state.mode !== "playing") {
     throw new Error("Expected a playing local game session.");
   }
 
   return state;
+}
+
+function restartCurrentLineup(
+  state: PlayingLocalGameSession,
+  createGame: LocalGameFactory = deterministicGameFactory,
+): PlayingLocalGameSession {
+  const game = createGame(state.characterIds);
+  const restarted = localGameSessionReducer(state, {
+    type: "APPLY_RESTARTED_LOCAL_GAME",
+    expectedRevision: state.revision,
+    characterIds: state.characterIds,
+    game,
+  });
+
+  if (restarted.mode !== "playing") {
+    throw new Error("Expected a restarted playing local game session.");
+  }
+
+  return restarted;
 }
 
 const orderedCharacterLineups = characterDefinitions.flatMap((playerOne) =>
@@ -90,7 +115,7 @@ describe("Phase 9 local Debug Alpha configuration", () => {
       type: "SELECT_CHARACTER",
       playerIndex: 0,
       characterId: "missing_character",
-    }, createGame);
+    });
 
     expect(nextState.mode).toBe("configuring");
     expect(nextState.characterIds).toBe(state.characterIds);
@@ -99,16 +124,44 @@ describe("Phase 9 local Debug Alpha configuration", () => {
     expect(isCharacterSelection(["missing_character", "chemical_factory_ceo"])).toBe(false);
   });
 
-  it("creates only one GameState when START_LOCAL_GAME is dispatched rapidly twice", () => {
+  it("applies one pre-created GameState and ignores a duplicate start result", () => {
     const createGame = vi.fn(deterministicGameFactory);
     const configuring = createConfiguringLocalGameSession();
-    const first = localGameSessionReducer(configuring, { type: "START_LOCAL_GAME" }, createGame);
-    const second = localGameSessionReducer(first, { type: "START_LOCAL_GAME" }, createGame);
+    const game = createGame(configuring.characterIds);
+    const action = {
+      type: "APPLY_STARTED_LOCAL_GAME" as const,
+      expectedRevision: configuring.revision,
+      characterIds: configuring.characterIds,
+      game,
+    };
+    const first = localGameSessionReducer(configuring, action);
+    const second = localGameSessionReducer(first, action);
 
     expect(first.mode).toBe("playing");
     expect(second).toBe(first);
     expect(createGame).toHaveBeenCalledOnce();
     expect(createGame).toHaveBeenCalledWith(defaultCharacterSelection);
+    if (first.mode === "playing") {
+      expect(first.game).toBe(game);
+    }
+  });
+
+  it("rejects a pre-created GameState whose players do not match the selected lineup", () => {
+    const configuring = createConfiguringLocalGameSession();
+    const mismatchedGame = deterministicGameFactory([
+      "acid_king",
+      "chemistry_enthusiast",
+    ]);
+    const nextState = localGameSessionReducer(configuring, {
+      type: "APPLY_STARTED_LOCAL_GAME",
+      expectedRevision: configuring.revision,
+      characterIds: configuring.characterIds,
+      game: mismatchedGame,
+    });
+
+    expect(nextState.mode).toBe("configuring");
+    expect("game" in nextState).toBe(false);
+    expect(nextState.error).toContain("阵容不一致");
   });
 
   it.each(orderedCharacterLineups)(
@@ -159,7 +212,7 @@ describe("Phase 9 local Debug Alpha configuration", () => {
         playerId: firstPreparation.playerId,
         keptCardInstanceIds: firstPreparation.candidateCardInstanceIds.slice(0, 10),
       },
-    }, deterministicGameFactory);
+    });
 
     expect(afterFirstTeacher.mode).toBe("playing");
     if (afterFirstTeacher.mode !== "playing") {
@@ -220,11 +273,7 @@ describe("Phase 9 current-lineup restart", () => {
     };
     const oldSnapshot = structuredClone(dirtyGame);
     const expectedFreshGame = deterministicGameFactory(dirtySession.characterIds);
-    const restarted = localGameSessionReducer(
-      dirtySession,
-      { type: "RESTART_CURRENT_LINEUP" },
-      deterministicGameFactory,
-    );
+    const restarted = restartCurrentLineup(dirtySession);
 
     expect(restarted.mode).toBe("playing");
     if (restarted.mode !== "playing") {
@@ -269,11 +318,7 @@ describe("Phase 9 current-lineup restart", () => {
     expectedHp,
   }) => {
     const started = configureAndStart(characterIds);
-    const restarted = localGameSessionReducer(
-      started,
-      { type: "RESTART_CURRENT_LINEUP" },
-      deterministicGameFactory,
-    );
+    const restarted = restartCurrentLineup(started);
 
     expect(restarted.mode).toBe("playing");
     if (restarted.mode !== "playing") {
@@ -289,6 +334,34 @@ describe("Phase 9 current-lineup restart", () => {
       Object.keys(player.characterUsage.perRound).length === 0
     ))).toBe(true);
   });
+
+  it("restarts safely from gameOver without mutating the finished game", () => {
+    const started = configureAndStart([
+      "acid_king",
+      "sulfuric_acid_factory_director",
+    ]);
+    const finishedGame: GameState = {
+      ...started.game,
+      phase: "gameOver",
+      players: started.game.players.map((player, index) => index === 1
+        ? { ...player, hp: 0, eliminated: true }
+        : player),
+      winnerPlayerId: "player_1",
+      log: [...started.game.log, { id: "finished", message: "旧对局结束" }],
+    };
+    const finishedSession: PlayingLocalGameSession = {
+      ...started,
+      game: finishedGame,
+    };
+    const oldSnapshot = structuredClone(finishedGame);
+    const restarted = restartCurrentLineup(finishedSession);
+
+    expect(restarted.game).not.toBe(finishedGame);
+    expect(restarted.game.phase).toBe("mainAction");
+    expect(restarted.game.winnerPlayerId).toBeUndefined();
+    expect(restarted.game.players.every((player) => !player.eliminated)).toBe(true);
+    expect(finishedGame).toEqual(oldSnapshot);
+  });
 });
 
 describe("Phase 9 return to character selection", () => {
@@ -301,7 +374,6 @@ describe("Phase 9 return to character selection", () => {
     const configuring = localGameSessionReducer(
       started,
       { type: "RETURN_TO_CHARACTER_SELECTION" },
-      deterministicGameFactory,
     );
 
     expect(configuring).toMatchObject({
@@ -315,22 +387,27 @@ describe("Phase 9 return to character selection", () => {
     const ignoredOldAction = localGameSessionReducer(configuring, {
       type: "DISPATCH_GAME_ACTION",
       action: { type: "PASS_ACTION", playerId: "player_1" },
-    }, deterministicGameFactory);
+    });
     expect(ignoredOldAction).toBe(configuring);
 
     const changed = localGameSessionReducer(configuring, {
       type: "SELECT_CHARACTER",
       playerIndex: 1,
       characterId: "chemistry_enthusiast",
-    }, deterministicGameFactory);
+    });
     expect(changed.mode).toBe("configuring");
     expect("game" in changed).toBe(false);
 
-    const restarted = localGameSessionReducer(
-      changed,
-      { type: "START_LOCAL_GAME" },
-      deterministicGameFactory,
-    );
+    if (changed.mode !== "configuring") {
+      throw new Error("Expected a configuring local game session.");
+    }
+    const restartedGame = deterministicGameFactory(changed.characterIds);
+    const restarted = localGameSessionReducer(changed, {
+      type: "APPLY_STARTED_LOCAL_GAME",
+      expectedRevision: changed.revision,
+      characterIds: changed.characterIds,
+      game: restartedGame,
+    });
     expect(restarted.mode).toBe("playing");
     if (restarted.mode !== "playing") {
       return;

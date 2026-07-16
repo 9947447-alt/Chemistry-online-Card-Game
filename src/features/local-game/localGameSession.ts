@@ -1,8 +1,4 @@
 import { characterDefinitions } from "../../game/data/characterDefinitions";
-import {
-  createInitialGame,
-  type CreateInitialGameOptions,
-} from "../../game/engine/createInitialGame";
 import { engineReducer } from "../../game/engine/reducer";
 import type { GameAction } from "../../game/engine/actions";
 import type { CharacterId, GameState } from "../../game/engine/types";
@@ -33,16 +29,46 @@ export type LocalGameSessionState =
   | ConfiguringLocalGameSession
   | PlayingLocalGameSession;
 
+type SelectCharacterAction = Readonly<{
+  type: "SELECT_CHARACTER";
+  playerIndex: 0 | 1;
+  characterId: unknown;
+}>;
+
+type ReturnToCharacterSelectionAction = Readonly<{
+  type: "RETURN_TO_CHARACTER_SELECTION";
+}>;
+
+type DispatchGameAction = Readonly<{
+  type: "DISPATCH_GAME_ACTION";
+  action: GameAction;
+}>;
+
+type CreatedGameActionPayload = Readonly<{
+  expectedRevision: number;
+  characterIds: CharacterSelection;
+  game: GameState;
+}>;
+
 export type LocalGameSessionAction =
+  | SelectCharacterAction
+  | (CreatedGameActionPayload & Readonly<{ type: "APPLY_STARTED_LOCAL_GAME" }>)
+  | (CreatedGameActionPayload & Readonly<{ type: "APPLY_RESTARTED_LOCAL_GAME" }>)
   | Readonly<{
-      type: "SELECT_CHARACTER";
-      playerIndex: 0 | 1;
-      characterId: unknown;
+      type: "REPORT_LOCAL_GAME_CREATION_ERROR";
+      expectedMode: LocalGameSessionState["mode"];
+      expectedRevision: number;
+      message: string;
     }>
+  | ReturnToCharacterSelectionAction
+  | DispatchGameAction;
+
+export type LocalGameSessionCommand =
+  | SelectCharacterAction
   | Readonly<{ type: "START_LOCAL_GAME" }>
   | Readonly<{ type: "RESTART_CURRENT_LINEUP" }>
-  | Readonly<{ type: "RETURN_TO_CHARACTER_SELECTION" }>
-  | Readonly<{ type: "DISPATCH_GAME_ACTION"; action: GameAction }>;
+  | ReturnToCharacterSelectionAction
+  | DispatchGameAction;
 
 export type LocalGameFactory = (
   characterIds: CharacterSelection,
@@ -65,19 +91,6 @@ export function isCharacterSelection(
   );
 }
 
-function createGameFromSelection(
-  characterSelection: CharacterSelection,
-  options: Omit<CreateInitialGameOptions, "characterIds"> = {},
-): GameState {
-  return createInitialGame({
-    ...options,
-    characterIds: [characterSelection[0], characterSelection[1]],
-  });
-}
-
-const defaultGameFactory: LocalGameFactory = (characterSelection) =>
-  createGameFromSelection(characterSelection);
-
 export function createConfiguringLocalGameSession(): ConfiguringLocalGameSession {
   return {
     mode: "configuring",
@@ -87,37 +100,56 @@ export function createConfiguringLocalGameSession(): ConfiguringLocalGameSession
   };
 }
 
-function createPlayingSession(
+function sameCharacterSelection(
+  left: readonly unknown[],
+  right: CharacterSelection,
+): boolean {
+  return left.length === 2 && left[0] === right[0] && left[1] === right[1];
+}
+
+function gameMatchesCharacterSelection(
+  game: GameState,
+  characterIds: CharacterSelection,
+): boolean {
+  return (
+    game.players.length === 2 &&
+    game.players[0].characterId === characterIds[0] &&
+    game.players[1].characterId === characterIds[1]
+  );
+}
+
+function applyCreatedGame(
   state: LocalGameSessionState,
-  createGame: LocalGameFactory,
+  action: CreatedGameActionPayload,
+  expectedMode: LocalGameSessionState["mode"],
 ): LocalGameSessionState {
-  if (!isCharacterSelection(state.characterIds)) {
+  if (state.mode !== expectedMode || state.revision !== action.expectedRevision) {
+    return state;
+  }
+
+  if (
+    !isCharacterSelection(action.characterIds) ||
+    !sameCharacterSelection(action.characterIds, state.characterIds) ||
+    !gameMatchesCharacterSelection(action.game, state.characterIds)
+  ) {
     return {
       ...state,
-      error: "角色配置无效，请重新选择两名正式角色。",
+      error: "创建的游戏与当前角色阵容不一致。",
     };
   }
 
-  try {
-    return {
-      mode: "playing",
-      characterIds: state.characterIds,
-      revision: state.revision + 1,
-      game: createGame(state.characterIds),
-      error: null,
-    };
-  } catch (error) {
-    return {
-      ...state,
-      error: error instanceof Error ? error.message : "创建本地对局失败。",
-    };
-  }
+  return {
+    mode: "playing",
+    characterIds: state.characterIds,
+    revision: state.revision + 1,
+    game: action.game,
+    error: null,
+  };
 }
 
 export function localGameSessionReducer(
   state: LocalGameSessionState,
   action: LocalGameSessionAction,
-  createGame: LocalGameFactory = defaultGameFactory,
 ): LocalGameSessionState {
   switch (action.type) {
     case "SELECT_CHARACTER": {
@@ -143,14 +175,15 @@ export function localGameSessionReducer(
       };
     }
 
-    case "START_LOCAL_GAME":
-      return state.mode === "configuring"
-        ? createPlayingSession(state, createGame)
-        : state;
+    case "APPLY_STARTED_LOCAL_GAME":
+      return applyCreatedGame(state, action, "configuring");
 
-    case "RESTART_CURRENT_LINEUP":
-      return state.mode === "playing"
-        ? createPlayingSession(state, createGame)
+    case "APPLY_RESTARTED_LOCAL_GAME":
+      return applyCreatedGame(state, action, "playing");
+
+    case "REPORT_LOCAL_GAME_CREATION_ERROR":
+      return state.mode === action.expectedMode && state.revision === action.expectedRevision
+        ? { ...state, error: action.message }
         : state;
 
     case "RETURN_TO_CHARACTER_SELECTION":

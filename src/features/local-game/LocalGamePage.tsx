@@ -14,13 +14,13 @@ import { ExperimentCounterattackPanel } from "./components/ExperimentCounteratta
 import { StatusPanel } from "./components/StatusPanel";
 import { useLocalGameDebug } from "./hooks/useLocalGameDebug";
 import type {
-  LocalGameSessionAction,
+  LocalGameSessionCommand,
   PlayingLocalGameSession,
 } from "./localGameSession";
 
 type PlayingGameProps = {
   session: PlayingLocalGameSession;
-  dispatch: (action: LocalGameSessionAction) => void;
+  dispatch: (command: LocalGameSessionCommand) => void;
 };
 
 function PlayingGame({ session, dispatch }: PlayingGameProps) {
