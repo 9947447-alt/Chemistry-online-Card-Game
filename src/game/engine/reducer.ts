@@ -3,6 +3,7 @@ import type { GameState } from "./types";
 import { fisherYatesShuffle } from "../../shared/random";
 import { startActiveDIY } from "./diy";
 import { activateCharacterSkill } from "./characterSkills";
+import { resolveExperimentCounterattack } from "./experimentCounterattack";
 import {
   handleStatusWithCard,
   passResponse,
@@ -25,6 +26,13 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
     return state;
   }
 
+  if (
+    state.phase === "experimentCounterattackWindow" &&
+    action.type !== "RESOLVE_EXPERIMENT_COUNTERATTACK"
+  ) {
+    return state;
+  }
+
   switch (action.type) {
     case "ACTIVATE_CHARACTER_SKILL":
       return activateCharacterSkill(
@@ -38,6 +46,8 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
         action.playerId,
         action.keptCardInstanceIds,
       );
+    case "RESOLVE_EXPERIMENT_COUNTERATTACK":
+      return resolveExperimentCounterattack(state, action, fisherYatesShuffle);
     case "PASS_ACTION":
       if (
         action.playerId !== state.activePlayerId ||

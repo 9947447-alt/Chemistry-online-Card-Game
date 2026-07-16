@@ -306,6 +306,7 @@ interface GameState {
   discardPile: string[];
   tableReference?: TableReference;
   pendingResponse?: PendingResponse;
+  pendingExperimentCounterattack?: PendingExperimentCounterattack;
   effectQueue: Effect[];
   log: GameLogEntry[];
   winnerPlayerId?: string;
@@ -324,10 +325,13 @@ type Action =
   | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "extra_lesson" | "emergency_supply" | "exhaust_leak" | "lab_fire" | "exothermic_accident" }
   | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "alkali_recovery"; cardInstanceId: string }
   | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "exhaust_discharge"; targetPlayerId: string }
+  | { type: "RESOLVE_EXPERIMENT_COUNTERATTACK"; playerId: string; option: "recover" }
+  | { type: "RESOLVE_EXPERIMENT_COUNTERATTACK"; playerId: string; option: "metal-counterattack" | "acid-base-pursuit"; cardInstanceId: string }
   | { type: "PASS_ACTION"; playerId: string };
 
 type DamageSource =
-  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string }
+  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string; sourceSkillId?: never }
+  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string; sourceSkillId: "experiment_counterattack" }
   | { kind: "diy"; sourcePlayerId: string; recipeId: string }
   | { kind: "status"; sourcePlayerId: null; statusInstanceId: string; statusId: "SO2_LEAK" | "FIRE" }
   | { kind: "character-skill"; sourcePlayerId: string; skillId: CharacterSkillId };
@@ -402,6 +406,29 @@ interface PendingResponse {
     }[];
     readonly finishBehavior: "exhaust-leak";
   };
+}
+
+type ResponseContinuation =
+  | { readonly kind: "single-response" }
+  | {
+      readonly kind: "multi-target-response";
+      readonly sequence: NonNullable<PendingResponse["multiTargetSequence"]>;
+      readonly completedResult: {
+        readonly targetPlayerId: string;
+        readonly outcome: "absorbed";
+        readonly finalDamage: 0;
+      };
+    };
+
+interface PendingExperimentCounterattack {
+  readonly responderPlayerId: string;
+  readonly attackerPlayerId: string;
+  readonly originalDamageContext: DamageContext;
+  readonly responseType: "acid-base" | "alkali-absorption";
+  readonly legalOptions: readonly ("recover" | "metal-counterattack" | "acid-base-pursuit")[];
+  readonly legalMetalCardInstanceIds: readonly string[];
+  readonly legalPursuitCardInstanceIds: readonly string[];
+  readonly continuation: ResponseContinuation;
 }
 
 interface Reaction {
@@ -643,12 +670,14 @@ Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻�
 
 ### 8C：复杂技能与通用修饰层
 
-- 实现状态：8C-0A 已完成实体 `strong-acid` / `strong-alkali` 精确标签映射与数据冻结；8C-0B 已完成统一 `DamageContext`；8C-1 已完成普通 `DAMAGE` 八步管线与独立批量失去体力；8C-2 已完成六个单目标普通伤害被动；8C-3 已完成碱液回收、排放尾气、书记三项共享次数主动技能和尾气泄漏连续碱性吸收响应。
+- 实现状态：8C-0A 已完成实体标签；8C-0B 已完成统一 `DamageContext`；8C-1 已完成普通 DAMAGE 与批量失去体力；8C-2 已完成六个单目标伤害被动；8C-3 已完成剩余主动技能和连续响应；8C-4 已完成实验反击选择窗口、回复与实体酸碱追击，金属元素选项因当前真实卡池缺失而延期。
 - 8C-2 已通过集中式生产收集器接入“强碱防护”“强碱专精”“酸性侵蚀”“耐酸层”“DIY 实验”“硫酸工艺”。每个修饰均记录角色技能、对应玩家 ID 和技能 ID；当前角色组合保证每个阶段至多产生一个修饰，不定义未冻结的同阶段叠加规则。
 - 角色被动只在放弃响应后的原始 `DamageContext` 上进入既有八步管线；响应成功仍完全抵消。虚拟 DIY 不获得实体强酸/强碱标签，状态伤害不猜测来源玩家，独立失去体力不读取普通伤害修饰器。
 - 8C-3 使用按 `skillId` 判别的强类型主动技能 action；碱液回收携带 `cardInstanceId`，排放尾气携带 `targetPlayerId`，书记三项技能无额外载荷。
 - 尾气泄漏的多目标状态保存稳定目标快照、当前响应者、剩余目标和完成结果；全部目标结束后才统一判断胜负。全吸收惩罚和强放热事故继续使用独立失去体力入口。
-- 实验反击及其选择窗口仍未实现。
+- 8C-4 使用专用 `experimentCounterattackWindow` 与强类型 pending，稳定保存原攻击者、原始伤害上下文、合法选项 CardInstance 快照及单目标/多目标 continuation。普通酸碱响应和尾气泄漏碱性吸收成功均可触发；状态处理、放弃响应、免疫和状态来源均不触发。
+- 实体酸碱追击不走 mainAction 或 7C 关联入口，使用真实 card source、`responsePolicy: none` 及 increase 阶段的 `experiment_counterattack` +1 修饰；不更新 `tableReference` 或 `usedDIYThisCycle`，不递归触发响应技能。
+- 当前 68 张卡池没有正式金属元素 CardDefinition，因此 UI 和 pending 均不提供可执行金属卡；角色定义标记为“8C-4 部分实现”，未新增虚构卡或标签。冻结文本未授权放弃已建立的实验反击窗口，因此本阶段不增加 DECLINE action。
 - 完成实体强酸、实体强碱及正式伤害标签映射；不将虚拟 DIY 稀酸、稀碱自动视为实体强酸、强碱。
 - 通用反应事件系统完成后再启用“硫酸盐副产”。
 

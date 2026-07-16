@@ -78,7 +78,7 @@ describe("Phase 8A character definitions", () => {
       getCharacterDefinition("chemistry_enthusiast").skills.find(
         (skill) => skill.id === "experiment_counterattack",
       )?.implementationStatus,
-    ).toBe("planned-8c");
+    ).toBe("implemented-8c-4-partial");
     expect(
       getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
         (skill) => skill.id === "sulfate_byproduct",
@@ -104,12 +104,26 @@ describe("Phase 8A character definitions", () => {
       getCharacterDefinition("chemistry_enthusiast").skills.find(
         (skill) => skill.id === "experiment_counterattack",
       )?.implementationStatus,
-    ).toBe("planned-8c");
+    ).toBe("implemented-8c-4-partial");
     expect(
       getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
         (skill) => skill.id === "sulfate_byproduct",
       )?.implementationStatus,
     ).toBe("deferred");
+  });
+
+  it("marks only experiment counterattack as partially implemented in Phase 8C-4", () => {
+    const partiallyImplemented = characterDefinitions.flatMap((definition) =>
+      definition.skills
+        .filter((skill) => skill.implementationStatus === "implemented-8c-4-partial")
+        .map((skill) => skill.id),
+    );
+    const counterattack = getCharacterDefinition("chemistry_enthusiast").skills.find(
+      (skill) => skill.id === "experiment_counterattack",
+    );
+
+    expect(partiallyImplemented).toEqual(["experiment_counterattack"]);
+    expect(counterattack?.implementationNote).toContain("金属选项等待真实金属卡池");
   });
 
   it("mounts the default debug characters with empty usage state", () => {

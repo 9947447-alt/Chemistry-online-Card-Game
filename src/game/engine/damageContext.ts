@@ -81,6 +81,34 @@ export function createCardDamageContext(input: {
   );
 }
 
+export function createExperimentCounterattackPursuitDamageContext(input: {
+  sourcePlayerId: PlayerId;
+  cardInstanceId: CardInstanceId;
+  definition: CardDefinition;
+  targetPlayerId: PlayerId;
+  baseAmount: number;
+}): DamageContext {
+  const tags = getCardDamageTags(input.definition);
+
+  if (!tags.includes("acid") && !tags.includes("base")) {
+    throw new Error("Experiment counterattack pursuit requires an explicit acid or base tag.");
+  }
+
+  return createDamageContext(
+    input.targetPlayerId,
+    input.baseAmount,
+    {
+      kind: "card",
+      sourcePlayerId: input.sourcePlayerId,
+      cardInstanceId: input.cardInstanceId,
+      cardDefinitionId: input.definition.id,
+      sourceSkillId: "experiment_counterattack",
+    },
+    tags,
+    "none",
+  );
+}
+
 export function createDIYDamageContext(input: {
   sourcePlayerId: PlayerId;
   recipeId: string;

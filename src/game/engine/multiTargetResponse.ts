@@ -1,22 +1,20 @@
 import { cardDefinitions } from "../data/cardDefinitions";
 import { applyDamage } from "./damage";
-import { createExhaustLeakDamageContext } from "./damageContext";
-import { applyLoseHpBatch } from "./loseHp";
+import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
+import {
+  createExhaustLeakPendingResponse,
+  resumeResponseContinuation,
+} from "./responseContinuation";
 import type {
   CardDefinition,
   CardInstanceId,
-  DamageEffect,
   GameState,
   MultiTargetPendingResponse,
   MultiTargetResponseResult,
   MultiTargetResponseSequence,
   PlayerId,
 } from "./types";
-import {
-  advanceTurnFromReducer,
-  finishGameIfResolved,
-  type ShuffleFunction,
-} from "./turnFlow";
+import type { ShuffleFunction } from "./turnFlow";
 
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
@@ -27,35 +25,6 @@ function appendLog(state: GameState, message: string): GameState {
   return {
     ...state,
     log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
-
-function createExhaustLeakEffect(
-  sourcePlayerId: PlayerId,
-  targetPlayerId: PlayerId,
-): DamageEffect {
-  return {
-    type: "DAMAGE",
-    context: createExhaustLeakDamageContext({
-      sourcePlayerId,
-      targetPlayerId,
-      baseAmount: 2,
-      skillId: "exhaust_leak",
-    }),
-  };
-}
-
-function createPendingResponse(
-  sequence: MultiTargetResponseSequence,
-  responderId: PlayerId,
-): MultiTargetPendingResponse {
-  const sourceEffect = createExhaustLeakEffect(sequence.sourcePlayerId, responderId);
-  return {
-    responderId,
-    sourceEffect,
-    chainDepth: 1,
-    effectsAfterPass: [sourceEffect],
-    multiTargetSequence: sequence,
   };
 }
 
@@ -81,7 +50,7 @@ export function startExhaustLeakResponseSequence(
   return {
     ...state,
     phase: "responseWindow",
-    pendingResponse: createPendingResponse(sequence, currentTargetPlayerId),
+    pendingResponse: createExhaustLeakPendingResponse(sequence, currentTargetPlayerId),
   };
 }
 
@@ -138,51 +107,6 @@ function discardResponseCard(
     },
     discardPile: [...state.discardPile, cardInstanceId],
   };
-}
-
-function finishOrContinueSequence(
-  state: GameState,
-  pendingResponse: MultiTargetPendingResponse,
-  result: MultiTargetResponseResult,
-  shuffle: ShuffleFunction,
-): GameState {
-  const sequence = pendingResponse.multiTargetSequence;
-  const completedResults = [...sequence.completedResults, result];
-  const [nextTargetPlayerId, ...remainingTargetPlayerIds] =
-    sequence.remainingTargetPlayerIds;
-  const withoutCurrentResponse: GameState = {
-    ...state,
-    phase: "mainAction",
-    pendingResponse: undefined,
-  };
-
-  if (nextTargetPlayerId) {
-    const nextSequence: MultiTargetResponseSequence = {
-      ...sequence,
-      remainingTargetPlayerIds,
-      completedResults,
-    };
-    return {
-      ...withoutCurrentResponse,
-      phase: "responseWindow",
-      pendingResponse: createPendingResponse(nextSequence, nextTargetPlayerId),
-    };
-  }
-
-  const allTargetsAbsorbed =
-    completedResults.length === sequence.targetPlayerIds.length &&
-    completedResults.every((completed) => completed.outcome === "absorbed");
-  const afterSkillFinish = allTargetsAbsorbed
-    ? applyLoseHpBatch(withoutCurrentResponse, [
-        { targetPlayerId: sequence.sourcePlayerId, amount: 1 },
-      ])
-    : finishGameIfResolved(withoutCurrentResponse);
-
-  if (afterSkillFinish.phase === "gameOver") {
-    return afterSkillFinish;
-  }
-
-  return advanceTurnFromReducer(afterSkillFinish, shuffle);
 }
 
 function getValidPendingResponse(
@@ -242,12 +166,23 @@ export function respondToMultiTargetDamage(
     `${responder?.name ?? playerId} 使用 ${definition.name} 碱性吸收，完全抵消尾气泄漏伤害。`,
   );
 
-  return finishOrContinueSequence(
-    withLog,
-    pendingResponse,
-    { targetPlayerId: playerId, outcome: "absorbed", finalDamage: 0 },
+  const completedResult: MultiTargetResponseResult = {
+    targetPlayerId: playerId,
+    outcome: "absorbed",
+    finalDamage: 0,
+  };
+  return openExperimentCounterattackOrResume({
+    state: withLog,
+    responderPlayerId: playerId,
+    originalDamageContext: pendingResponse.sourceEffect.context,
+    responseType: "alkali-absorption",
+    continuation: {
+      kind: "multi-target-response",
+      sequence: pendingResponse.multiTargetSequence,
+      completedResult,
+    },
     shuffle,
-  );
+  });
 }
 
 export function passMultiTargetDamageResponse(
@@ -267,13 +202,16 @@ export function passMultiTargetDamageResponse(
     `${target?.name ?? playerId} 放弃碱性吸收，受到 ${appliedDamage.resolution.finalAmount} 点 SO2 伤害。`,
   );
 
-  return finishOrContinueSequence(
+  return resumeResponseContinuation(
     withLog,
-    pendingResponse,
     {
-      targetPlayerId: playerId,
-      outcome: "damaged",
-      finalDamage: appliedDamage.resolution.finalAmount,
+      kind: "multi-target-response",
+      sequence: pendingResponse.multiTargetSequence,
+      completedResult: {
+        targetPlayerId: playerId,
+        outcome: "damaged",
+        finalDamage: appliedDamage.resolution.finalAmount,
+      },
     },
     shuffle,
   );

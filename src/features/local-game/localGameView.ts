@@ -4,6 +4,10 @@ import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociat
 import { getAcidBaseDamageTag } from "../../game/engine/damageContext";
 import { isAlkalineAbsorptionDefinition } from "../../game/engine/multiTargetResponse";
 import { canRecoverHp } from "../../game/engine/recovery";
+import {
+  isLegalExperimentCounterattackMetalDefinition,
+  isLegalExperimentCounterattackPursuitDefinition,
+} from "../../game/engine/experimentCounterattack";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -69,6 +73,22 @@ export function describePendingResponse(state: GameState) {
   return `${getPlayerName(state, pendingResponse.responderId)} 响应 ${describeDamageSource(
     effect,
   )}：${effect.context.baseAmount} 点 ${effect.context.tags.join("+")} 伤害，chainDepth ${pendingResponse.chainDepth}`;
+}
+
+export function describePendingExperimentCounterattack(state: GameState) {
+  const pending = state.pendingExperimentCounterattack;
+  if (!pending) {
+    return "无";
+  }
+
+  const effect: DamageEffect = {
+    type: "DAMAGE",
+    context: pending.originalDamageContext,
+  };
+  return `${getPlayerName(state, pending.responderPlayerId)} 已抵消 ${getPlayerName(
+    state,
+    pending.attackerPlayerId,
+  )} 的 ${describeDamageSource(effect)}；原响应类型：${pending.responseType}`;
 }
 
 export function describePendingStatusHandling(state: GameState) {
@@ -241,6 +261,69 @@ export function getAlkaliRecoveryCards(state: GameState, player: Player) {
         definition.tags.includes("strong-alkali"),
     );
   });
+}
+
+function getCurrentPendingOptionCards(
+  state: GameState,
+  player: Player,
+  snapshotIds: readonly CardInstanceId[],
+  predicate: (definition: CardDefinition) => boolean,
+) {
+  return snapshotIds.filter((cardInstanceId) => {
+    const instance = state.cardInstances[cardInstanceId];
+    const definition = getCardDefinition(state, cardInstanceId);
+    return Boolean(
+      player.hand.includes(cardInstanceId) &&
+        instance &&
+        instance.ownerId === player.id &&
+        instance.zone.type === "hand" &&
+        instance.zone.playerId === player.id &&
+        definition &&
+        predicate(definition),
+    );
+  });
+}
+
+export function getExperimentCounterattackPursuitCards(
+  state: GameState,
+  player: Player,
+) {
+  const pending = state.pendingExperimentCounterattack;
+  if (
+    state.phase !== "experimentCounterattackWindow" ||
+    !pending ||
+    pending.responderPlayerId !== player.id
+  ) {
+    return [];
+  }
+
+  return getCurrentPendingOptionCards(
+    state,
+    player,
+    pending.legalPursuitCardInstanceIds,
+    isLegalExperimentCounterattackPursuitDefinition,
+  );
+}
+
+export function getExperimentCounterattackMetalCards(
+  state: GameState,
+  player: Player,
+) {
+  const pending = state.pendingExperimentCounterattack;
+  if (
+    state.phase !== "experimentCounterattackWindow" ||
+    !pending ||
+    pending.responderPlayerId !== player.id
+  ) {
+    return [];
+  }
+
+  return getCurrentPendingOptionCards(
+    state,
+    player,
+    pending.legalMetalCardInstanceIds,
+    isLegalExperimentCounterattackMetalDefinition,
+  );
 }
 
 export function getStatusHandlingCards(

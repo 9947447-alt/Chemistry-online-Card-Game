@@ -9,6 +9,7 @@ import { GameSummary } from "./components/GameSummary";
 import { PlayerPanel } from "./components/PlayerPanel";
 import { PreparationPanel } from "./components/PreparationPanel";
 import { ResponsePanel } from "./components/ResponsePanel";
+import { ExperimentCounterattackPanel } from "./components/ExperimentCounterattackPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { useLocalGameDebug } from "./hooks/useLocalGameDebug";
 
@@ -21,9 +22,14 @@ export function LocalGamePage() {
     setSelectedCardId(undefined);
   }
 
+  function resetGame() {
+    setSelectedCardId(undefined);
+    dispatch({ type: "RESET_GAME" });
+  }
+
   return (
     <main className="local-game-page">
-      <GameSummary game={game} error={error} onReset={() => dispatch({ type: "RESET_GAME" })} />
+      <GameSummary game={game} error={error} onReset={resetGame} />
       <div className="debug-layout">
         <div className="debug-main">
           <div className="players-grid">
@@ -44,6 +50,11 @@ export function LocalGamePage() {
         <aside className="debug-sidebar" aria-label="操作面板">
           {game.phase === "preparationSelection" ? (
             <PreparationPanel dispatchGameAction={dispatchGameAction} game={game} />
+          ) : game.phase === "experimentCounterattackWindow" ? (
+            <ExperimentCounterattackPanel
+              dispatchGameAction={dispatchGameAction}
+              game={game}
+            />
           ) : (
             <>
               <ActionPanel

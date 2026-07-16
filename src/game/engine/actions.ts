@@ -24,8 +24,28 @@ export type ActivateCharacterSkillAction =
       targetPlayerId: PlayerId;
     };
 
+export type ResolveExperimentCounterattackAction =
+  | {
+      type: "RESOLVE_EXPERIMENT_COUNTERATTACK";
+      playerId: PlayerId;
+      option: "recover";
+    }
+  | {
+      type: "RESOLVE_EXPERIMENT_COUNTERATTACK";
+      playerId: PlayerId;
+      option: "metal-counterattack";
+      cardInstanceId: CardInstanceId;
+    }
+  | {
+      type: "RESOLVE_EXPERIMENT_COUNTERATTACK";
+      playerId: PlayerId;
+      option: "acid-base-pursuit";
+      cardInstanceId: CardInstanceId;
+    };
+
 export type GameAction =
   | ActivateCharacterSkillAction
+  | ResolveExperimentCounterattackAction
   | {
       type: "CONFIRM_LABORATORY_PREPARATION";
       playerId: PlayerId;

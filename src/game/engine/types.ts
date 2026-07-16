@@ -64,6 +64,7 @@ export type CharacterSkillImplementationStatus =
   | "implemented-8b-2"
   | "implemented-8c-2"
   | "implemented-8c-3"
+  | "implemented-8c-4-partial"
   | "planned-8b"
   | "planned-8c"
   | "deferred";
@@ -146,13 +147,18 @@ export type Player = {
   characterUsage: CharacterUsageState;
 };
 
-export type DamageSource =
-  | {
+type CardDamageSourceBase = {
       kind: "card";
       sourcePlayerId: PlayerId;
       cardInstanceId: CardInstanceId;
       cardDefinitionId: CardDefinitionId;
-    }
+    };
+
+export type DamageSource =
+  | (CardDamageSourceBase & { sourceSkillId?: never })
+  | (CardDamageSourceBase & {
+      sourceSkillId: Extract<CharacterSkillId, "experiment_counterattack">;
+    })
   | {
       kind: "diy";
       sourcePlayerId: PlayerId;
@@ -219,6 +225,32 @@ export type MultiTargetResponseSequence = Readonly<{
   finishBehavior: "exhaust-leak";
 }>;
 
+export type ResponseContinuation =
+  | Readonly<{
+      kind: "single-response";
+    }>
+  | Readonly<{
+      kind: "multi-target-response";
+      sequence: MultiTargetResponseSequence;
+      completedResult: MultiTargetResponseResult;
+    }>;
+
+export type ExperimentCounterattackOption =
+  | "recover"
+  | "metal-counterattack"
+  | "acid-base-pursuit";
+
+export type PendingExperimentCounterattack = Readonly<{
+  responderPlayerId: PlayerId;
+  attackerPlayerId: PlayerId;
+  originalDamageContext: DamageContext;
+  responseType: Extract<ResponsePolicy, "acid-base" | "alkali-absorption">;
+  legalOptions: readonly ExperimentCounterattackOption[];
+  legalMetalCardInstanceIds: readonly CardInstanceId[];
+  legalPursuitCardInstanceIds: readonly CardInstanceId[];
+  continuation: ResponseContinuation;
+}>;
+
 type SinglePendingResponse = {
   responderId: PlayerId;
   sourceEffect: DamageEffect;
@@ -260,6 +292,7 @@ export type GamePhase =
   | "statusWindow"
   | "mainAction"
   | "responseWindow"
+  | "experimentCounterattackWindow"
   | "cleanup"
   | "gameOver";
 
@@ -296,6 +329,7 @@ export type GameState = {
   discardPile: CardInstanceId[];
   tableReference?: TableReference;
   pendingResponse?: PendingResponse;
+  pendingExperimentCounterattack?: PendingExperimentCounterattack;
   pendingStatusHandling?: PendingStatusHandling;
   pendingLaboratoryPreparation?: PendingLaboratoryPreparation;
   effectQueue: Effect[];

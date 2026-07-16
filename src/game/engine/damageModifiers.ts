@@ -90,6 +90,18 @@ function collectSourceModifier(
   }
 
   if (
+    source.sourceSkillId === "experiment_counterattack" &&
+    attacker.characterId === "chemistry_enthusiast"
+  ) {
+    return {
+      increase: {
+        source: createSkillSource(attacker.id, "experiment_counterattack"),
+        amount: 1,
+      },
+    };
+  }
+
+  if (
     attacker.characterId === "acid_king" &&
     context.tags.includes("strong-acid") &&
     definition.tags.includes("strong-acid") &&

@@ -7,6 +7,7 @@ import {
   getAcidBaseDamageTag,
 } from "./damageContext";
 import { applyDamage } from "./damage";
+import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
 import {
   isMultiTargetPendingResponse,
   passMultiTargetDamageResponse,
@@ -615,6 +616,7 @@ export function respondWithCard(
   const damageContext = sourceEffect?.context;
   const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
+  const responseInstance = state.cardInstances[cardInstanceId];
   const attackName = sourceEffect ? getDamageSourceName(sourceEffect.context.source) : "";
   const isCarbonateResponse =
     damageKind === "acid" &&
@@ -631,6 +633,10 @@ export function respondWithCard(
     !responder ||
     responder.eliminated ||
     !responder.hand.includes(cardInstanceId) ||
+    !responseInstance ||
+    responseInstance.ownerId !== responder.id ||
+    responseInstance.zone.type !== "hand" ||
+    responseInstance.zone.playerId !== responder.id ||
     !responseDefinition ||
     (!canNeutralize(damageKind, responseDefinition) && !isCarbonateResponse)
   ) {
@@ -658,7 +664,14 @@ export function respondWithCard(
       : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackName}，原伤害取消。`,
   );
 
-  return advanceTurnFromReducer(resolved, shuffle);
+  return openExperimentCounterattackOrResume({
+    state: resolved,
+    responderPlayerId: responder.id,
+    originalDamageContext: sourceEffect.context,
+    responseType: "acid-base",
+    continuation: { kind: "single-response" },
+    shuffle,
+  });
 }
 
 export function passResponse(
