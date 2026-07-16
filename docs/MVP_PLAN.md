@@ -11,6 +11,7 @@
 
 - `docs/MVP0_RULE_FREEZE.md`：MVP 0 已冻结规则和历史实现边界。
 - `docs/PHASE8_CHARACTER_RULE_FREEZE.md`：Phase 8 角色系统正式冻结规则；本计划只记录开发拆分，不覆盖该文档。
+- `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择和 Debug UI 会话规则；不覆盖引擎冻结规则。
 
 ## MVP 0 定案范围
 
@@ -314,8 +315,7 @@ interface GameState {
   settings: GameSettings;
 }
 
-type Action =
-  | { type: "START_GAME"; payload: StartGamePayload }
+type GameAction =
   | { type: "PLAY_CARD"; playerId: string; cardInstanceId: string; targetPlayerId?: string }
   | { type: "START_ACTIVE_DIY"; playerId: string; recipeId: string; componentCardInstanceIds: string[]; targetPlayerId?: string }
   | { type: "RESPOND_WITH_CARD"; playerId: string; cardInstanceId: string }
@@ -680,6 +680,18 @@ Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻�
 - 当前 68 张卡池没有正式金属元素 CardDefinition，因此 UI 和 pending 均不提供可执行金属卡；角色定义标记为“8C-4 部分实现”，未新增虚构卡或标签。冻结文本未授权放弃已建立的实验反击窗口，因此本阶段不增加 DECLINE action。
 - 完成实体强酸、实体强碱及正式伤害标签映射；不将虚拟 DIY 稀酸、稀碱自动视为实体强酸、强碱。
 - 通用反应事件系统完成后再启用“硫酸盐副产”。
+
+## Phase 9 本地双人 Debug Alpha 可玩闭环（已完成）
+
+Phase 9 的边界以 `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md` 为准。本阶段完成本地 UI 会话闭环，不修改 Phase 8 角色技能、MVP 0 引擎规则或 68 张普通卡池。
+
+- 首次打开进入 `configuring`，默认预选实验室老师与化工厂 CEO；点击“开始游戏”后才调用真实 `createInitialGame({ characterIds })`。
+- 选择数据直接来自 7 个正式 `characterDefinitions`；允许全部 49 种有序组合和 7 种镜像阵容。
+- `playing` 持有真实 `GameState`；全部局内 action 继续只通过 `engineReducer`。
+- “按当前阵容重开”创建全新 `GameState` 并整体清空局内数据及 React 局部选择，不再隐式恢复默认老师/CEO。
+- “返回角色选择”丢弃活动 `GameState`，保留当前阵容预选并等待再次显式开始。
+- README 已更新为真实 Debug Alpha 状态；浏览器验收覆盖桌面与 390×844 视口。
+- 不增加存档、联网、正式多人、角色随机、卡池变更或延期规则实现。
 
 ## 暂缓功能回收清单
 

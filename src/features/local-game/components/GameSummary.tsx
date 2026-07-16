@@ -10,10 +10,16 @@ import {
 type GameSummaryProps = {
   game: GameState;
   error?: string;
-  onReset: () => void;
+  onRestart: () => void;
+  onReturnToCharacterSelection: () => void;
 };
 
-export function GameSummary({ game, error, onReset }: GameSummaryProps) {
+export function GameSummary({
+  game,
+  error,
+  onRestart,
+  onReturnToCharacterSelection,
+}: GameSummaryProps) {
   const winnerText = game.phase === "gameOver"
     ? game.isDraw
       ? "平局"
@@ -74,9 +80,18 @@ export function GameSummary({ game, error, onReset }: GameSummaryProps) {
       </div>
       <div className="summary-actions">
         {error ? <p className="error-banner">{error}</p> : <p className="quiet-banner">等待操作</p>}
-        <button className="secondary-button" onClick={onReset} type="button">
-          重开
-        </button>
+        <div className="session-actions">
+          <button className="secondary-button" onClick={onRestart} type="button">
+            按当前阵容重开
+          </button>
+          <button
+            className="secondary-button"
+            onClick={onReturnToCharacterSelection}
+            type="button"
+          >
+            返回角色选择
+          </button>
+        </div>
       </div>
     </section>
   );

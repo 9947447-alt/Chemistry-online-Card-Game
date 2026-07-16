@@ -3,6 +3,117 @@
   padding: 24px;
 }
 
+.character-selection-page {
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+  max-width: 1480px;
+}
+
+.character-selection-hero,
+.character-config,
+.character-catalog {
+  display: grid;
+  gap: 14px;
+}
+
+.mirror-note,
+.deferred-note {
+  border-radius: 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.mirror-note {
+  background: #e6f4ee;
+  color: #226048;
+}
+
+.deferred-note {
+  background: #fff0d6;
+  color: #8a4b05;
+}
+
+.character-select-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.character-select-field {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.lineup-summary {
+  align-items: center;
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 12px;
+}
+
+.lineup-summary strong,
+.lineup-summary span {
+  color: #334250;
+  font-size: 0.82rem;
+}
+
+.lineup-summary .ok-pill {
+  color: #226048;
+}
+
+.start-game-button {
+  justify-self: end;
+  max-width: 260px;
+}
+
+.character-catalog__heading {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.character-catalog__heading h2 {
+  color: #182026;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.character-catalog-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+}
+
+.character-option-card {
+  display: grid;
+  gap: 12px;
+}
+
+.character-option-card__heading {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.character-option-card__heading p {
+  color: #60717f;
+  font-size: 0.74rem;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .debug-section {
   background: #ffffff;
   border: 1px solid #d7dee4;
@@ -105,6 +216,13 @@ dd {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .debug-layout {
@@ -545,11 +663,34 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .character-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .character-catalog__heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .character-catalog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .start-game-button {
+    justify-self: stretch;
+    max-width: none;
+  }
+
   .summary-actions,
   .panel-heading,
   .player-panel__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .session-actions {
+    display: grid;
+    width: 100%;
   }
 
   .action-card {

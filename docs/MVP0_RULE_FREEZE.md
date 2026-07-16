@@ -2,7 +2,7 @@
 
 本文档用于记录 MVP 0 已明确采用、暂缓或特别裁定的规则，并保留 MVP 0 建立时的历史边界。两份原始规则文档保持不变；本文只说明 MVP 0 的实现口径，不改写原始规则。
 
-Phase 8 已通过独立的 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 显式解冻角色系统。该解冻只覆盖本文中“暂不实现角色、角色体力差异、角色摸牌规则和角色技能”的限制；7C、68 张普通实体卡池、`tableReference`、主动 DIY、`FIRE` / `statusWindow` 等其他 MVP 0 冻结规则继续有效。
+Phase 8 已通过独立的 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 显式解冻角色系统。Phase 9 的本地角色选择、开始、重开与返回配置边界由 `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md` 冻结。两项解冻均不修改 7C、68 张普通实体卡池、`tableReference`、主动 DIY、`FIRE` / `statusWindow` 等其他 MVP 0 冻结规则。
 
 ## 一、原始规则来源
 
@@ -10,6 +10,7 @@ Phase 8 已通过独立的 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 显式解冻�
 - `docs/rules/ion-reaction-and-diy-manual-v1.0.docx`：离子用途、反应关系、DIY 构建、气体与化学效果含义。
 - `docs/MVP_PLAN.md`：MVP 0 的功能范围、暂缓功能、特别裁定与当前实现规划。
 - `docs/PHASE8_CHARACTER_RULE_FREEZE.md`：Phase 8 角色系统的正式冻结规则，仅覆盖角色相关历史限制。
+- `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择与 Debug UI 会话边界，不修改游戏引擎规则。
 
 ## 二、规则解释原则
 
@@ -121,7 +122,7 @@ Phase 8 已通过独立的 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 显式解冻�
 
 | 原始规则 | MVP 0 是否采用 | MVP 0 替代规则 | 原因 | 引擎状态 |
 | --- | --- | --- | --- | --- |
-| 2-6 人，角色牌决定体力与摸牌 | 分阶段采用 | MVP 0 历史基线为本地双人、无角色、双方 10 HP；Phase 8 按独立角色冻结文档解冻角色差异 | 保留 MVP 0 历史定位，并让角色规则独立演进 | MVP 0 基线已实现；Phase 8 待实现 |
+| 2-6 人，角色牌决定体力与摸牌 | 分阶段采用 | MVP 0 历史基线为本地双人、无角色、双方 10 HP；Phase 8 按独立角色冻结文档解冻角色差异，Phase 9 提供本地双人角色选择 | 保留 MVP 0 历史定位，并让角色规则与本地 UI 独立演进 | Phase 8 与 Phase 9 本地双人闭环已实现；正式多人暂缓 |
 | 每周期 3 个实验轮次，周期结束弃置手牌 | 采用 | 保持原规则 | 核心节奏稳定 | 已实现 |
 | 主牌堆不足时弃牌堆洗回 | 采用 | 保持原规则；正在手牌中的牌不洗回 | 保持卡牌区域完整性 | 已实现 |
 | 默认自由出牌 | 采用并细化 | `tableReference` 为空时允许任意实体手牌建立首张基准；非空时，普通出牌与执行实体主行动效果都必须关联；两条路径必须可区分 | 用 `tableReference` 明确空打实体牌的场面意义，并保留当前攻击、回复、状态、响应和 DIY 规则 | 已实现 7C |
