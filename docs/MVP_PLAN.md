@@ -12,6 +12,7 @@
 - `docs/MVP0_RULE_FREEZE.md`：MVP 0 已冻结规则和历史实现边界。
 - `docs/PHASE8_CHARACTER_RULE_FREEZE.md`：Phase 8 角色系统正式冻结规则；本计划只记录开发拆分，不覆盖该文档。
 - `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择和 Debug UI 会话规则；不覆盖引擎冻结规则。
+- `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：Phase 10 三类成功反应事件与硫酸盐副产正式冻结规则。
 
 ## MVP 0 定案范围
 
@@ -43,6 +44,8 @@ MVP 0 核心反应仅保留：
 - 酸与碳酸盐生成 CO2。
 - SO2 泄漏与碱性吸收。
 - 火情与 H2O / CO2 灭火。
+
+Phase 10 只把前三类中的成功结算事件化：`acid_base_neutralization`、`acid_carbonate_co2`、`so2_alkaline_absorption`。`FIRE` 处理继续是普通状态处理，不属于成功反应事件。
 
 MVP 0 对 SO2 的定案：
 
@@ -431,20 +434,23 @@ interface PendingExperimentCounterattack {
   readonly continuation: ResponseContinuation;
 }
 
-interface Reaction {
-  id: string;
-  name: string;
-  trigger:
-    | "acid_vs_base"
-    | "acid_vs_carbonate"
-    | "base_vs_acid"
-    | "so2_absorption"
-    | "fire_extinguish";
-  responseRequirements: ResponseRequirement[];
-  cancelsSourceEffect: boolean;
-  producedEffects: Effect[];
-  logOnlyProducts?: string[];
-  rulesText: string;
+type ReactionDefinitionId =
+  | "acid_base_neutralization"
+  | "acid_carbonate_co2"
+  | "so2_alkaline_absorption";
+
+interface ReactionDefinition {
+  readonly id: ReactionDefinitionId;
+  readonly name: string;
+  readonly rulesText: string;
+}
+
+// Phase 10 生产类型使用判别联合；这里只保留规划级摘要。
+interface SuccessfulReactionEvent {
+  readonly definitionId: ReactionDefinitionId;
+  readonly trigger: ReactionTrigger;
+  readonly participants: readonly ReactionParticipant[];
+  readonly outcome: ReactionOutcome;
 }
 
 interface DIYRecipe {
@@ -679,7 +685,7 @@ Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻�
 - 实体酸碱追击不走 mainAction 或 7C 关联入口，使用真实 card source、`responsePolicy: none` 及 increase 阶段的 `experiment_counterattack` +1 修饰；不更新 `tableReference` 或 `usedDIYThisCycle`，不递归触发响应技能。
 - 当前 68 张卡池没有正式金属元素 CardDefinition，因此 UI 和 pending 均不提供可执行金属卡；角色定义标记为“8C-4 部分实现”，未新增虚构卡或标签。冻结文本未授权放弃已建立的实验反击窗口，因此本阶段不增加 DECLINE action。
 - 完成实体强酸、实体强碱及正式伤害标签映射；不将虚拟 DIY 稀酸、稀碱自动视为实体强酸、强碱。
-- 通用反应事件系统完成后再启用“硫酸盐副产”。
+- Phase 8 结束时“硫酸盐副产”仍等待反应事件边界；Phase 10 已以三类最小成功反应事件启用。
 
 ## Phase 9 本地双人 Debug Alpha 可玩闭环（已完成）
 
@@ -692,6 +698,17 @@ Phase 9 的边界以 `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md` 为准。本阶段完
 - “返回角色选择”丢弃活动 `GameState`，保留当前阵容预选并等待再次显式开始。
 - README 已更新为真实 Debug Alpha 状态；浏览器验收覆盖桌面与 390×844 视口。
 - 不增加存档、联网、正式多人、角色随机、卡池变更或延期规则实现。
+
+## Phase 10 成功反应事件最小可玩闭环（已完成）
+
+Phase 10 的权威边界见 `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：
+
+- 数据表只定义 `acid_base_neutralization`、`acid_carbonate_co2`、`so2_alkaline_absorption` 三条反应；`FIRE` 不事件化。
+- `SuccessfulReactionEvent` 作为只读结构化事实只附着于对应 `GameLogEntry`，不加入 `Effect`，不增加 reaction action、phase 或全局 history。
+- 实体/虚拟酸碱响应、书记即时 SO2 多目标响应和 `SO2_LEAK` 状态处理接入统一记录入口；continuation 与实验反击顺序保持不变。
+- 硫酸厂厂长“硫酸盐副产”通过统一事件消费者启用，只读取真实参与实体物质牌的 `ionsProvided`；空牌失败不消耗每轮次数。
+- Debug UI 在既有日志中展示反应名称、入口、参与来源和虚拟或状态结果，不解析 message，不增加操作面板。
+- 68 张普通卡池、零 `event_lab_fire` 初始实例、starter deck、CardZone、`DamageContext`、`tableReference`、`usedDIYThisCycle` 与 Phase 9 会话行为保持不变。
 
 ## 暂缓功能回收清单
 
@@ -715,6 +732,7 @@ Phase 9 的边界以 `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md` 为准。本阶段完
 - 金属-离子置换。
 - 铵根、硝酸盐、氨气等进阶模块。
 - 酸与碳酸盐响应生成的 CO2 转化为可用临时资源。
+- Phase 10 三条定义之外的通用反应链。
 
 卡牌与行动：
 
