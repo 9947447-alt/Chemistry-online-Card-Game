@@ -77,6 +77,7 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
         action.playerId,
         action.statusInstanceId,
         action.cardInstanceId,
+        fisherYatesShuffle,
       );
     case "PASS_STATUS_HANDLING":
       return passStatusHandling(

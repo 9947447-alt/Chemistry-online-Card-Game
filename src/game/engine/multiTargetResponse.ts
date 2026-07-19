@@ -5,6 +5,10 @@ import {
   createExhaustLeakPendingResponse,
   resumeResponseContinuation,
 } from "./responseContinuation";
+import {
+  createImmediateSo2AbsorptionReactionEvent,
+  recordSuccessfulReaction,
+} from "./reactions";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -155,16 +159,34 @@ export function respondToMultiTargetDamage(
     return state;
   }
 
+  const reactionEvent = createImmediateSo2AbsorptionReactionEvent({
+    context: pendingResponse.sourceEffect.context,
+    responsePlayerId: playerId,
+    responseCardInstanceId: cardInstanceId,
+    responseCardDefinitionId: definition.id,
+  });
+
+  if (!reactionEvent) {
+    return state;
+  }
+
   const withCardDiscarded = discardResponseCard(state, playerId, cardInstanceId);
   if (!withCardDiscarded) {
     return state;
   }
 
   const responder = state.players.find((player) => player.id === playerId);
-  const withLog = appendLog(
-    withCardDiscarded,
-    `${responder?.name ?? playerId} 使用 ${definition.name} 碱性吸收，完全抵消尾气泄漏伤害。`,
-  );
+  const withReaction = recordSuccessfulReaction({
+    stateBeforeReaction: state,
+    resolvedState: withCardDiscarded,
+    event: reactionEvent,
+    message: `${responder?.name ?? playerId} 使用 ${definition.name} 碱性吸收，完全抵消尾气泄漏伤害。`,
+    shuffle,
+  });
+
+  if (withReaction === state) {
+    return state;
+  }
 
   const completedResult: MultiTargetResponseResult = {
     targetPlayerId: playerId,
@@ -172,7 +194,7 @@ export function respondToMultiTargetDamage(
     finalDamage: 0,
   };
   return openExperimentCounterattackOrResume({
-    state: withLog,
+    state: withReaction,
     responderPlayerId: playerId,
     originalDamageContext: pendingResponse.sourceEffect.context,
     responseType: "alkali-absorption",

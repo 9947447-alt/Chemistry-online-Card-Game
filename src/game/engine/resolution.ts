@@ -13,6 +13,11 @@ import {
   passMultiTargetDamageResponse,
   respondToMultiTargetDamage,
 } from "./multiTargetResponse";
+import {
+  createAcidBaseResponseReactionEvent,
+  createSo2StatusHandlingReactionEvent,
+  recordSuccessfulReaction,
+} from "./reactions";
 import { canRecoverHp } from "./recovery";
 import type {
   CardDefinition,
@@ -487,6 +492,7 @@ export function handleStatusWithCard(
   playerId: PlayerId,
   statusInstanceId: string,
   cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
 ): GameState {
   const pendingStatusHandling = state.pendingStatusHandling;
   const player = getPlayer(state, playerId);
@@ -525,15 +531,31 @@ export function handleStatusWithCard(
   }
 
   const withStatusRemoved = removeStatusFromPlayer(withCardDiscarded, player.id, status.id);
-  const resolved = appendLog(
-    {
-      ...withStatusRemoved,
-      pendingStatusHandling: undefined,
-    },
-    status.statusId === "FIRE"
-      ? `${player.name} 使用 ${definition.name} 处理 FIRE。`
-      : `${player.name} 使用 ${definition.name} 碱性吸收，处理 SO2 泄漏。`,
-  );
+  const statusRemovedState: GameState = {
+    ...withStatusRemoved,
+    pendingStatusHandling: undefined,
+  };
+  const resolved = status.statusId === "FIRE"
+    ? appendLog(
+        statusRemovedState,
+        `${player.name} 使用 ${definition.name} 处理 FIRE。`,
+      )
+    : recordSuccessfulReaction({
+        stateBeforeReaction: state,
+        resolvedState: statusRemovedState,
+        event: createSo2StatusHandlingReactionEvent({
+          targetPlayerId: player.id,
+          statusInstanceId: status.id,
+          handlerCardInstanceId: cardInstanceId,
+          handlerCardDefinitionId: definition.id,
+        }),
+        message: `${player.name} 使用 ${definition.name} 碱性吸收，处理 SO2 泄漏。`,
+        shuffle,
+      });
+
+  if (resolved === state) {
+    return state;
+  }
 
   return enterNextStatusWindowOrMainAction(resolved, player.id, status.createdAt);
 }
@@ -643,6 +665,18 @@ export function respondWithCard(
     return state;
   }
 
+  const reactionEvent = createAcidBaseResponseReactionEvent({
+    context: sourceEffect.context,
+    responsePlayerId: responder.id,
+    responseCardInstanceId: cardInstanceId,
+    responseCardDefinitionId: responseDefinition.id,
+    responseKind: isCarbonateResponse ? "carbonate" : "neutralization",
+  });
+
+  if (!reactionEvent) {
+    return state;
+  }
+
   const withAttackDiscarded = discardAttackSourceCardIfNeeded(state, sourceEffect.context.source);
   if (!withAttackDiscarded) {
     return state;
@@ -653,16 +687,23 @@ export function respondWithCard(
     return state;
   }
 
-  const resolved = appendLog(
-    {
+  const resolved = recordSuccessfulReaction({
+    stateBeforeReaction: state,
+    resolvedState: {
       ...withResponseDiscarded,
       phase: "mainAction",
       pendingResponse: undefined,
     },
-    isCarbonateResponse
-      ? `${responder.name} 打出 ${responseDefinition.name}，响应 ${attackName} 的酸性伤害，生成 CO2，原伤害取消。`
-      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackName}，原伤害取消。`,
-  );
+    event: reactionEvent,
+    message: isCarbonateResponse
+      ? `${responder.name} 打出 ${responseDefinition.name}，响应 ${attackName} 的酸性伤害，生成 CO2（虚拟结果），原伤害取消。`
+      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackName}，生成 H2O（虚拟结果），原伤害取消。`,
+    shuffle,
+  });
+
+  if (resolved === state) {
+    return state;
+  }
 
   return openExperimentCounterattackOrResume({
     state: resolved,

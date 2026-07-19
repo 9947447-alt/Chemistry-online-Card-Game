@@ -1,3 +1,5 @@
+import type { SuccessfulReactionEvent } from "./reactions";
+
 export type CardType = "element" | "ion" | "substance" | "event";
 
 export type PlayTiming =
@@ -65,6 +67,7 @@ export type CharacterSkillImplementationStatus =
   | "implemented-8c-2"
   | "implemented-8c-3"
   | "implemented-8c-4-partial"
+  | "implemented-phase10"
   | "planned-8b"
   | "planned-8c"
   | "deferred";
@@ -296,10 +299,17 @@ export type GamePhase =
   | "cleanup"
   | "gameOver";
 
-export type GameLogEntry = {
-  id: string;
-  message: string;
-};
+export type GameLogEntry =
+  | Readonly<{
+      id: string;
+      message: string;
+      reaction?: never;
+    }>
+  | Readonly<{
+      id: string;
+      message: string;
+      reaction: SuccessfulReactionEvent;
+    }>;
 
 export type TableReference = {
   cardInstanceId: CardInstanceId;

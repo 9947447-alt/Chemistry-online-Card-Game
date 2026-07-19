@@ -83,7 +83,7 @@ describe("Phase 8A character definitions", () => {
       getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
         (skill) => skill.id === "sulfate_byproduct",
       )?.implementationStatus,
-    ).toBe("deferred");
+    ).toBe("implemented-phase10");
   });
 
   it("marks exactly the five Phase 8C-3 active skills as implemented", () => {
@@ -109,7 +109,7 @@ describe("Phase 8A character definitions", () => {
       getCharacterDefinition("sulfuric_acid_factory_director").skills.find(
         (skill) => skill.id === "sulfate_byproduct",
       )?.implementationStatus,
-    ).toBe("deferred");
+    ).toBe("implemented-phase10");
   });
 
   it("marks only experiment counterattack as partially implemented in Phase 8C-4", () => {
