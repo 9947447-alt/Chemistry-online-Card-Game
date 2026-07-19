@@ -635,13 +635,35 @@ select {
   font-size: 0.85rem;
   line-height: 1.45;
   padding: 8px;
+  overflow-wrap: anywhere;
 }
 
-.game-log li span {
+.game-log__entry-id {
   color: #60717f;
   display: inline-block;
   font-weight: 800;
   margin-right: 8px;
+}
+
+.game-log__reaction {
+  background: #eef7f2;
+  border: 1px solid #c8e3d5;
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  min-width: 0;
+  padding: 7px;
+}
+
+.game-log__reaction strong {
+  color: #205d44;
+}
+
+.game-log__reaction span {
+  color: #3d5f50;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1100px) {

@@ -1,5 +1,7 @@
 import { cardDefinitions } from "../../game/data/cardDefinitions";
+import { characterDefinitions } from "../../game/data/characterDefinitions";
 import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
+import { getReactionDefinition } from "../../game/data/reactions";
 import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
 import { getAcidBaseDamageTag } from "../../game/engine/damageContext";
 import { isAlkalineAbsorptionDefinition } from "../../game/engine/multiTargetResponse";
@@ -13,10 +15,15 @@ import type {
   CardInstanceId,
   DamageEffect,
   GameState,
+  GameLogEntry,
   Player,
   PlayerId,
   PlayerStatus,
 } from "../../game/engine/types";
+import type {
+  ReactionParticipant,
+  SuccessfulReactionEvent,
+} from "../../game/engine/reactions";
 
 export const cardDefinitionById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
@@ -33,6 +40,97 @@ export function getPlayer(state: GameState, playerId: PlayerId) {
 
 export function getPlayerName(state: GameState, playerId: PlayerId) {
   return getPlayer(state, playerId)?.name ?? playerId;
+}
+
+const reactionParticipantRoleLabels: Record<ReactionParticipant["role"], string> = {
+  attacker: "攻击来源",
+  responder: "响应牌",
+  "status-handler": "状态处理牌",
+  "affected-status": "被处理状态",
+};
+
+function describeReactionParticipant(
+  state: GameState,
+  participant: ReactionParticipant,
+): string {
+  const role = reactionParticipantRoleLabels[participant.role];
+
+  if (participant.kind === "card") {
+    const definition = cardDefinitionById.get(participant.cardDefinitionId);
+    return `${role}：${getPlayerName(state, participant.playerId)} · ${definition?.name ?? participant.cardDefinitionId}`;
+  }
+
+  if (participant.kind === "diy") {
+    const recipe = diyRecipes.find((candidate) => candidate.id === participant.recipeId);
+    return `${role}：${getPlayerName(state, participant.playerId)} · 虚拟 DIY ${recipe?.name ?? participant.recipeId}`;
+  }
+
+  if (participant.kind === "character-skill") {
+    const character = state.players.find(
+      (player) => player.id === participant.sourcePlayerId,
+    );
+    const skill = characterDefinitions
+      .find((definition) => definition.id === character?.characterId)
+      ?.skills.find((candidate) => candidate.id === participant.skillId);
+    return `${role}：${getPlayerName(state, participant.sourcePlayerId)} · ${skill?.name ?? participant.skillId}`;
+  }
+
+  return `${role}：${getPlayerName(state, participant.targetPlayerId)} · ${participant.statusId} (${participant.statusInstanceId})`;
+}
+
+function describeReactionTrigger(event: SuccessfulReactionEvent): string {
+  switch (event.trigger.kind) {
+    case "single-damage-response":
+      return "单目标伤害响应";
+    case "multi-target-damage-response":
+      return "书记即时 SO2 多目标响应";
+    case "status-handling":
+      return "SO2_LEAK 状态处理";
+    default: {
+      const exhaustiveTrigger: never = event.trigger;
+      return exhaustiveTrigger;
+    }
+  }
+}
+
+function describeReactionOutcome(event: SuccessfulReactionEvent): string {
+  switch (event.outcome.kind) {
+    case "virtual-product":
+      return `原伤害完全取消；${event.outcome.product} 为虚拟结果，不创建 CardInstance`;
+    case "damage-cancelled":
+      return "即时 SO2 伤害完全抵消";
+    case "status-removed":
+      return `移除 ${event.outcome.statusId} (${event.outcome.statusInstanceId})`;
+    default: {
+      const exhaustiveOutcome: never = event.outcome;
+      return exhaustiveOutcome;
+    }
+  }
+}
+
+export type ReactionLogView = Readonly<{
+  name: string;
+  trigger: string;
+  participants: readonly string[];
+  outcome: string;
+}>;
+
+export function getReactionLogView(
+  state: GameState,
+  entry: GameLogEntry,
+): ReactionLogView | undefined {
+  if (!entry.reaction) {
+    return undefined;
+  }
+
+  return {
+    name: getReactionDefinition(entry.reaction.definitionId).name,
+    trigger: describeReactionTrigger(entry.reaction),
+    participants: entry.reaction.participants.map((participant) =>
+      describeReactionParticipant(state, participant),
+    ),
+    outcome: describeReactionOutcome(entry.reaction),
+  };
 }
 
 export function getActivePlayer(state: GameState) {

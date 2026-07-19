@@ -28,7 +28,7 @@ export function CharacterSelectionPanel({
     <main className="local-game-page character-selection-page">
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
         <div>
-          <p className="debug-kicker">Phase 9 · Local Debug Alpha</p>
+          <p className="debug-kicker">Phase 10 · Local Debug Alpha</p>
           <h1 id="character-selection-title">双人角色选择</h1>
         </div>
         <p className="panel-note">
@@ -123,7 +123,7 @@ export function CharacterSelectionPanel({
           ))}
         </div>
         <p className="deferred-note">
-          不可用或部分实现：实验反击的金属选项等待真实金属卡池；硫酸盐副产等待通用反应事件系统。延期技能不提供虚假执行入口。
+          不可用或部分实现：实验反击的金属选项等待真实金属卡池；硫酸盐副产已在 Phase 10 通过结构化成功反应事件启用。延期能力不提供虚假执行入口。
         </p>
       </section>
     </main>
