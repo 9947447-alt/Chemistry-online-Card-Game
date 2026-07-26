@@ -1,6 +1,43 @@
 .local-game-page {
   min-height: 100vh;
+  min-width: 0;
   padding: 24px;
+}
+
+.release-bar {
+  align-items: center;
+  background: #17384d;
+  color: #ffffff;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 12px 24px;
+}
+
+.release-bar > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.release-bar strong,
+.release-bar span {
+  overflow-wrap: anywhere;
+}
+
+.release-bar strong {
+  font-size: 0.92rem;
+}
+
+.release-bar span {
+  color: #d8e6ef;
+  font-size: 0.76rem;
+}
+
+.release-bar .secondary-button {
+  background: #ffffff;
+  flex: 0 0 auto;
 }
 
 .character-selection-page {
@@ -120,6 +157,7 @@
   border-radius: 8px;
   box-shadow: 0 1px 2px rgb(15 23 42 / 7%);
   padding: 16px;
+  min-width: 0;
 }
 
 .debug-kicker {
@@ -497,6 +535,7 @@ select {
 
 .primary-button,
 .secondary-button,
+.danger-button,
 .recipe-chip {
   border: 1px solid transparent;
   border-radius: 6px;
@@ -518,10 +557,194 @@ select {
   color: #263642;
 }
 
+.danger-button {
+  background: #9c2323;
+  border-color: #7f1919;
+  color: #ffffff;
+}
+
 .primary-button:disabled,
-.secondary-button:disabled {
+.secondary-button:disabled,
+.danger-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgb(16 29 38 / 70%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: #ffffff;
+  border: 1px solid #b8c5ce;
+  border-radius: 10px;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 28%);
+  color: #263642;
+  max-height: calc(100vh - 32px);
+  max-width: 760px;
+  min-width: 0;
+  overflow: auto;
+  padding: 20px;
+  width: 100%;
+}
+
+.modal-card h2,
+.modal-card h3,
+.modal-card h4,
+.modal-card p,
+.modal-card li,
+.modal-card dd {
+  overflow-wrap: anywhere;
+}
+
+.modal-card h2,
+.modal-card h3,
+.modal-card h4 {
+  color: #182026;
+  margin: 0;
+}
+
+.modal-card p,
+.modal-card li {
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.modal-heading,
+.modal-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.confirmation-dialog {
+  max-width: 520px;
+}
+
+.confirmation-dialog p {
+  margin: 14px 0 18px;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+}
+
+.about-dialog {
+  display: grid;
+  gap: 18px;
+  max-width: 960px;
+}
+
+.about-section {
+  border-top: 1px solid #e1e7ec;
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.about-section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.about-section ul {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.about-metadata,
+.failure-diagnostics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+}
+
+.about-metadata div,
+.failure-diagnostics div {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 9px;
+}
+
+.about-character-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.about-character-grid article {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.about-character-grid h4 {
+  font-size: 0.88rem;
+}
+
+.about-character-grid li {
+  font-size: 0.78rem;
+}
+
+.fatal-session-page,
+.root-failure-page {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.fatal-session-card,
+.root-failure-card {
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+  max-width: 760px;
+  min-width: 0;
+  width: 100%;
+}
+
+.fatal-session-card > p,
+.root-failure-card > p {
+  line-height: 1.55;
+  margin: 0;
+}
+
+.fatal-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.root-failure-page {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.root-failure-card {
+  background: #ffffff;
+  border: 1px solid #d7dee4;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 7%);
+  padding: 20px;
+}
+
+.root-failure-card h1 {
+  color: #182026;
+  font-size: 1.45rem;
+  margin: 0;
 }
 
 .action-panel,
@@ -677,6 +900,16 @@ select {
 }
 
 @media (max-width: 760px) {
+  .release-bar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 10px 12px;
+  }
+
+  .release-bar .secondary-button {
+    width: 100%;
+  }
+
   .local-game-page {
     padding: 12px;
   }
@@ -725,5 +958,26 @@ select {
 
   .preparation-candidate-grid {
     grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal-card {
+    max-height: calc(100vh - 16px);
+    padding: 14px;
+  }
+
+  .modal-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .about-character-grid,
+  .about-metadata,
+  .failure-diagnostics,
+  .fatal-actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

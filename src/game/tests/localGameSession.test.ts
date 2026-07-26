@@ -6,7 +6,9 @@ import type { CharacterId, GameState } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import {
   createConfiguringLocalGameSession,
+  createFatalLocalGameSession,
   defaultCharacterSelection,
+  formatFatalDiagnostics,
   isCharacterSelection,
   localGameSessionReducer,
   type CharacterSelection,
@@ -159,9 +161,11 @@ describe("Phase 9 local Debug Alpha configuration", () => {
       game: mismatchedGame,
     });
 
-    expect(nextState.mode).toBe("configuring");
+    expect(nextState.mode).toBe("fatal");
     expect("game" in nextState).toBe(false);
-    expect(nextState.error).toContain("阵容不一致");
+    if (nextState.mode === "fatal") {
+      expect(nextState.error.code).toBe("GAME_STATE_VALIDATION_FAILED");
+    }
   });
 
   it.each(orderedCharacterLineups)(
@@ -384,6 +388,11 @@ describe("Phase 9 return to character selection", () => {
     });
     expect("game" in configuring).toBe(false);
 
+    const repeatedReturn = localGameSessionReducer(configuring, {
+      type: "RETURN_TO_CHARACTER_SELECTION",
+    });
+    expect(repeatedReturn).toBe(configuring);
+
     const ignoredOldAction = localGameSessionReducer(configuring, {
       type: "DISPATCH_GAME_ACTION",
       action: { type: "PASS_ACTION", playerId: "player_1" },
@@ -418,5 +427,114 @@ describe("Phase 9 return to character selection", () => {
       "chemistry_enthusiast",
     ] satisfies CharacterId[]);
     expect(restarted.game.players.map((player) => player.hp)).toEqual([10, 8]);
+  });
+});
+
+describe("Phase 11 fatal local session boundary", () => {
+  it("enters a strict fatal union when the engine reducer throws and removes GameState", () => {
+    const started = configureAndStart([
+      "acid_king",
+      "chemical_factory_ceo",
+    ]);
+    const rawMessage = "SECRET_HAND_AND_STACK";
+    const fatal = localGameSessionReducer(
+      started,
+      {
+        type: "DISPATCH_GAME_ACTION",
+        action: { type: "PASS_ACTION", playerId: started.game.activePlayerId },
+      },
+      () => {
+        throw new Error(rawMessage);
+      },
+    );
+
+    expect(fatal.mode).toBe("fatal");
+    expect("game" in fatal).toBe(false);
+    expect(JSON.stringify(fatal)).not.toContain(rawMessage);
+    if (fatal.mode !== "fatal") {
+      throw new Error("Expected a fatal local game session.");
+    }
+    expect(fatal).toMatchObject({
+      characterIds: started.characterIds,
+      revision: started.revision + 1,
+      error: { code: "GAME_ACTION_FAILED" },
+    });
+    expect(formatFatalDiagnostics(fatal.error)).toContain("错误码：GAME_ACTION_FAILED");
+    expect(formatFatalDiagnostics(fatal.error)).not.toContain(rawMessage);
+  });
+
+  it("atomically rejects old actions after fatal", () => {
+    const started = configureAndStart(defaultCharacterSelection);
+    const fatal = createFatalLocalGameSession(
+      started.characterIds,
+      started.revision,
+      "GAME_ACTION_FAILED",
+    );
+
+    const oldGameAction = localGameSessionReducer(fatal, {
+      type: "DISPATCH_GAME_ACTION",
+      action: { type: "PASS_ACTION", playerId: "player_1" },
+    });
+    const oldRestartResult = localGameSessionReducer(fatal, {
+      type: "APPLY_RESTARTED_LOCAL_GAME",
+      expectedRevision: started.revision,
+      characterIds: started.characterIds,
+      game: started.game,
+    });
+    const selectionAction = localGameSessionReducer(fatal, {
+      type: "SELECT_CHARACTER",
+      playerIndex: 0,
+      characterId: "acid_king",
+    });
+
+    expect(oldGameAction).toBe(fatal);
+    expect(oldRestartResult).toBe(fatal);
+    expect(selectionAction).toBe(fatal);
+  });
+
+  it("recovers only by applying a newly created matching GameState", () => {
+    const started = configureAndStart([
+      "chemistry_enthusiast",
+      "sulfuric_acid_factory_director",
+    ]);
+    const fatal = createFatalLocalGameSession(
+      started.characterIds,
+      started.revision,
+      "GAME_RESTART_FAILED",
+    );
+    const recoveredGame = deterministicGameFactory(fatal.characterIds);
+    const recovered = localGameSessionReducer(fatal, {
+      type: "APPLY_RECOVERED_LOCAL_GAME",
+      expectedRevision: fatal.revision,
+      characterIds: fatal.characterIds,
+      game: recoveredGame,
+    });
+
+    expect(recovered.mode).toBe("playing");
+    if (recovered.mode !== "playing") {
+      throw new Error("Expected recovery to create a playing session.");
+    }
+    expect(recovered.game).toBe(recoveredGame);
+    expect(recovered.game).not.toBe(started.game);
+    expect(recovered.revision).toBe(fatal.revision + 1);
+  });
+
+  it("returns from fatal to configuration without retaining GameState", () => {
+    const fatal = createFatalLocalGameSession(
+      defaultCharacterSelection,
+      12,
+      "GAME_RECOVERY_FAILED",
+    );
+    const configuring = localGameSessionReducer(fatal, {
+      type: "RETURN_TO_CHARACTER_SELECTION",
+    });
+
+    expect(configuring).toMatchObject({
+      mode: "configuring",
+      characterIds: defaultCharacterSelection,
+      revision: fatal.revision + 1,
+      error: null,
+    });
+    expect("game" in configuring).toBe(false);
   });
 });

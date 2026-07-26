@@ -370,6 +370,84 @@ describe("Phase 10 successful reaction events", () => {
     expectCardZonesToBeConsistent(status);
   });
 
+  it("maps virtual CO2 to the exact Phase 11 UI view-model", () => {
+    const responseState = createCardResponseState(
+      "substance_hcl_dilute_01",
+      "ion_co3_01",
+    );
+    const resolved = resolveCardResponse(responseState, "ion_co3_01");
+    const entry = resolved.log.find((candidate) => (
+      candidate.reaction?.definitionId === "acid_carbonate_co2"
+    ));
+
+    if (!entry) {
+      throw new Error("Expected an acid/carbonate reaction log entry.");
+    }
+
+    expect(getReactionLogView(resolved, entry)).toEqual({
+      name: "酸与碳酸盐",
+      trigger: "单目标伤害响应",
+      participants: [
+        "攻击来源：玩家 A · 稀 HCl",
+        "响应牌：玩家 B · CO3^2-",
+      ],
+      outcome: "原伤害完全取消；CO2 为虚拟结果，不创建 CardInstance",
+    });
+  });
+
+  it("maps immediate SO2 and SO2_LEAK treatment to distinct exact UI text", () => {
+    let immediate = createGame([
+      "clumsy_party_secretary",
+      "caustic_soda_captain",
+    ]);
+    immediate = putCardInHand(immediate, "player_2", "ion_oh_01");
+    immediate = engineReducer(immediate, {
+      type: "ACTIVATE_CHARACTER_SKILL",
+      playerId: "player_1",
+      skillId: "exhaust_leak",
+    });
+    immediate = resolveCardResponse(immediate, "ion_oh_01");
+
+    let status = createGame();
+    status = putCardInHand(status, "player_1", "substance_naoh_dilute_01");
+    status = addStatusWindow(status, "player_1", "SO2_LEAK");
+    status = engineReducer(status, {
+      type: "HANDLE_STATUS_WITH_CARD",
+      playerId: "player_1",
+      statusInstanceId: "status_reaction_test_SO2_LEAK",
+      cardInstanceId: "substance_naoh_dilute_01",
+    });
+
+    const immediateEntry = immediate.log.find((entry) => (
+      entry.reaction?.trigger.kind === "multi-target-damage-response"
+    ));
+    const statusEntry = status.log.find((entry) => (
+      entry.reaction?.trigger.kind === "status-handling"
+    ));
+    if (!immediateEntry || !statusEntry) {
+      throw new Error("Expected both SO2 reaction log entries.");
+    }
+
+    expect(getReactionLogView(immediate, immediateEntry)).toEqual({
+      name: "SO2 碱性吸收",
+      trigger: "书记即时 SO2 多目标响应",
+      participants: [
+        "攻击来源：玩家 A · 尾气泄漏",
+        "响应牌：玩家 B · OH-",
+      ],
+      outcome: "即时 SO2 伤害完全抵消",
+    });
+    expect(getReactionLogView(status, statusEntry)).toEqual({
+      name: "SO2 碱性吸收",
+      trigger: "SO2_LEAK 状态处理",
+      participants: [
+        "被处理状态：玩家 A · SO2_LEAK (status_reaction_test_SO2_LEAK)",
+        "状态处理牌：玩家 A · 稀 NaOH",
+      ],
+      outcome: "移除 SO2_LEAK (status_reaction_test_SO2_LEAK)",
+    });
+  });
+
   it("does not create events for pass, illegal response, ordinary play, or DIY construction", () => {
     let passState = createCardResponseState(
       "substance_hcl_dilute_01",

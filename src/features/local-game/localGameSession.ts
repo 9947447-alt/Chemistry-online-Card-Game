@@ -1,3 +1,7 @@
+import {
+  createSafeRuntimeDiagnostics,
+  type SafeRuntimeDiagnostics,
+} from "../../app/releaseMetadata";
 import { characterDefinitions } from "../../game/data/characterDefinitions";
 import { engineReducer } from "../../game/engine/reducer";
 import type { GameAction } from "../../game/engine/actions";
@@ -25,9 +29,31 @@ export type PlayingLocalGameSession = Readonly<{
   error: string | null;
 }>;
 
+export type FatalErrorCode =
+  | "SESSION_INITIALIZATION_FAILED"
+  | "GAME_START_FAILED"
+  | "GAME_RESTART_FAILED"
+  | "GAME_ACTION_FAILED"
+  | "GAME_RECOVERY_FAILED"
+  | "GAME_STATE_VALIDATION_FAILED";
+
+export type FatalLocalGameError = Readonly<{
+  code: FatalErrorCode;
+  userMessage: string;
+  diagnostics: SafeRuntimeDiagnostics;
+}>;
+
+export type FatalLocalGameSession = Readonly<{
+  mode: "fatal";
+  characterIds: CharacterSelection;
+  revision: number;
+  error: FatalLocalGameError;
+}>;
+
 export type LocalGameSessionState =
   | ConfiguringLocalGameSession
-  | PlayingLocalGameSession;
+  | PlayingLocalGameSession
+  | FatalLocalGameSession;
 
 type SelectCharacterAction = Readonly<{
   type: "SELECT_CHARACTER";
@@ -50,16 +76,27 @@ type CreatedGameActionPayload = Readonly<{
   game: GameState;
 }>;
 
+type ApplyGameActionResult = Readonly<{
+  type: "APPLY_GAME_ACTION_RESULT";
+  expectedRevision: number;
+  characterIds: CharacterSelection;
+  game: GameState;
+}>;
+
+type EnterFatalAction = Readonly<{
+  type: "ENTER_FATAL_LOCAL_GAME";
+  expectedMode: LocalGameSessionState["mode"];
+  expectedRevision: number;
+  code: FatalErrorCode;
+}>;
+
 export type LocalGameSessionAction =
   | SelectCharacterAction
   | (CreatedGameActionPayload & Readonly<{ type: "APPLY_STARTED_LOCAL_GAME" }>)
   | (CreatedGameActionPayload & Readonly<{ type: "APPLY_RESTARTED_LOCAL_GAME" }>)
-  | Readonly<{
-      type: "REPORT_LOCAL_GAME_CREATION_ERROR";
-      expectedMode: LocalGameSessionState["mode"];
-      expectedRevision: number;
-      message: string;
-    }>
+  | (CreatedGameActionPayload & Readonly<{ type: "APPLY_RECOVERED_LOCAL_GAME" }>)
+  | ApplyGameActionResult
+  | EnterFatalAction
   | ReturnToCharacterSelectionAction
   | DispatchGameAction;
 
@@ -67,12 +104,29 @@ export type LocalGameSessionCommand =
   | SelectCharacterAction
   | Readonly<{ type: "START_LOCAL_GAME" }>
   | Readonly<{ type: "RESTART_CURRENT_LINEUP" }>
+  | Readonly<{ type: "RECOVER_FATAL_WITH_CURRENT_LINEUP" }>
   | ReturnToCharacterSelectionAction
   | DispatchGameAction;
 
 export type LocalGameFactory = (
   characterIds: CharacterSelection,
 ) => GameState;
+
+export type LocalGameEngineReducer = (
+  game: GameState,
+  action: GameAction,
+) => GameState;
+
+export type LocalGameSessionInitializer = () => LocalGameSessionState;
+
+const fatalUserMessages: Readonly<Record<FatalErrorCode, string>> = {
+  SESSION_INITIALIZATION_FAILED: "本地会话初始化失败。旧状态已被隔离，请重新开始。",
+  GAME_START_FAILED: "无法创建本地对局。未保留不完整的游戏状态。",
+  GAME_RESTART_FAILED: "无法重建本地对局。旧对局已被隔离。",
+  GAME_ACTION_FAILED: "处理本次操作时发生致命错误。旧对局已停止运行。",
+  GAME_RECOVERY_FAILED: "恢复操作未能创建全新对局。你可以重试或返回角色选择。",
+  GAME_STATE_VALIDATION_FAILED: "新建状态未通过会话边界校验，已阻止继续运行。",
+};
 
 export function isCharacterId(value: unknown): value is CharacterId {
   return (
@@ -100,6 +154,35 @@ export function createConfiguringLocalGameSession(): ConfiguringLocalGameSession
   };
 }
 
+export function createFatalLocalGameSession(
+  characterIds: CharacterSelection,
+  revision: number,
+  code: FatalErrorCode,
+): FatalLocalGameSession {
+  return {
+    mode: "fatal",
+    characterIds: [characterIds[0], characterIds[1]],
+    revision: revision + 1,
+    error: {
+      code,
+      userMessage: fatalUserMessages[code],
+      diagnostics: createSafeRuntimeDiagnostics(),
+    },
+  };
+}
+
+export function formatFatalDiagnostics(error: FatalLocalGameError): string {
+  const { diagnostics } = error;
+  return [
+    `名称：${diagnostics.displayName}`,
+    `应用版本：${diagnostics.version}`,
+    `规则版本：${diagnostics.rulesVersion}`,
+    `Commit：${diagnostics.commit}`,
+    `错误码：${error.code}`,
+    `运行环境：${diagnostics.environment}`,
+  ].join("\n");
+}
+
 function sameCharacterSelection(
   left: readonly unknown[],
   right: CharacterSelection,
@@ -113,8 +196,8 @@ function gameMatchesCharacterSelection(
 ): boolean {
   return (
     game.players.length === 2 &&
-    game.players[0].characterId === characterIds[0] &&
-    game.players[1].characterId === characterIds[1]
+    game.players[0]?.characterId === characterIds[0] &&
+    game.players[1]?.characterId === characterIds[1]
   );
 }
 
@@ -132,24 +215,88 @@ function applyCreatedGame(
     !sameCharacterSelection(action.characterIds, state.characterIds) ||
     !gameMatchesCharacterSelection(action.game, state.characterIds)
   ) {
-    return {
-      ...state,
-      error: "创建的游戏与当前角色阵容不一致。",
-    };
+    return createFatalLocalGameSession(
+      state.characterIds,
+      state.revision,
+      "GAME_STATE_VALIDATION_FAILED",
+    );
   }
 
   return {
     mode: "playing",
-    characterIds: state.characterIds,
+    characterIds: [state.characterIds[0], state.characterIds[1]],
     revision: state.revision + 1,
     game: action.game,
     error: null,
   };
 }
 
+function applyGameActionResult(
+  state: LocalGameSessionState,
+  action: ApplyGameActionResult,
+): LocalGameSessionState {
+  if (state.mode !== "playing" || state.revision !== action.expectedRevision) {
+    return state;
+  }
+
+  if (
+    !sameCharacterSelection(action.characterIds, state.characterIds) ||
+    !gameMatchesCharacterSelection(action.game, state.characterIds)
+  ) {
+    return createFatalLocalGameSession(
+      state.characterIds,
+      state.revision,
+      "GAME_STATE_VALIDATION_FAILED",
+    );
+  }
+
+  if (action.game === state.game) {
+    return {
+      ...state,
+      error: "操作不合法",
+    };
+  }
+
+  return {
+    ...state,
+    revision: state.revision + 1,
+    game: action.game,
+    error: null,
+  };
+}
+
+function reduceDispatchedGameAction(
+  state: LocalGameSessionState,
+  action: DispatchGameAction,
+  reduceGame: LocalGameEngineReducer,
+): LocalGameSessionState {
+  if (state.mode !== "playing") {
+    return state;
+  }
+
+  let game: GameState;
+  try {
+    game = reduceGame(state.game, action.action);
+  } catch {
+    return createFatalLocalGameSession(
+      state.characterIds,
+      state.revision,
+      "GAME_ACTION_FAILED",
+    );
+  }
+
+  return applyGameActionResult(state, {
+    type: "APPLY_GAME_ACTION_RESULT",
+    expectedRevision: state.revision,
+    characterIds: state.characterIds,
+    game,
+  });
+}
+
 export function localGameSessionReducer(
   state: LocalGameSessionState,
   action: LocalGameSessionAction,
+  reduceGame: LocalGameEngineReducer = engineReducer,
 ): LocalGameSessionState {
   switch (action.type) {
     case "SELECT_CHARACTER": {
@@ -181,40 +328,28 @@ export function localGameSessionReducer(
     case "APPLY_RESTARTED_LOCAL_GAME":
       return applyCreatedGame(state, action, "playing");
 
-    case "REPORT_LOCAL_GAME_CREATION_ERROR":
+    case "APPLY_RECOVERED_LOCAL_GAME":
+      return applyCreatedGame(state, action, "fatal");
+
+    case "APPLY_GAME_ACTION_RESULT":
+      return applyGameActionResult(state, action);
+
+    case "ENTER_FATAL_LOCAL_GAME":
       return state.mode === action.expectedMode && state.revision === action.expectedRevision
-        ? { ...state, error: action.message }
+        ? createFatalLocalGameSession(state.characterIds, state.revision, action.code)
         : state;
 
     case "RETURN_TO_CHARACTER_SELECTION":
-      return state.mode === "playing"
+      return state.mode === "playing" || state.mode === "fatal"
         ? {
             mode: "configuring",
-            characterIds: state.characterIds,
+            characterIds: [state.characterIds[0], state.characterIds[1]],
             revision: state.revision + 1,
             error: null,
           }
         : state;
 
-    case "DISPATCH_GAME_ACTION": {
-      if (state.mode !== "playing") {
-        return state;
-      }
-
-      const nextGame = engineReducer(state.game, action.action);
-
-      if (nextGame === state.game) {
-        return {
-          ...state,
-          error: "操作不合法",
-        };
-      }
-
-      return {
-        ...state,
-        game: nextGame,
-        error: null,
-      };
-    }
+    case "DISPATCH_GAME_ACTION":
+      return reduceDispatchedGameAction(state, action, reduceGame);
   }
 }

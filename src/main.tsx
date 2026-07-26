@@ -1,10 +1,43 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
+import { installBrowserFatalHandlers } from "./app/browserFatalHandlers";
+import { RootErrorBoundary } from "./app/RootErrorBoundary";
+import { RootFailurePage } from "./app/RootFailurePage";
 import "./styles.css";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  document.body.textContent = "页面容器缺失，无法启动应用。";
+} else {
+  let rootFailed = false;
+  let renderRootFailure = () => undefined;
+  const root = createRoot(rootElement, {
+    onCaughtError: () => undefined,
+    onRecoverableError: () => undefined,
+    onUncaughtError: () => renderRootFailure(),
+  });
+
+  renderRootFailure = () => {
+    if (rootFailed) {
+      return;
+    }
+
+    rootFailed = true;
+    root.render(<RootFailurePage code="ROOT_RUNTIME_FAILED" />);
+  };
+
+  const cleanupBrowserHandlers = installBrowserFatalHandlers(renderRootFailure);
+  if (import.meta.hot) {
+    import.meta.hot.dispose(cleanupBrowserHandlers);
+  }
+
+  root.render(
+    <StrictMode>
+      <RootErrorBoundary>
+        <App />
+      </RootErrorBoundary>
+    </StrictMode>,
+  );
+}

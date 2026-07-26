@@ -10,8 +10,8 @@ import {
 type GameSummaryProps = {
   game: GameState;
   error?: string;
-  onRestart: () => void;
-  onReturnToCharacterSelection: () => void;
+  onRestart: (trigger: HTMLButtonElement) => void;
+  onReturnToCharacterSelection: (trigger: HTMLButtonElement) => void;
 };
 
 export function GameSummary({
@@ -29,8 +29,8 @@ export function GameSummary({
   return (
     <section className="debug-section debug-summary" aria-labelledby="summary-title">
       <div>
-        <p className="debug-kicker">MVP 0 Debug UI</p>
-        <h1 id="summary-title">本地双人公开调试对局</h1>
+        <p className="debug-kicker">Debug Alpha · MVP0-P10</p>
+        <h1 id="summary-title">化学卡牌在线游戏 · 本地双人公开调试对局</h1>
       </div>
       <dl className="summary-grid">
         <div>
@@ -81,12 +81,16 @@ export function GameSummary({
       <div className="summary-actions">
         {error ? <p className="error-banner">{error}</p> : <p className="quiet-banner">等待操作</p>}
         <div className="session-actions">
-          <button className="secondary-button" onClick={onRestart} type="button">
+          <button
+            className="secondary-button"
+            onClick={(event) => onRestart(event.currentTarget)}
+            type="button"
+          >
             按当前阵容重开
           </button>
           <button
             className="secondary-button"
-            onClick={onReturnToCharacterSelection}
+            onClick={(event) => onReturnToCharacterSelection(event.currentTarget)}
             type="button"
           >
             返回角色选择

@@ -28,8 +28,8 @@ export function CharacterSelectionPanel({
     <main className="local-game-page character-selection-page">
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
         <div>
-          <p className="debug-kicker">Phase 10 · Local Debug Alpha</p>
-          <h1 id="character-selection-title">双人角色选择</h1>
+          <p className="debug-kicker">Debug Alpha · MVP0-P10</p>
+          <h1 id="character-selection-title">化学卡牌在线游戏 · 双人角色选择</h1>
         </div>
         <p className="panel-note">
           选择两名玩家的角色后再创建本地对局。角色选择只属于页面配置，不会写入尚未创建的 GameState。

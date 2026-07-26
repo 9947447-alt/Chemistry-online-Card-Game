@@ -1,5 +1,8 @@
-import { LocalGamePage } from "../features/local-game/LocalGamePage";
+import {
+  LocalGamePage,
+  type LocalGamePageProps,
+} from "../features/local-game/LocalGamePage";
 
-export function App() {
-  return <LocalGamePage />;
+export function App(props: LocalGamePageProps) {
+  return <LocalGamePage {...props} />;
 }

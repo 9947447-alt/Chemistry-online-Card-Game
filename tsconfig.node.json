@@ -6,9 +6,15 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "scripts/vite-production-denylist.test.ts",
+    "vite.e2e.config.ts",
+    "playwright.config.ts"
+  ]
 }

@@ -1,61 +1,97 @@
-# Chemistry Online Card Game
+# 化学卡牌在线游戏
 
-一个基于 React、TypeScript、Vite 和 Vitest 的本地双人化学卡牌 Debug Alpha。当前版本用于公开调试规则引擎与双人可玩闭环，不是正式发行版。
+当前发布基线为 Debug Alpha `0.11.0-alpha.1`，规则版本为 `MVP0-P10`。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地双人公开调试版本，不是正式发行版。
 
 ## 当前能力
 
-- 双人角色选择：7 个正式角色，Debug Alpha 允许两名玩家选择同一角色。
-- 68 张普通实体卡池；`event_lab_fire` 仅保留为角色技能相关定义，初始不创建普通 `CardInstance`。
-- 完整本地开局、实验周期、轮次、行动、牌堆重洗、淘汰、胜负与公开日志。
-- 关联出牌与 `tableReference`，以及普通出牌和实体卡牌效果两条明确路径。
-- 酸碱伤害与响应、碳酸盐响应、`SO2_LEAK`、`FIRE`、行动开始状态处理和统一 `DAMAGE` 管线。
-- Phase 10 三类结构化成功反应事件：酸碱中和、酸与碳酸盐、SO2 碱性吸收；虚拟 H2O / CO2 不创建卡牌实例。
-- 主动 DIY：H2O、CO2、SO2，以及当前冻结的虚拟酸、虚拟碱配方；DIY 结果不创建普通卡牌实例。
-- 7 个角色的体力、周期摸牌、备课、主动技能、伤害被动、共享次数与响应技能入口。
-- 化学爱好者“实验反击”的回复和实体酸碱追击已实现；金属元素选项因当前没有真实金属卡池而延期。
-- 硫酸厂厂长“硫酸盐副产”已通过统一成功反应事件消费者实现，并严格读取实体物质牌的 `ionsProvided`。
-- 按当前阵容创建全新对局、返回角色选择后保留当前阵容预选。
+- 7 个正式角色及 49 种有序双人阵容，允许镜像角色；默认预选实验室老师与化工厂 CEO。
+- 68 张普通实体卡池；`event_lab_fire` 初始普通 `CardInstance` 数量为 0。
+- 本地开局、备课、周期、轮次、行动、响应、状态处理、牌堆重洗、淘汰、胜负和公开日志。
+- 关联出牌与 `tableReference`，主动 DIY、角色技能、统一伤害管线和实验反击的已实现部分。
+- 三类结构化成功反应事件：酸碱中和、酸与碳酸盐、SO2 碱性吸收；虚拟 H2O / CO2 不创建卡牌实例。
+- fatal 会话边界：初始化、重开或引擎操作发生未处理异常时停止旧对局，移除旧 `GameState`，只允许全新恢复或返回角色选择。
+- React ErrorBoundary、根级 React 回调与浏览器 `error` / `unhandledrejection` 最后保护。
+- 对局进行中重开和返回角色选择使用可访问的页面内二次确认；`gameOver` 后直接执行。
+- 角色选择、playing 和 `gameOver` 均可打开同一个“关于与帮助”界面，查看版本、能力、操作、安全和延期边界。
 
-## 本地运行
+Debug Alpha 公开双方手牌、牌堆数量、状态与完整日志。没有联网、账号、房间、存档、遥测或远程错误上报；刷新会丢失当前对局并回到默认角色预选。
+
+## 固定工具链
+
+- Node.js `24.18.0`，见 `.node-version`。
+- pnpm `11.9.0`，见 `package.json#packageManager`。
+- 只为 E2E 安装 Playwright Chromium。
 
 安装依赖：
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
 ```
 
-启动开发服务器：
+## 本地运行与验证
+
+开发服务器：
 
 ```bash
 pnpm run dev
 ```
 
-按终端输出的 Vite 地址打开页面。首次进入会显示角色选择，默认预选实验室老师与化工厂 CEO；点击“开始游戏”后才会创建本地 `GameState`。
-
-构建：
+正式构建和 production preview：
 
 ```bash
 pnpm run build
+pnpm run preview
 ```
 
-运行全量测试：
+常规和固定 seed Vitest：
 
 ```bash
-pnpm exec vitest run
+pnpm run test:run
+pnpm run test:shuffle
 ```
 
-运行固定 seed 的随机顺序回归：
+production-mode 独立 fixture 构建和 Chromium E2E：
 
 ```bash
-pnpm exec vitest run --sequence.shuffle --sequence.seed=20260717
+pnpm run test:e2e
 ```
 
-## 当前限制
+产物与隔离门禁：
 
-- 仅支持本地双人公开调试；没有联网、账号、房间、正式多人或私密手牌。
-- 不使用本地存档；刷新页面后回到默认角色预选。
-- 没有发布下载包、桌面打包或线上服务器地址。
-- 真实金属卡池与实验反击金属选项延期。
-- 方程式、沉淀、完整金属反应、响应 DIY、通用反应链、多人和发布能力延期。
+```bash
+pnpm run check:production
+pnpm run check:size
+```
 
-规则边界见 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md)。开发阶段状态见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。
+生产依赖审计：
+
+```bash
+pnpm audit --prod
+```
+
+`pnpm audit --prod` 会把公开依赖名称和版本发送给 npm advisory API；它在 Phase 11 实际执行并记录结果，但不是主 CI 强制门禁，避免外部 advisory 服务故障阻塞构建。
+
+## 错误报告
+
+fatal 页面可复制的本地安全诊断只包含：
+
+```text
+名称：化学卡牌在线游戏
+应用版本：0.11.0-alpha.1
+规则版本：MVP0-P10
+Commit：<短 SHA 或 dev/unknown>
+错误码：<稳定错误码>
+运行环境：<非敏感概要>
+```
+
+诊断不包含原始 `Error.message`、异常堆栈、`GameState`、手牌、日志或用户状态，也不会上传到外部服务。
+
+## 当前限制与发布状态
+
+- 仅本地双人公开调试，无私密手牌和持久化；刷新即丢失进度。
+- 真实金属卡池及实验反击金属选项、方程式、沉淀、响应 DIY、多人、联网、账号、存档和回放均延期。
+- GitHub Pages 尚未启用，本轮不部署，也不宣称正式发布或任何地区的稳定网络可达性。
+- Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现；桌面封装留到 Phase 12 或后续阶段。
+
+稳定性与发布准备见 [`docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`](docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md)。规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。

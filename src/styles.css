@@ -10,8 +10,15 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+#root {
+  min-width: 0;
 }
 
 button,
@@ -19,4 +26,12 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #1d70b8;
+  outline-offset: 2px;
 }

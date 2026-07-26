@@ -1,4 +1,4 @@
-# 化学在线卡牌游戏 MVP 0 规划
+# 化学卡牌在线游戏 MVP 0 规划
 
 ## 规则来源
 
@@ -13,6 +13,7 @@
 - `docs/PHASE8_CHARACTER_RULE_FREEZE.md`：Phase 8 角色系统正式冻结规则；本计划只记录开发拆分，不覆盖该文档。
 - `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择和 Debug UI 会话规则；不覆盖引擎冻结规则。
 - `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：Phase 10 三类成功反应事件与硫酸盐副产正式冻结规则。
+- `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`：Phase 11 稳定性、错误恢复、E2E、CI 与静态发布准备；不是规则冻结文档。
 
 ## MVP 0 定案范围
 
@@ -709,6 +710,21 @@ Phase 10 的权威边界见 `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：
 - 硫酸厂厂长“硫酸盐副产”通过统一事件消费者启用，只读取真实参与实体物质牌的 `ionsProvided`；空牌失败不消耗每轮次数。
 - Debug UI 在既有日志中展示反应名称、入口、参与来源和虚拟或状态结果，不解析 message，不增加操作面板。
 - 68 张普通卡池、零 `event_lab_fire` 初始实例、starter deck、CardZone、`DamageContext`、`tableReference`、`usedDIYThisCycle` 与 Phase 9 会话行为保持不变。
+
+## Phase 11 Debug Alpha 稳定性与发布就绪基线（已完成）
+
+Phase 11 的工程边界见 `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`。本阶段不修改 MVP 0 至 Phase 10 的冻结规则。
+
+- 当前 Debug Alpha 发布身份统一为“化学卡牌在线游戏”，版本 `0.11.0-alpha.1`，规则版本 `MVP0-P10`；应用版本以 `package.json` 为单一真值。
+- “反应域”仅记录为后续正式品牌名称；Phase 11 UI、诊断与 production bundle 不使用该名称。
+- `LocalGameSessionState` 新增不持有旧 `GameState` 的 fatal 判别分支；初始化、工厂、重开与引擎异常在会话边界停止旧对局并脱敏展示。
+- 新增 React ErrorBoundary、React 19 根级回调及浏览器最后保护；不上传错误、日志或用户状态。
+- playing 中重开与返回角色选择使用页面内可访问确认；`gameOver` 后直接执行。
+- 角色选择、playing 与 `gameOver` 共用 About/帮助界面，明确能力、公开调试、安全和延期边界。
+- Vite 使用相对 `base`；Node、pnpm、production preview、source map、体积和 fixture 泄漏检查形成可重复门禁。
+- 独立 E2E production build 复用真实初始化器、CardInstance 与 reducer，不形成 production route 或全局调试入口。
+- GitHub Actions 固定第三方 action 完整 SHA，持续执行 build、两轮 Vitest、Chromium E2E、体积、diff 与 tracked 洁净检查。
+- GitHub Pages 尚未启用；Tauri、Electron、PWA 与桌面安装包留到 Phase 12 或后续阶段。
 
 ## 暂缓功能回收清单
 

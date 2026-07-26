@@ -1,7 +1,11 @@
-.DS_Store
 node_modules/
 .pnpm-store/
 dist/
-.env
-
+dist-e2e/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.DS_Store
+.env*
+!.env.example
 ~$*.docx
