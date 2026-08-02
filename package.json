@@ -1,6 +1,6 @@
 {
   "name": "chemistry-online-card-game",
-  "version": "0.11.0-alpha.1",
+  "version": "0.12.0-alpha.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.9.0",
@@ -17,7 +17,9 @@
     "build:e2e": "tsc -b && vite build --config vite.e2e.config.ts",
     "preview:e2e": "vite preview --config vite.e2e.config.ts --host 127.0.0.1",
     "test:e2e": "pnpm run build:e2e && playwright test",
+    "test:e2e:production": "pnpm run build && playwright test --config playwright.production.config.ts",
     "check:production": "node scripts/check-production.mjs",
+    "check:web-playtest-tag": "node scripts/check-web-playtest-tag.mjs",
     "check:size": "node scripts/check-size.mjs",
     "check:tracked-clean": "node scripts/check-tracked-clean.mjs"
   },

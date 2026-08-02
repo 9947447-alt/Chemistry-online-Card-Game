@@ -1,6 +1,6 @@
-# 化学卡牌在线游戏
+# 反应域
 
-当前发布基线为 Debug Alpha `0.11.0-alpha.1`，规则版本为 `MVP0-P10`。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地双人公开调试版本，不是正式发行版。
+**反应域（REACTION FIELD）** 当前发布基线为 Web Playtest Alpha `0.12.0-alpha.1`，规则版本为 `MVP0-P10`。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
 ## 当前能力
 
@@ -14,7 +14,7 @@
 - 对局进行中重开和返回角色选择使用可访问的页面内二次确认；`gameOver` 后直接执行。
 - 角色选择、playing 和 `gameOver` 均可打开同一个“关于与帮助”界面，查看版本、能力、操作、安全和延期边界。
 
-Debug Alpha 公开双方手牌、牌堆数量、状态与完整日志。没有联网、账号、房间、存档、遥测或远程错误上报；刷新会丢失当前对局并回到默认角色预选。
+Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。没有联网、账号、房间、存档、遥测或远程错误上报；刷新会丢失当前对局并回到默认角色预选。
 
 ## 固定工具链
 
@@ -57,6 +57,12 @@ production-mode 独立 fixture 构建和 Chromium E2E：
 pnpm run test:e2e
 ```
 
+正式 `src/main.tsx` / `dist/index.html` 试玩路径（同时覆盖根路径和 GitHub Pages 子路径）：
+
+```bash
+pnpm run test:e2e:production
+```
+
 产物与隔离门禁：
 
 ```bash
@@ -77,8 +83,8 @@ pnpm audit --prod
 fatal 页面可复制的本地安全诊断只包含：
 
 ```text
-名称：化学卡牌在线游戏
-应用版本：0.11.0-alpha.1
+名称：反应域
+应用版本：0.12.0-alpha.1
 规则版本：MVP0-P10
 Commit：<短 SHA 或 dev/unknown>
 错误码：<稳定错误码>
@@ -89,9 +95,9 @@ Commit：<短 SHA 或 dev/unknown>
 
 ## 当前限制与发布状态
 
-- 仅本地双人公开调试，无私密手牌和持久化；刷新即丢失进度。
+- 仅本地同屏双人公开试玩，无私密手牌和持久化；刷新即丢失进度。
 - 真实金属卡池及实验反击金属选项、方程式、沉淀、响应 DIY、多人、联网、账号、存档和回放均延期。
-- GitHub Pages 尚未启用，本轮不部署，也不宣称正式发布或任何地区的稳定网络可达性。
-- Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现；桌面封装留到 Phase 12 或后续阶段。
+- 首个静态公开目标是 GitHub Pages；本地实现不执行部署，最终公开仍需人工批准。
+- Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现，也不在本阶段范围。
 
-稳定性与发布准备见 [`docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`](docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md)。规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。
+发布、标签、回滚与停止公开试玩说明见 [`docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`](docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md)。Phase 11 是历史稳定性基线；规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。

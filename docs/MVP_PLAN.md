@@ -1,4 +1,4 @@
-# 化学卡牌在线游戏 MVP 0 规划
+# 反应域 / REACTION FIELD · MVP 0 规划
 
 ## 规则来源
 
@@ -14,6 +14,11 @@
 - `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择和 Debug UI 会话规则；不覆盖引擎冻结规则。
 - `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：Phase 10 三类成功反应事件与硫酸盐副产正式冻结规则。
 - `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`：Phase 11 稳定性、错误恢复、E2E、CI 与静态发布准备；不是规则冻结文档。
+- `docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`：Phase 12 反应域静态 Web 试玩发布边界、标签、回滚与停止公开说明；不是规则冻结文档。
+
+## Phase 12 发布边界
+
+Phase 12 将 UI 与发布身份升级为“反应域（REACTION FIELD）”Web Playtest Alpha `0.12.0-alpha.1`，并为 GitHub Pages 添加仅由 `web-playtest-v*` 标签触发的静态发布工作流。它不新增任何化学规则，不改变 MVP0-P10 引擎、卡池、角色、状态、DIY、反应、回合、淘汰或胜负逻辑。Phase 11 保持历史稳定性基线。
 
 ## MVP 0 定案范围
 

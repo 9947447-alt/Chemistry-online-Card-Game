@@ -19,8 +19,9 @@ export function readBuildCommit(): string {
 
 export function releaseHtmlPlugin(): Plugin {
   const releaseTitle = [
-    "化学卡牌在线游戏",
-    "Debug Alpha",
+    "反应域",
+    "REACTION FIELD",
+    "Web Playtest Alpha",
     packageMetadata.version,
     "MVP0-P10",
   ].join(" · ");
