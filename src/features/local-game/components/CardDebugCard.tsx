@@ -21,25 +21,33 @@ export function CardDebugCard({
 
   if (!definition) {
     return (
-      <button className="debug-card is-missing" type="button" disabled>
-        未知卡牌 {cardInstanceId}
-      </button>
+      <article className="debug-card is-missing">
+        <button className="debug-card__select" disabled type="button">
+          未知卡牌 {cardInstanceId}
+        </button>
+      </article>
     );
   }
 
   return (
-    <button
+    <article
       className={`debug-card${selected ? " is-selected" : ""}`}
-      disabled={disabled}
-      onClick={() => onSelect?.(cardInstanceId)}
-      type="button"
     >
-      <span className="debug-card__name">{definition.name}</span>
-      <span className="debug-card__meta">
-        {definition.type} · {cardInstanceId}
-      </span>
-      <span className="debug-card__line">标签：{formatList(definition.tags)}</span>
-      <span className="debug-card__line">时机：{formatList(definition.allowedTimings)}</span>
-    </button>
+      <button
+        className="debug-card__select"
+        disabled={disabled}
+        onClick={() => onSelect?.(cardInstanceId)}
+        type="button"
+      >
+        <span className="debug-card__name">{definition.name}</span>
+        <span className="debug-card__line">可在当前对局中选择</span>
+      </button>
+      <details className="debug-details debug-card__details">
+        <summary>调试详情</summary>
+        <span className="debug-card__meta">{definition.type} · {cardInstanceId}</span>
+        <span className="debug-card__line">标签：{formatList(definition.tags)}</span>
+        <span className="debug-card__line">时机：{formatList(definition.allowedTimings)}</span>
+      </details>
+    </article>
   );
 }

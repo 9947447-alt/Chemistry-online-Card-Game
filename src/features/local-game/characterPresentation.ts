@@ -1,4 +1,5 @@
 import type {
+  CharacterDefinition,
   CharacterSkillImplementationStatus,
   CharacterSkillType,
 } from "../../game/engine/types";
@@ -24,3 +25,23 @@ export const implementationStatusLabels: Record<
   "planned-8c": "8C 计划实现",
   deferred: "延期",
 };
+
+export type PublicCharacterSkill = Readonly<{
+  name: string;
+  type: string;
+  availability: string;
+}>;
+
+function publicAvailability(status: CharacterSkillImplementationStatus) {
+  if (status === "implemented-8c-4-partial") return "当前试玩部分可用";
+  if (status.startsWith("implemented")) return "当前试玩可用";
+  return "当前试玩为说明项";
+}
+
+export function getPublicCharacterSkills(character: CharacterDefinition): readonly PublicCharacterSkill[] {
+  return character.skills.map((skill) => ({
+    name: skill.name,
+    type: skillTypeLabels[skill.type],
+    availability: publicAvailability(skill.implementationStatus),
+  }));
+}

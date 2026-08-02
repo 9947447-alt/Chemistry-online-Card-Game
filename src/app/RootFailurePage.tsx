@@ -16,6 +16,7 @@ export function RootFailurePage({ code }: RootFailurePageProps) {
           为避免继续运行不确定状态，当前界面已经停止。不会上传对局、手牌、日志或异常详情。
         </p>
         <dl className="failure-diagnostics">
+          <div><dt>名称</dt><dd>{releaseMetadata.displayName}</dd></div>
           <div><dt>应用版本</dt><dd>{releaseMetadata.version}</dd></div>
           <div><dt>规则版本</dt><dd>{releaseMetadata.rulesVersion}</dd></div>
           <div><dt>Commit</dt><dd>{releaseMetadata.commit}</dd></div>

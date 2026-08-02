@@ -1,5 +1,5 @@
 import type { GameState } from "../../../game/engine/types";
-import { getReactionLogView } from "../localGameView";
+import { getPublicReactionLogView } from "../localGameView";
 
 type GameLogProps = {
   game: GameState;
@@ -11,13 +11,17 @@ export function GameLog({ game }: GameLogProps) {
       <h2 id="game-log-title">完整游戏日志</h2>
       <ol>
         {game.log.map((entry) => {
-          const reaction = getReactionLogView(game, entry);
+          const reaction = getPublicReactionLogView(game, entry);
 
           return (
             <li key={entry.id}>
               <div className="game-log__message">
-                <span className="game-log__entry-id">{entry.id}</span>
-                {entry.message}
+                {reaction ? "已记录一项成功反应。" : entry.message}
+                <details className="debug-details game-log__details">
+                  <summary>调试详情</summary>
+                  <span className="game-log__entry-id">日志编号：{entry.id}</span>
+                  {reaction ? <span className="game-log__entry-id">{JSON.stringify(entry.reaction)}</span> : null}
+                </details>
               </div>
               {reaction ? (
                 <div className="game-log__reaction" aria-label={`成功反应：${reaction.name}`}>

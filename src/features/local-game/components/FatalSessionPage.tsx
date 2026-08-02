@@ -25,8 +25,8 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
   return (
     <main className="local-game-page fatal-session-page">
       <section className="debug-section fatal-session-card" role="alert" aria-labelledby="fatal-session-title">
-        <div>
-          <p className="debug-kicker">会话安全边界</p>
+          <div>
+          <p className="debug-kicker">反应域 · 会话安全边界</p>
           <h1 id="fatal-session-title">当前对局已安全停止</h1>
         </div>
         <p>{session.error.userMessage}</p>
@@ -34,6 +34,7 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
           旧对局状态已从本地会话中移除，任何旧对局操作都会被拒绝。恢复会重新创建完整的新对局。
         </p>
         <dl className="failure-diagnostics">
+          <div><dt>名称</dt><dd>{session.error.diagnostics.displayName}</dd></div>
           <div><dt>错误码</dt><dd>{session.error.code}</dd></div>
           <div><dt>应用版本</dt><dd>{session.error.diagnostics.version}</dd></div>
           <div><dt>规则版本</dt><dd>{session.error.diagnostics.rulesVersion}</dd></div>

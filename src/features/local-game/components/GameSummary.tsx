@@ -1,4 +1,5 @@
 import type { GameState } from "../../../game/engine/types";
+import { releaseMetadata } from "../../../app/releaseMetadata";
 import {
   describePendingResponse,
   describePendingStatusHandling,
@@ -29,55 +30,57 @@ export function GameSummary({
   return (
     <section className="debug-section debug-summary" aria-labelledby="summary-title">
       <div>
-        <p className="debug-kicker">Debug Alpha · MVP0-P10</p>
-        <h1 id="summary-title">化学卡牌在线游戏 · 本地双人公开调试对局</h1>
+        <p className="debug-kicker">{releaseMetadata.displayName}</p>
+        <h1 id="summary-title">本地双人公开对局</h1>
       </div>
       <dl className="summary-grid">
         <div>
-          <dt>cycle</dt>
+          <dt>实验周期</dt>
           <dd>{game.cycleNumber}</dd>
         </div>
         <div>
-          <dt>round</dt>
+          <dt>本周期轮次</dt>
           <dd>{game.roundInCycle}</dd>
         </div>
         <div>
-          <dt>phase</dt>
-          <dd>{game.phase}</dd>
+          <dt>当前阶段</dt>
+          <dd>{game.phase === "mainAction" ? "主行动" : game.phase === "gameOver" ? "对局结束" : "等待处理"}</dd>
         </div>
         <div>
-          <dt>activePlayer</dt>
+          <dt>当前行动玩家</dt>
           <dd>{getPlayerName(game, game.activePlayerId)}</dd>
         </div>
         <div>
-          <dt>deck</dt>
+          <dt>牌堆</dt>
           <dd>{game.deck.length}</dd>
         </div>
         <div>
-          <dt>discardPile</dt>
+          <dt>弃牌堆</dt>
           <dd>{game.discardPile.length}</dd>
         </div>
         <div>
-          <dt>CardInstance</dt>
-          <dd>{getTotalCardCount(game)}</dd>
+          <dt>公开对局</dt>
+          <dd>双方手牌可见</dd>
         </div>
         <div>
-          <dt>gameOver</dt>
+          <dt>胜负</dt>
           <dd>{winnerText}</dd>
         </div>
       </dl>
-      <div className="state-readout">
-        <strong>PendingResponse</strong>
-        <span>{describePendingResponse(game)}</span>
-      </div>
-      <div className="state-readout">
-        <strong>pendingStatusHandling</strong>
-        <span>{describePendingStatusHandling(game)}</span>
-      </div>
-      <div className="state-readout">
-        <strong>tableReference</strong>
-        <span>{describeTableReference(game)}</span>
-      </div>
+      <details className="debug-details">
+        <summary>调试详情</summary>
+        <dl className="debug-detail-list">
+          <div><dt>发布渠道</dt><dd>{releaseMetadata.channel}</dd></div>
+          <div><dt>应用版本</dt><dd>{releaseMetadata.version}</dd></div>
+          <div><dt>规则版本</dt><dd>{releaseMetadata.rulesVersion}</dd></div>
+          <div><dt>Commit</dt><dd>{releaseMetadata.commit}</dd></div>
+          <div><dt>phase</dt><dd>{game.phase}</dd></div>
+          <div><dt>CardInstance</dt><dd>{getTotalCardCount(game)}</dd></div>
+          <div><dt>PendingResponse</dt><dd>{describePendingResponse(game)}</dd></div>
+          <div><dt>pendingStatusHandling</dt><dd>{describePendingStatusHandling(game)}</dd></div>
+          <div><dt>tableReference</dt><dd>{describeTableReference(game)}</dd></div>
+        </dl>
+      </details>
       <div className="summary-actions">
         {error ? <p className="error-banner">{error}</p> : <p className="quiet-banner">等待操作</p>}
         <div className="session-actions">

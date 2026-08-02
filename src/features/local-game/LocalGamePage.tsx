@@ -214,9 +214,14 @@ export function LocalGamePage({
       >
         <header className="release-bar">
           <div>
-            <strong>{releaseMetadata.displayName}</strong>
+            <strong>
+              {releaseMetadata.displayName}
+              {session.mode === "configuring" ? (
+                <span className="secondary-brand">{releaseMetadata.secondaryName}</span>
+              ) : null}
+            </strong>
             <span>
-              {releaseMetadata.channel} · v{releaseMetadata.version} · {releaseMetadata.rulesVersion} · {releaseMetadata.commit}
+              {releaseMetadata.channel} · v{releaseMetadata.version} · {releaseMetadata.rulesVersion}
             </span>
           </div>
           <button

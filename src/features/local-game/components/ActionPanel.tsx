@@ -82,7 +82,7 @@ function CharacterSkillActions({
       <div className="character-active-skill">
         <div>
           <strong>排放尾气</strong>
-          <span>使一名其他存活玩家获得 SO2_LEAK · 每周期一次</span>
+          <span>使一名其他存活玩家获得尾气泄漏状态 · 每周期一次</span>
         </div>
         <div className="candidate-grid">
           {targets.map((target) => (
@@ -191,7 +191,7 @@ export function ActionPanel({
     <section className="debug-section action-panel" aria-labelledby="main-action-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">PLAY_CARD / PLAY_REFERENCE_CARD / PASS_ACTION</p>
+          <p className="debug-kicker">轮到当前玩家进行主行动</p>
           <h2 id="main-action-title">主行动</h2>
         </div>
         <button
@@ -199,10 +199,11 @@ export function ActionPanel({
           onClick={() => dispatchGameAction({ type: "PASS_ACTION", playerId: activePlayer.id })}
           type="button"
         >
-          PASS_ACTION
+          结束本次行动
         </button>
       </div>
       <p className="panel-note">当前行动玩家：{activePlayer.name}</p>
+      <details className="debug-details"><summary>调试详情</summary><p>PLAY_CARD / PLAY_REFERENCE_CARD / PASS_ACTION</p></details>
       {activeCharacterSkill ? (
         <div className="character-active-skill">
           <div>
@@ -262,14 +263,15 @@ export function ActionPanel({
             >
               <div>
                 <strong>{definition?.name ?? "未知卡牌"}</strong>
-                <span>
-                  {definition?.type ?? "unknown"} · {cardInstanceId}
-                </span>
-                <span>标签：{formatList(definition?.tags ?? [])}</span>
-                <span>时机：{formatList(definition?.allowedTimings ?? [])}</span>
                 <span className={`association-line${canAssociate ? " is-allowed" : " is-blocked"}`}>
                   {associationLabel}
                 </span>
+                <details className="debug-details" onClick={(event) => event.stopPropagation()}>
+                  <summary>调试详情</summary>
+                  <span>{definition?.type ?? "unknown"} · {cardInstanceId}</span>
+                  <span>标签：{formatList(definition?.tags ?? [])}</span>
+                  <span>时机：{formatList(definition?.allowedTimings ?? [])}</span>
+                </details>
               </div>
               {canExecute && !isOxygen ? (
                 <label className="field-row compact-field">

@@ -49,7 +49,7 @@ const reactionParticipantRoleLabels: Record<ReactionParticipant["role"], string>
   "affected-status": "被处理状态",
 };
 
-function describeReactionParticipant(
+function describePublicReactionParticipant(
   state: GameState,
   participant: ReactionParticipant,
 ): string {
@@ -75,17 +75,17 @@ function describeReactionParticipant(
     return `${role}：${getPlayerName(state, participant.sourcePlayerId)} · ${skill?.name ?? participant.skillId}`;
   }
 
-  return `${role}：${getPlayerName(state, participant.targetPlayerId)} · ${participant.statusId} (${participant.statusInstanceId})`;
+  return `${role}：${getPlayerName(state, participant.targetPlayerId)} · 待处理状态`;
 }
 
-function describeReactionTrigger(event: SuccessfulReactionEvent): string {
+function describePublicReactionTrigger(event: SuccessfulReactionEvent): string {
   switch (event.trigger.kind) {
     case "single-damage-response":
       return "单目标伤害响应";
     case "multi-target-damage-response":
-      return "书记即时 SO2 多目标响应";
+      return "即时多目标响应";
     case "status-handling":
-      return "SO2_LEAK 状态处理";
+      return "状态处理响应";
     default: {
       const exhaustiveTrigger: never = event.trigger;
       return exhaustiveTrigger;
@@ -93,14 +93,14 @@ function describeReactionTrigger(event: SuccessfulReactionEvent): string {
   }
 }
 
-function describeReactionOutcome(event: SuccessfulReactionEvent): string {
+function describePublicReactionOutcome(event: SuccessfulReactionEvent): string {
   switch (event.outcome.kind) {
     case "virtual-product":
-      return `原伤害完全取消；${event.outcome.product} 为虚拟结果，不创建 CardInstance`;
+      return `伤害已完全抵消；生成虚拟结果 ${event.outcome.product}`;
     case "damage-cancelled":
-      return "即时 SO2 伤害完全抵消";
+      return "伤害已完全抵消";
     case "status-removed":
-      return `移除 ${event.outcome.statusId} (${event.outcome.statusInstanceId})`;
+      return "待处理状态已移除";
     default: {
       const exhaustiveOutcome: never = event.outcome;
       return exhaustiveOutcome;
@@ -130,6 +130,55 @@ export function getReactionLogView(
       describeReactionParticipant(state, participant),
     ),
     outcome: describeReactionOutcome(entry.reaction),
+  };
+}
+
+function describeReactionParticipant(
+  state: GameState,
+  participant: ReactionParticipant,
+): string {
+  if (participant.kind === "status") {
+    return `${reactionParticipantRoleLabels[participant.role]}：${getPlayerName(state, participant.targetPlayerId)} · ${participant.statusId} (${participant.statusInstanceId})`;
+  }
+  return describePublicReactionParticipant(state, participant);
+}
+
+function describeReactionTrigger(event: SuccessfulReactionEvent): string {
+  switch (event.trigger.kind) {
+    case "single-damage-response": return "单目标伤害响应";
+    case "multi-target-damage-response": return "书记即时 SO2 多目标响应";
+    case "status-handling": return "SO2_LEAK 状态处理";
+    default: {
+      const exhaustiveTrigger: never = event.trigger;
+      return exhaustiveTrigger;
+    }
+  }
+}
+
+function describeReactionOutcome(event: SuccessfulReactionEvent): string {
+  switch (event.outcome.kind) {
+    case "virtual-product": return `原伤害完全取消；${event.outcome.product} 为虚拟结果，不创建 CardInstance`;
+    case "damage-cancelled": return "即时 SO2 伤害完全抵消";
+    case "status-removed": return `移除 ${event.outcome.statusId} (${event.outcome.statusInstanceId})`;
+    default: {
+      const exhaustiveOutcome: never = event.outcome;
+      return exhaustiveOutcome;
+    }
+  }
+}
+
+export function getPublicReactionLogView(
+  state: GameState,
+  entry: GameLogEntry,
+): ReactionLogView | undefined {
+  if (!entry.reaction) return undefined;
+  return {
+    name: getReactionDefinition(entry.reaction.definitionId).name,
+    trigger: describePublicReactionTrigger(entry.reaction),
+    participants: entry.reaction.participants.map((participant) =>
+      describePublicReactionParticipant(state, participant),
+    ),
+    outcome: describePublicReactionOutcome(entry.reaction),
   };
 }
 

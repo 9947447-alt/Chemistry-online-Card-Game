@@ -1,6 +1,7 @@
 import { characterDefinitions, getCharacterDefinition } from "../../../game/data/characterDefinitions";
 import type { CharacterId } from "../../../game/engine/types";
 import {
+  getPublicCharacterSkills,
   implementationStatusLabels,
   skillTypeLabels,
 } from "../characterPresentation";
@@ -28,26 +29,26 @@ export function CharacterSelectionPanel({
     <main className="local-game-page character-selection-page">
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
         <div>
-          <p className="debug-kicker">Debug Alpha · MVP0-P10</p>
-          <h1 id="character-selection-title">化学卡牌在线游戏 · 双人角色选择</h1>
+          <p className="debug-kicker">反应域 · Web Playtest Alpha · MVP0-P10</p>
+          <h1 id="character-selection-title">反应域 · 本地双人角色选择</h1>
         </div>
         <p className="panel-note">
-          选择两名玩家的角色后再创建本地对局。角色选择只属于页面配置，不会写入尚未创建的 GameState。
+          选择两名玩家的角色后开始本地同屏对局；双方手牌公开。刷新页面会丢失本局进度。
         </p>
-        <p className="mirror-note">Debug Alpha 允许镜像角色；该能力不预先冻结未来正式实体角色牌模式。</p>
+        <p className="mirror-note">试玩版允许镜像角色；该能力不预先冻结未来正式实体角色牌模式。</p>
       </section>
 
       <section className="debug-section character-config" aria-labelledby="lineup-title">
         <div className="panel-heading">
           <div>
-            <p className="debug-kicker">2 Players · 7 Characters</p>
+            <p className="debug-kicker">本地同屏 · 2 名玩家 · 7 个角色</p>
             <h2 id="lineup-title">当前阵容</h2>
           </div>
         </div>
         <div className="character-select-grid">
           {([0, 1] as const).map((playerIndex) => (
             <label className="field-row character-select-field" key={playerIndex}>
-              <span>player_{playerIndex + 1}</span>
+                <span>玩家 {playerIndex === 0 ? "A" : "B"}</span>
               <select
                 aria-label={`player_${playerIndex + 1} 角色`}
                 onChange={(event) => dispatch({
@@ -67,9 +68,9 @@ export function CharacterSelectionPanel({
           ))}
         </div>
         <div className="lineup-summary" aria-live="polite">
-          <strong>选择摘要</strong>
-          <span>player_1：{selectedCharacters[0].name}</span>
-          <span>player_2：{selectedCharacters[1].name}</span>
+          <strong>阵容确认</strong>
+          <span>玩家 A：{selectedCharacters[0].name}</span>
+          <span>玩家 B：{selectedCharacters[1].name}</span>
           {session.characterIds[0] === session.characterIds[1] ? (
             <span className="ok-pill">镜像阵容合法</span>
           ) : null}
@@ -88,10 +89,10 @@ export function CharacterSelectionPanel({
       <section className="character-catalog" aria-labelledby="character-catalog-title">
         <div className="character-catalog__heading">
           <div>
-            <p className="debug-kicker">Formal Character Definitions</p>
+          <p className="debug-kicker">角色资料</p>
             <h2 id="character-catalog-title">7 个正式角色资料</h2>
           </div>
-          <p className="panel-note">技能名称、类型、规则文本与实现状态直接来自正式角色定义。</p>
+          <p className="panel-note">技能摘要来自角色定义；具体实现说明可在调试详情中查看。</p>
         </div>
         <div className="character-catalog-grid">
           {characterDefinitions.map((character) => (
@@ -99,26 +100,28 @@ export function CharacterSelectionPanel({
               <div className="character-option-card__heading">
                 <div>
                   <h2>{character.name}</h2>
-                  <p>{character.id}</p>
+                  <p>{character.maxHp} HP</p>
                 </div>
                 <span className="active-pill">{character.maxHp} HP</span>
               </div>
               <ul className="character-skill-list">
-                {character.skills.map((skill) => (
-                  <li key={skill.id}>
+                {getPublicCharacterSkills(character).map((skill) => (
+                  <li key={skill.name}>
                     <div className="character-skill-list__heading">
                       <strong>{skill.name}</strong>
                       <span>
-                        {skillTypeLabels[skill.type]} · {implementationStatusLabels[skill.implementationStatus]}
+                        {skill.type} · {skill.availability}
                       </span>
                     </div>
-                    <p>{skill.rulesText}</p>
-                    {"implementationNote" in skill && skill.implementationNote ? (
-                      <p className="character-skill-list__note">{skill.implementationNote}</p>
-                    ) : null}
                   </li>
                 ))}
               </ul>
+              <details className="debug-details">
+                <summary>调试详情</summary>
+                {character.skills.map((skill) => (
+                  <p key={skill.id}>{skill.id} · {skillTypeLabels[skill.type]} · {implementationStatusLabels[skill.implementationStatus]} · {skill.rulesText}{"implementationNote" in skill && skill.implementationNote ? ` · ${skill.implementationNote}` : ""}</p>
+                ))}
+              </details>
             </article>
           ))}
         </div>

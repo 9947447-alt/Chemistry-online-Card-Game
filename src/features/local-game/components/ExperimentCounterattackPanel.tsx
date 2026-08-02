@@ -43,22 +43,26 @@ export function ExperimentCounterattackPanel({
     >
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">RESOLVE_EXPERIMENT_COUNTERATTACK</p>
+          <p className="debug-kicker">请选择一个当前合法的反击选项</p>
           <h2 id="experiment-counterattack-title">实验反击选择</h2>
         </div>
         <span className={used ? "warn-pill" : "ok-pill"}>
           {used ? "本周期已用" : "本周期可用"}
         </span>
       </div>
-      <p className="panel-note">{describePendingExperimentCounterattack(game)}</p>
       <p className="panel-note">
-        原攻击者：{getPlayerName(game, pending.attackerPlayerId)}。窗口建立后必须选择一个合法选项。
+        {responder.name} 已成功响应 {getPlayerName(game, pending.attackerPlayerId)} 的攻击，请选择一个合法反击选项。
       </p>
+      <details className="debug-details">
+        <summary>调试详情</summary>
+        <p>{describePendingExperimentCounterattack(game)}</p>
+        <p>RESOLVE_EXPERIMENT_COUNTERATTACK</p>
+      </details>
 
       <div className="character-active-skill">
         <div>
           <strong>回复 1 HP</strong>
-          <span>满 HP、FIRE 或 SO2_LEAK 时不可选</span>
+          <span>满 HP、火情或尾气泄漏时不可选</span>
         </div>
         <button
           className="primary-button"
@@ -106,7 +110,7 @@ export function ExperimentCounterattackPanel({
               }
               type="button"
             >
-              使用 {getCardDefinition(game, cardInstanceId)?.name ?? cardInstanceId}
+              使用 {getCardDefinition(game, cardInstanceId)?.name ?? "未知卡牌"}
             </button>
           ))}
         </div>

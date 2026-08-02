@@ -5,6 +5,7 @@ import type {
   Player,
 } from "../../../game/engine/types";
 import {
+  getPublicCharacterSkills,
   implementationStatusLabels,
   skillTypeLabels,
 } from "../characterPresentation";
@@ -37,7 +38,7 @@ export function PlayerPanel({
       <div className="player-panel__header">
         <div>
           <h2 id={`${player.id}-title`}>{player.name}</h2>
-          <p>{player.id} · {character.name}</p>
+          <p>{character.name}</p>
         </div>
         {showActivePlayerIndicator && game.activePlayerId === player.id ? (
           <span className="active-pill">当前行动</span>
@@ -45,7 +46,7 @@ export function PlayerPanel({
       </div>
       <dl className="player-stats">
         <div>
-          <dt>HP / maxHp</dt>
+          <dt>生命值</dt>
           <dd>
             {player.hp} / {player.maxHp}
           </dd>
@@ -55,12 +56,8 @@ export function PlayerPanel({
           <dd>{player.eliminated ? "是" : "否"}</dd>
         </div>
         <div>
-          <dt>FIRE</dt>
-          <dd>{player.statuses.some((status) => status.statusId === "FIRE") ? "有" : "无"}</dd>
-        </div>
-        <div>
-          <dt>SO2_LEAK</dt>
-          <dd>{player.statuses.some((status) => status.statusId === "SO2_LEAK") ? "有" : "无"}</dd>
+          <dt>待处理状态</dt>
+          <dd>{player.statuses.length > 0 ? "有" : "无"}</dd>
         </div>
         <div>
           <dt>本周期 DIY</dt>
@@ -71,26 +68,35 @@ export function PlayerPanel({
           <dd>{player.hand.length}</dd>
         </div>
       </dl>
-      <p className="status-line">状态：{statusText}</p>
+      <p className="status-line">当前状态：{player.statuses.length > 0 ? "有待处理状态" : "正常"}</p>
+      <details className="debug-details">
+        <summary>调试详情</summary>
+        <p className="status-line">playerId：{player.id}</p>
+        <p className="status-line">状态：{statusText}</p>
+      </details>
       <div className="character-readout">
         <div className="character-readout__heading">
           <h3>角色技能</h3>
           <span>{character.name}</span>
         </div>
         <ul className="character-skill-list">
-          {character.skills.map((skill) => (
-            <li key={skill.id}>
+          {getPublicCharacterSkills(character).map((skill) => (
+            <li key={skill.name}>
               <div className="character-skill-list__heading">
                 <strong>{skill.name}</strong>
                 <span>
-                  {skillTypeLabels[skill.type]} · {implementationStatusLabels[skill.implementationStatus]}
+                  {skill.type} · {skill.availability}
                 </span>
               </div>
-              <p>{skill.rulesText}</p>
-              {skill.implementationNote ? <p className="character-skill-list__note">{skill.implementationNote}</p> : null}
             </li>
           ))}
         </ul>
+        <details className="debug-details">
+          <summary>调试详情</summary>
+          {character.skills.map((skill) => (
+            <p key={skill.id}>{skill.id} · {skillTypeLabels[skill.type]} · {implementationStatusLabels[skill.implementationStatus]} · {skill.rulesText}{skill.implementationNote ? ` · ${skill.implementationNote}` : ""}</p>
+          ))}
+        </details>
       </div>
       <div className="hand-grid">
         {player.hand.map((cardInstanceId) => (

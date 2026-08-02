@@ -50,13 +50,14 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
     <section className="debug-section diy-panel" aria-labelledby="diy-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">START_ACTIVE_DIY</p>
+          <p className="debug-kicker">选择配方和组件后执行</p>
           <h2 id="diy-title">主动 DIY</h2>
         </div>
         <span className={activePlayer.usedDIYThisCycle ? "warn-pill" : "ok-pill"}>
           {activePlayer.usedDIYThisCycle ? "本周期已用" : "本周期可用"}
         </span>
       </div>
+      <details className="debug-details"><summary>调试详情</summary><p>START_ACTIVE_DIY</p></details>
       <label className="field-row">
         <span>配方</span>
         <select value={recipe.id} onChange={(event) => setRecipeId(event.target.value)}>
@@ -109,7 +110,7 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
                   const cardDefinition = getCardDefinition(game, cardInstanceId);
                   return (
                     <option key={cardInstanceId} value={cardInstanceId}>
-                      {cardDefinition?.name ?? "未知卡牌"} · {cardInstanceId}
+                      {cardDefinition?.name ?? "未知卡牌"}
                     </option>
                   );
                 })}
@@ -133,8 +134,12 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
           </select>
         </label>
       ) : (
-        <p className="empty-note">此配方不需要目标，提交时不会传入 targetPlayerId。</p>
+        <p className="empty-note">此配方不需要选择目标。</p>
       )}
+      <details className="debug-details">
+        <summary>调试详情</summary>
+        <p>targetPlayerId：{recipe.requiresTarget ? targetPlayerId ?? "未选择" : "未设置"}</p>
+      </details>
       <button
         className="primary-button"
         disabled={!canSubmit}
@@ -149,7 +154,7 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
         }
         type="button"
       >
-        执行 START_ACTIVE_DIY
+        执行主动 DIY
       </button>
     </section>
   );

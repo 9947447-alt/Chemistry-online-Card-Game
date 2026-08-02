@@ -23,7 +23,7 @@ async function startNoTeacherGame(page: Page) {
   await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
   await page.getByLabel("player_2 角色").selectOption("acid_king");
   await page.getByRole("button", { name: "开始游戏" }).click();
-  await expect(page.getByText("mainAction", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
 }
 
 async function selectPreparationCards(page: Page) {
@@ -77,11 +77,11 @@ test("默认配置、正式元数据与 configuring 帮助界面", async ({ page
   await page.goto("/");
 
   await expect(page.getByRole("heading", {
-    name: "化学卡牌在线游戏 · 双人角色选择",
+    name: "反应域 · 本地双人角色选择",
   })).toBeVisible();
   await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
   await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
-  await expect(page.getByText("Debug Alpha · v0.11.0-alpha.1 · MVP0-P10", {
+  await expect(page.getByText("Web Playtest Alpha · v0.12.0-alpha.1 · MVP0-P10", {
     exact: false,
   })).toBeVisible();
 
@@ -89,7 +89,7 @@ test("默认配置、正式元数据与 configuring 帮助界面", async ({ page
   await aboutTrigger.click();
   const dialog = page.getByRole("dialog", { name: "关于与帮助" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("七个角色与实现状态")).toBeVisible();
+  await expect(dialog.getByText("七个角色与试玩能力")).toBeVisible();
   await expect(dialog.getByText("零网络遥测，无账号、无联网、无存档", {
     exact: false,
   })).toBeVisible();
@@ -113,7 +113,7 @@ test("默认老师/CEO、双老师备课与无老师 mainAction", async ({ page,
   await selectPreparationCards(page);
   await expect(page.getByText("当前选择玩家：玩家 B")).toBeVisible();
   await selectPreparationCards(page);
-  await expect(page.getByText("mainAction", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
 
   await startNoTeacherGame(page);
   await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
@@ -156,7 +156,7 @@ test("playing 重开和返回配置的确认、焦点、Escape 与原子取消",
   await expectFactoryCount(page, 2);
   await expect(page.locator(".game-log li")).toHaveCount(initialLogCount);
 
-  await page.getByRole("button", { name: "PASS_ACTION" }).click();
+  await page.getByRole("button", { name: "结束本次行动" }).click();
   await expect(page.locator(".game-log li")).toHaveCount(initialLogCount + 1);
   await restart.click();
   await page.getByRole("button", { name: "取消" }).click();
@@ -170,11 +170,11 @@ test("playing 重开和返回配置的确认、焦点、Escape 与原子取消",
   const returnButton = page.getByRole("button", { name: "返回角色选择" });
   await returnButton.click();
   await page.getByRole("button", { name: "取消" }).click();
-  await expect(page.getByText("mainAction", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
   await returnButton.click();
   await page.getByRole("button", { name: "确认返回" }).dblclick();
   await expect(page.getByRole("heading", {
-    name: "化学卡牌在线游戏 · 双人角色选择",
+    name: "反应域 · 本地双人角色选择",
   })).toBeVisible();
   await expect(page.getByLabel("player_1 角色")).toHaveValue("chemical_factory_ceo");
   await expect(page.getByLabel("player_2 角色")).toHaveValue("acid_king");
@@ -185,21 +185,21 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   void runtimeErrors;
   await page.goto("/?scenario=game-over");
   await expectFactoryCount(page, 1);
-  await expect(page.getByRole("definition").filter({ hasText: /^gameOver$/u })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "本地双人公开对局" })).toBeVisible();
   await page.getByRole("button", { name: "关于与帮助" }).click();
   await expect(page.getByRole("dialog", { name: "关于与帮助" })).toBeVisible();
   await page.getByRole("button", { name: "关闭帮助" }).click();
 
   await page.getByRole("button", { name: "按当前阵容重开" }).click();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
-  await expect(page.getByText("mainAction", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
   await expectFactoryCount(page, 2);
 
   await page.goto("/?scenario=game-over");
   await page.getByRole("button", { name: "返回角色选择" }).click();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(page.getByRole("heading", {
-    name: "化学卡牌在线游戏 · 双人角色选择",
+    name: "反应域 · 本地双人角色选择",
   })).toBeVisible();
 });
 
@@ -214,12 +214,12 @@ test("fatal 会话只允许全新恢复或返回配置", async ({ page, runtimeE
   await expect(page.getByText("laboratory_teacher")).toHaveCount(0);
   await expect(page.getByText("chemical_factory_ceo")).toHaveCount(0);
   await page.getByRole("button", { name: "按原阵容创建全新对局" }).click();
-  await expect(page.getByText("preparationSelection", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "实验室老师 · 备课" })).toBeVisible();
 
   await page.goto("/?scenario=fatal");
   await page.getByRole("button", { name: "返回角色选择" }).click();
   await expect(page.getByRole("heading", {
-    name: "化学卡牌在线游戏 · 双人角色选择",
+    name: "反应域 · 本地双人角色选择",
   })).toBeVisible();
 });
 
@@ -234,21 +234,28 @@ test("React ErrorBoundary 显示脱敏兜底且提供重新加载", async ({ pag
   await expect(page.getByText("E2E_PRIVATE_RENDER_ERROR")).toHaveCount(0);
 });
 
-test("三类 reaction outcome 与两种 SO2 入口文案可区分", async ({ page, runtimeErrors }) => {
+test("成功反应公开摘要不泄漏内部状态标识，调试详情保留结构化诊断", async ({ page, runtimeErrors }) => {
   void runtimeErrors;
   await page.goto("/?scenario=reaction-h2o");
-  await expect(page.getByText("原伤害完全取消；H2O 为虚拟结果，不创建 CardInstance")).toBeVisible();
+  await expect(page.getByText("伤害已完全抵消；生成虚拟结果 H2O")).toBeVisible();
 
   await page.goto("/?scenario=reaction-co2");
-  await expect(page.getByText("原伤害完全取消；CO2 为虚拟结果，不创建 CardInstance")).toBeVisible();
+  await expect(page.getByText("伤害已完全抵消；生成虚拟结果 CO2")).toBeVisible();
 
   await page.goto("/?scenario=reaction-so2-immediate");
-  await expect(page.getByText("入口：书记即时 SO2 多目标响应")).toBeVisible();
-  await expect(page.getByText("结果：即时 SO2 伤害完全抵消")).toBeVisible();
+  await expect(page.getByText("入口：即时多目标响应")).toBeVisible();
+  await expect(page.getByText("结果：伤害已完全抵消")).toBeVisible();
 
   await page.goto("/?scenario=reaction-so2-status");
-  await expect(page.getByText("入口：SO2_LEAK 状态处理")).toBeVisible();
-  await expect(page.getByText("结果：移除 SO2_LEAK (status_phase11_fixture_so2)")).toBeVisible();
+  const reaction = page.locator(".game-log__reaction");
+  await expect(reaction).toContainText("入口：状态处理响应");
+  await expect(reaction).toContainText("结果：待处理状态已移除");
+  await expect(reaction).not.toContainText("status_phase11_fixture_so2");
+  await expect(reaction).not.toContainText("SO2_LEAK");
+  const details = page.locator(".game-log__details").last();
+  await expect(details).not.toHaveAttribute("open", "");
+  await details.locator("summary").click();
+  await expect(details).toContainText("status_phase11_fixture_so2");
 });
 
 test("真实 reducer 长日志可滚动且页面无水平溢出", async ({ page, runtimeErrors }) => {
@@ -273,9 +280,7 @@ test("390×844 覆盖 configuring、playing、reaction、About、fatal 与 gameO
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expectNoHorizontalOverflow(page);
-  await expect(page.getByText("周期开始摸 20 张，选择 10 张作为手牌", {
-    exact: false,
-  })).toBeVisible();
+  await expect(page.getByText("备课", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "关于与帮助" }).click();
   await expectNoHorizontalOverflow(page);
   await page.getByRole("button", { name: "关闭帮助" }).click();

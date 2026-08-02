@@ -49,7 +49,7 @@ describe("Phase 11 fatal session page redaction", () => {
       await act(async () => copyButton.click());
       expect(writeText).toHaveBeenCalledOnce();
       const copiedText = writeText.mock.calls[0]?.[0] ?? "";
-      expect(copiedText).toContain("名称：化学卡牌在线游戏");
+      expect(copiedText).toContain("名称：反应域");
       expect(copiedText).toContain("错误码：GAME_ACTION_FAILED");
       expect(copiedText).not.toContain("laboratory_teacher");
       expect(copiedText).not.toContain("chemical_factory_ceo");

@@ -25,7 +25,7 @@ export function ResponsePanel({ game, dispatchGameAction }: ResponsePanelProps) 
     <section className="debug-section response-panel" aria-labelledby="response-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">RESPOND_WITH_CARD / PASS_RESPONSE</p>
+          <p className="debug-kicker">当前响应者可选择合法响应牌</p>
           <h2 id="response-title">响应窗口</h2>
         </div>
         <button
@@ -33,10 +33,15 @@ export function ResponsePanel({ game, dispatchGameAction }: ResponsePanelProps) 
           onClick={() => dispatchGameAction({ type: "PASS_RESPONSE", playerId: responder.id })}
           type="button"
         >
-          PASS_RESPONSE
+          放弃响应
         </button>
       </div>
-      <p className="panel-note">{describePendingResponse(game)}</p>
+      <p className="panel-note">轮到 {responder.name} 决定是否响应当前效果。</p>
+      <details className="debug-details">
+        <summary>调试详情</summary>
+        <p>{describePendingResponse(game)}</p>
+        <p>RESPOND_WITH_CARD / PASS_RESPONSE</p>
+      </details>
       <div className="candidate-grid">
         {responseCards.length > 0 ? (
           responseCards.map((cardInstanceId) => (

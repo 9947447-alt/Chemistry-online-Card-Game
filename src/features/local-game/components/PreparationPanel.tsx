@@ -50,7 +50,7 @@ export function PreparationPanel({ game, dispatchGameAction }: PreparationPanelP
     <section className="debug-section preparation-panel" aria-labelledby="preparation-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">LABORATORY_PREPARATION</p>
+          <p className="debug-kicker">请保留指定数量的手牌</p>
           <h2 id="preparation-title">实验室老师 · 备课</h2>
         </div>
         <strong className="selection-count">
@@ -58,6 +58,7 @@ export function PreparationPanel({ game, dispatchGameAction }: PreparationPanelP
         </strong>
       </div>
       <p className="panel-note">当前选择玩家：{getPlayerName(game, pending.playerId)}</p>
+      <details className="debug-details"><summary>调试详情</summary><p>LABORATORY_PREPARATION</p></details>
       <div className="preparation-candidate-grid">
         {validCandidateIds.map((cardInstanceId) => (
           <CardDebugCard

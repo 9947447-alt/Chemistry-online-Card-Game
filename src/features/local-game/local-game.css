@@ -30,6 +30,14 @@
   font-size: 0.92rem;
 }
 
+.release-bar .secondary-brand {
+  color: #d8e6ef;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin-left: 6px;
+}
+
 .release-bar span {
   color: #d8e6ef;
   font-size: 0.76rem;
@@ -182,6 +190,48 @@
 
 .debug-section h2 {
   font-size: 1rem;
+}
+
+.debug-details {
+  border-top: 1px solid #e1e7ec;
+  color: #52606d;
+  font-size: 0.78rem;
+  margin-top: 10px;
+  padding-top: 8px;
+}
+
+.debug-details summary {
+  color: #356554;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.debug-detail-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.debug-detail-list div {
+  align-items: baseline;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
+}
+
+.debug-detail-list dd {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.debug-card__details {
+  margin-top: 6px;
+}
+
+.game-log__details {
+  display: inline-block;
+  margin: 0 0 0 8px;
+  padding: 0;
 }
 
 .debug-summary {
@@ -475,22 +525,19 @@ dd {
   border: 1px solid #ccd6de;
   border-radius: 8px;
   color: #17212b;
-  cursor: pointer;
   display: grid;
   gap: 5px;
-  min-height: 124px;
   padding: 10px;
   text-align: left;
   width: 100%;
 }
 
-.debug-card:hover:not(:disabled) {
+.debug-card:has(.debug-card__select:not(:disabled):hover) {
   border-color: #38766b;
 }
 
-.debug-card:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+.debug-card:has(.debug-card__select:disabled) {
+  opacity: 0.7;
 }
 
 .debug-card.is-selected {
@@ -502,6 +549,24 @@ dd {
 .debug-card__name {
   font-size: 0.98rem;
   font-weight: 800;
+}
+
+.debug-card__select {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #17212b;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  min-height: 58px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.debug-card__select:disabled {
+  cursor: not-allowed;
 }
 
 .debug-card__meta,
