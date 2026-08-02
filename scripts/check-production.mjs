@@ -116,7 +116,7 @@ export async function checkProductionArtifact({ distDirectory, expectedTitle }) 
   }
   const indexHtml = (await readArtifact(indexPath)).toString("utf8");
   if (!indexHtml.includes(`<title>${expectedTitle}</title>`)) {
-    throw new Error("Production HTML title is not aligned with Phase 11 release metadata.");
+    throw new Error("Production HTML title is not aligned with Phase 12 release metadata.");
   }
   if (!indexHtml.includes("./assets/")) {
     throw new Error("Production index does not contain relative asset paths.");
@@ -127,7 +127,7 @@ async function runDefaultCheck() {
   const packageJson = JSON.parse(
     await readFile(new URL("../package.json", import.meta.url), "utf8"),
   );
-  const expectedTitle = `化学卡牌在线游戏 · Debug Alpha · ${packageJson.version} · MVP0-P10`;
+  const expectedTitle = `反应域 · REACTION FIELD · Web Playtest Alpha · ${packageJson.version} · MVP0-P10`;
   await checkProductionArtifact({
     distDirectory: defaultDistDirectory,
     expectedTitle,

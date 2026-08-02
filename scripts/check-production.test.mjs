@@ -7,12 +7,12 @@ import {
   forbiddenProductionMarkers,
 } from "./check-production.mjs";
 
-const expectedTitle = "化学卡牌在线游戏 · Debug Alpha · 0.11.0-alpha.1 · MVP0-P10";
+const expectedTitle = "反应域 · REACTION FIELD · Web Playtest Alpha · 0.12.0-alpha.1 · MVP0-P10";
 const cleanIndex = `<!doctype html><html><head><title>${expectedTitle}</title><script src="./assets/app.js"></script><link href="./assets/app.css" rel="stylesheet"></head><body></body></html>`;
 const temporaryRoots = [];
 
 async function createTemporaryRoot() {
-  const root = await mkdtemp(join(tmpdir(), "phase11-production-check-"));
+  const root = await mkdtemp(join(tmpdir(), "phase12-production-check-"));
   temporaryRoots.push(root);
   return root;
 }
@@ -38,7 +38,7 @@ afterEach(async () => {
   )));
 });
 
-describe("Phase 11 production artifact scanner", () => {
+describe("Phase 12 production artifact scanner", () => {
   it("fails when dist is missing", async () => {
     const root = await createTemporaryRoot();
     await expect(checkProductionArtifact({
