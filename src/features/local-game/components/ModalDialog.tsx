@@ -50,7 +50,11 @@ export function ModalDialog({
     }
 
     const initialFocus = initialFocusRef.current ?? getFocusableElements(dialog)[0] ?? dialog;
-    initialFocus.focus();
+    const focusFrame = requestAnimationFrame(() => {
+      if (initialFocus.isConnected) {
+        initialFocus.focus();
+      }
+    });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -86,7 +90,10 @@ export function ModalDialog({
     };
 
     document.addEventListener("keydown", handleKeyDown, { capture: true });
-    return () => document.removeEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
   }, [initialFocusRef]);
 
   return (
