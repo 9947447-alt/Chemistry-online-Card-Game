@@ -32,12 +32,20 @@ describe("Phase 12 character presentation", () => {
 
     try {
       await act(async () => root.render(createElement("div", undefined,
-        createElement(CharacterSelectionPanel, { dispatch: vi.fn(), session: createConfiguringLocalGameSession() }),
+        createElement(CharacterSelectionPanel, {
+          dispatch: vi.fn(),
+          guidanceCollapsed: false,
+          guidanceVisible: true,
+          onGuidanceCollapsedChange: vi.fn(),
+          onGuidanceVisibleChange: vi.fn(),
+          session: createConfiguringLocalGameSession(),
+        }),
         createElement(PlayerPanel, { game, onSelectCard: vi.fn(), player: game.players[0] }),
         createElement(AboutDialog, { onClose: vi.fn() }),
       )));
 
       const visibleText = publicText(container);
+      expect(visibleText).toContain("酸碱中和产生虚拟 H2O；酸与碳酸盐产生虚拟 CO2；两者只记录结果，不创建 CardInstance。");
       for (const internalTerm of ["8B-1", "8C-2", "DAMAGE", "ionsProvided", "FIRE", "SO2_LEAK"]) {
         expect(visibleText).not.toContain(internalTerm);
       }

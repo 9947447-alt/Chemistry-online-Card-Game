@@ -106,20 +106,50 @@ function createCardReaction(
   });
 }
 
+function reducePlayerToOneThroughFormalAttacks(state: GameState): GameState {
+  const attackCardIds: CardInstanceId[] = [
+    "substance_naoh_dilute_01",
+    "substance_koh_dilute_01",
+    "substance_caoh2_limewater_01",
+    "substance_naoh_dilute_02",
+    "substance_hcl_dilute_01",
+  ];
+
+  let nextState = state;
+  for (const cardInstanceId of attackCardIds) {
+    nextState = putCardInHand(nextState, "player_2", cardInstanceId);
+    nextState = engineReducer(nextState, {
+      type: "PASS_ACTION",
+      playerId: nextState.activePlayerId,
+    });
+    nextState = engineReducer(nextState, {
+      type: "PLAY_CARD",
+      playerId: "player_2",
+      cardInstanceId,
+      targetPlayerId: "player_1",
+    });
+    nextState = engineReducer(nextState, {
+      type: "PASS_RESPONSE",
+      playerId: "player_1",
+    });
+  }
+
+  const target = nextState.players.find((player) => player.id === "player_1");
+  if (target?.hp !== 1) {
+    throw new Error(`Formal game-over fixture expected player_1 HP 1, received ${target?.hp}.`);
+  }
+  return nextState;
+}
+
 function createImmediateSo2Reaction(gameOver: boolean): GameState {
   let state = deterministicFixtureFactory([
     "clumsy_party_secretary",
     "caustic_soda_captain",
   ]);
-  state = putCardInHand(state, "player_2", "ion_oh_01");
   if (gameOver) {
-    state = {
-      ...state,
-      players: state.players.map((player) => player.id === "player_1"
-        ? { ...player, hp: 1 }
-        : player),
-    };
+    state = reducePlayerToOneThroughFormalAttacks(state);
   }
+  state = putCardInHand(state, "player_2", "ion_oh_01");
   state = engineReducer(state, {
     type: "ACTIVATE_CHARACTER_SKILL",
     playerId: "player_1",
@@ -166,6 +196,97 @@ function createStatusSo2Reaction(): GameState {
   });
 }
 
+function createResponseWindow(): GameState {
+  let state = deterministicFixtureFactory([
+    "clumsy_party_secretary",
+    "caustic_soda_captain",
+  ]);
+  state = putCardInHand(state, "player_1", "substance_hcl_dilute_01");
+  state = putCardInHand(state, "player_2", "substance_naoh_dilute_01");
+  return engineReducer(state, {
+    type: "PLAY_CARD",
+    playerId: "player_1",
+    cardInstanceId: "substance_hcl_dilute_01",
+    targetPlayerId: "player_2",
+  });
+}
+
+function createStatusWindow(): GameState {
+  let state = deterministicFixtureFactory(defaultCharacterSelection);
+  state = putCardInHand(state, "player_1", "substance_naoh_dilute_01");
+  return {
+    ...state,
+    activePlayerId: "player_1",
+    phase: "statusWindow",
+    pendingLaboratoryPreparation: undefined,
+    pendingStatusHandling: {
+      playerId: "player_1",
+      statusInstanceId: "status_phase13_fixture_so2",
+    },
+    players: state.players.map((player) => player.id === "player_1"
+      ? {
+          ...player,
+          statuses: [
+            ...player.statuses,
+            {
+              id: "status_phase13_fixture_so2",
+              statusId: "SO2_LEAK",
+              createdAt: state.log.length + 1,
+            },
+          ],
+        }
+      : player),
+  };
+}
+
+function createExperimentCounterattackWindow(): GameState {
+  let state = deterministicFixtureFactory([
+    "clumsy_party_secretary",
+    "chemistry_enthusiast",
+  ]);
+  state = putCardInHand(state, "player_1", "substance_hcl_dilute_01");
+  state = putCardInHand(state, "player_2", "substance_naoh_dilute_01");
+  const initialResponder = state.players.find((player) => player.id === "player_2");
+  if (initialResponder?.hp !== 8) {
+    throw new Error(`Formal experiment fixture expected player_2 HP 8 before damage, received ${initialResponder?.hp}.`);
+  }
+  state = engineReducer(state, {
+    type: "PLAY_CARD",
+    playerId: "player_1",
+    cardInstanceId: "substance_hcl_dilute_01",
+    targetPlayerId: "player_2",
+  });
+  state = engineReducer(state, {
+    type: "PASS_RESPONSE",
+    playerId: "player_2",
+  });
+  const damagedResponder = state.players.find((player) => player.id === "player_2");
+  if (damagedResponder?.hp !== 7) {
+    throw new Error(`Formal experiment fixture expected player_2 HP 7 after damage, received ${damagedResponder?.hp}.`);
+  }
+  state = engineReducer(state, {
+    type: "PASS_ACTION",
+    playerId: state.activePlayerId,
+  });
+  state = putCardInHand(state, "player_1", "substance_hcl_dilute_02");
+  state = putCardInHand(state, "player_2", "substance_naoh_dilute_02");
+  state = engineReducer(state, {
+    type: "PLAY_CARD",
+    playerId: "player_1",
+    cardInstanceId: "substance_hcl_dilute_02",
+    targetPlayerId: "player_2",
+  });
+  state = engineReducer(state, {
+    type: "RESPOND_WITH_CARD",
+    playerId: "player_2",
+    cardInstanceId: "substance_naoh_dilute_02",
+  });
+  if (!state.pendingExperimentCounterattack?.legalOptions.includes("recover")) {
+    throw new Error("Formal experiment fixture expected recover in legalOptions.");
+  }
+  return state;
+}
+
 function createLongLogGame(): GameState {
   let state = deterministicFixtureFactory([
     "chemical_factory_ceo",
@@ -194,7 +315,10 @@ export type FixtureScenario =
   | "reaction-h2o"
   | "reaction-co2"
   | "reaction-so2-immediate"
-  | "reaction-so2-status";
+  | "reaction-so2-status"
+  | "response-window"
+  | "status-window"
+  | "experiment-counterattack-window";
 
 export function getFixtureInitializer(
   scenario: FixtureScenario,
@@ -220,6 +344,12 @@ export function getFixtureInitializer(
       return playingInitializer(createImmediateSo2Reaction(false));
     case "reaction-so2-status":
       return playingInitializer(createStatusSo2Reaction());
+    case "response-window":
+      return playingInitializer(createResponseWindow());
+    case "status-window":
+      return playingInitializer(createStatusWindow());
+    case "experiment-counterattack-window":
+      return playingInitializer(createExperimentCounterattackWindow());
   }
 }
 
@@ -233,6 +363,9 @@ export function isFixtureScenario(value: string | null): value is FixtureScenari
     "reaction-co2",
     "reaction-so2-immediate",
     "reaction-so2-status",
+    "response-window",
+    "status-window",
+    "experiment-counterattack-window",
   ].includes(value);
 }
 

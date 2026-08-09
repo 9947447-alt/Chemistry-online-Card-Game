@@ -63,6 +63,7 @@ for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/
     expect(stylesheet?.contentType).toMatch(/^text\/css/u);
     await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.12\.0-alpha\.1/u);
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "新手引导：配置" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveText("REACTION FIELD");
     await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
     await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
@@ -72,7 +73,8 @@ for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/
     await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
     await page.getByLabel("player_2 角色").selectOption("acid_king");
     await page.getByRole("button", { name: "开始游戏" }).click();
-    await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
+    await expect(page.getByRole("heading", { exact: true, name: "主行动" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "新手引导：主行动" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveCount(0);
     const debugCard = page.locator(".debug-card").first();
     const cardDetails = debugCard.locator("details");
@@ -84,7 +86,7 @@ for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/
     await page.getByRole("button", { name: "结束本次行动" }).click();
     await page.getByRole("button", { name: "按当前阵容重开" }).click();
     await page.getByRole("button", { name: "确认重开" }).click();
-    await expect(page.getByRole("heading", { name: "主行动" })).toBeVisible();
+    await expect(page.getByRole("heading", { exact: true, name: "主行动" })).toBeVisible();
     await page.getByRole("button", { name: "返回角色选择" }).click();
     await page.getByRole("button", { name: "确认返回" }).click();
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
