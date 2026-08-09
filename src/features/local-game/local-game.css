@@ -62,6 +62,64 @@
   gap: 14px;
 }
 
+.new-player-guidance {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.new-player-guidance--hidden {
+  background: #f7f9fb;
+  border: 1px dashed #bcc9d3;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.new-player-guidance__heading {
+  align-items: start;
+}
+
+.new-player-guidance__content {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.new-player-guidance__actor {
+  background: #e6f4ee;
+  border-radius: 6px;
+  color: #226048;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.new-player-guidance__facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.new-player-guidance__facts div {
+  background: #f7f9fb;
+  border: 1px solid #e1e7ec;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.new-player-guidance__facts dd {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.new-player-guidance__skip,
+.new-player-guidance__show {
+  justify-self: start;
+}
+
 .mirror-note,
 .deferred-note {
   border-radius: 6px;
@@ -999,6 +1057,12 @@ select {
   .start-game-button {
     justify-self: stretch;
     max-width: none;
+  }
+
+  .new-player-guidance__skip,
+  .new-player-guidance__show {
+    justify-self: stretch;
+    width: 100%;
   }
 
   .summary-actions,

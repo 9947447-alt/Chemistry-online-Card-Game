@@ -10,15 +10,24 @@ import {
   type ConfiguringLocalGameSession,
   type LocalGameSessionCommand,
 } from "../localGameSession";
+import { NewPlayerGuidance } from "./NewPlayerGuidance";
 
 type CharacterSelectionPanelProps = {
   session: ConfiguringLocalGameSession;
   dispatch: (command: LocalGameSessionCommand) => void;
+  guidanceVisible: boolean;
+  guidanceCollapsed: boolean;
+  onGuidanceVisibleChange: (visible: boolean) => void;
+  onGuidanceCollapsedChange: (collapsed: boolean) => void;
 };
 
 export function CharacterSelectionPanel({
   session,
   dispatch,
+  guidanceVisible,
+  guidanceCollapsed,
+  onGuidanceVisibleChange,
+  onGuidanceCollapsedChange,
 }: CharacterSelectionPanelProps) {
   const canStart = isCharacterSelection(session.characterIds);
   const selectedCharacters = session.characterIds.map((characterId) =>
@@ -27,6 +36,13 @@ export function CharacterSelectionPanel({
 
   return (
     <main className="local-game-page character-selection-page">
+      <NewPlayerGuidance
+        collapsed={guidanceCollapsed}
+        mode="configuring"
+        onCollapsedChange={onGuidanceCollapsedChange}
+        onVisibleChange={onGuidanceVisibleChange}
+        visible={guidanceVisible}
+      />
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
         <div>
           <p className="debug-kicker">反应域 · Web Playtest Alpha · MVP0-P10</p>

@@ -65,6 +65,16 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
         </section>
 
         <section className="about-section">
+          <h3>首局速查</h3>
+          <ul>
+            <li>先在角色选择页确认本地同屏双人阵容；双方手牌始终公开。</li>
+            <li>按当前阶段面板完成备课、主行动、响应、状态处理或实验反击；完整规则以帮助与冻结文档为准。</li>
+            <li>响应 DIY 关闭。酸碱中和产生虚拟 H2O；酸与碳酸盐产生虚拟 CO2；两者只记录结果，不创建 CardInstance。</li>
+            <li>普通实体卡池固定为 68 张；真实金属、方程式、沉淀与通用反应链仍延期。</li>
+          </ul>
+        </section>
+
+        <section className="about-section">
           <h3>七个角色与试玩能力</h3>
           <div className="about-character-grid">
             {characterDefinitions.map((character) => (

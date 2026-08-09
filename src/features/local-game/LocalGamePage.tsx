@@ -15,6 +15,7 @@ import { ExperimentCounterattackPanel } from "./components/ExperimentCounteratta
 import { FatalSessionPage } from "./components/FatalSessionPage";
 import { GameLog } from "./components/GameLog";
 import { GameSummary } from "./components/GameSummary";
+import { NewPlayerGuidance } from "./components/NewPlayerGuidance";
 import { PlayerPanel } from "./components/PlayerPanel";
 import { PreparationPanel } from "./components/PreparationPanel";
 import { ResponsePanel } from "./components/ResponsePanel";
@@ -32,13 +33,25 @@ import { requiresSessionExitConfirmation } from "./sessionConfirmation";
 type PlayingGameProps = Readonly<{
   session: PlayingLocalGameSession;
   dispatch: (command: LocalGameSessionCommand) => void;
+  guidanceVisible: boolean;
+  guidanceCollapsed: boolean;
+  onGuidanceVisibleChange: (visible: boolean) => void;
+  onGuidanceCollapsedChange: (collapsed: boolean) => void;
   onRequestSessionExit: (
     kind: SessionConfirmationKind,
     trigger: HTMLButtonElement,
   ) => void;
 }>;
 
-function PlayingGame({ session, dispatch, onRequestSessionExit }: PlayingGameProps) {
+function PlayingGame({
+  session,
+  dispatch,
+  guidanceVisible,
+  guidanceCollapsed,
+  onGuidanceVisibleChange,
+  onGuidanceCollapsedChange,
+  onRequestSessionExit,
+}: PlayingGameProps) {
   const { game, error } = session;
   const [selectedCardId, setSelectedCardId] = useState<CardInstanceId | undefined>();
 
@@ -77,6 +90,14 @@ function PlayingGame({ session, dispatch, onRequestSessionExit }: PlayingGamePro
           <GameLog game={game} />
         </div>
         <aside className="debug-sidebar" aria-label="操作面板">
+          <NewPlayerGuidance
+            collapsed={guidanceCollapsed}
+            game={game}
+            mode="playing"
+            onCollapsedChange={onGuidanceCollapsedChange}
+            onVisibleChange={onGuidanceVisibleChange}
+            visible={guidanceVisible}
+          />
           {game.phase === "preparationSelection" ? (
             <PreparationPanel dispatchGameAction={dispatchGameAction} game={game} />
           ) : game.phase === "experimentCounterattackWindow" ? (
@@ -130,6 +151,8 @@ export function LocalGamePage({
   const [session, dispatch] = useLocalGameDebug(createGame, reduceGame, createSession);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<PendingSessionConfirmation | null>(null);
+  const [guidanceVisible, setGuidanceVisible] = useState(true);
+  const [guidanceCollapsed, setGuidanceCollapsed] = useState(false);
   const aboutTriggerRef = useRef<HTMLButtonElement>(null);
   const confirmationExecutedRef = useRef(false);
   const playingPhase = session.mode === "playing" ? session.game.phase : session.mode;
@@ -235,10 +258,21 @@ export function LocalGamePage({
         </header>
 
         {session.mode === "configuring" ? (
-          <CharacterSelectionPanel dispatch={dispatch} session={session} />
+          <CharacterSelectionPanel
+            dispatch={dispatch}
+            guidanceCollapsed={guidanceCollapsed}
+            guidanceVisible={guidanceVisible}
+            onGuidanceCollapsedChange={setGuidanceCollapsed}
+            onGuidanceVisibleChange={setGuidanceVisible}
+            session={session}
+          />
         ) : session.mode === "playing" ? (
           <PlayingGame
             dispatch={dispatch}
+            guidanceCollapsed={guidanceCollapsed}
+            guidanceVisible={guidanceVisible}
+            onGuidanceCollapsedChange={setGuidanceCollapsed}
+            onGuidanceVisibleChange={setGuidanceVisible}
             onRequestSessionExit={requestSessionExit}
             session={session}
           />
