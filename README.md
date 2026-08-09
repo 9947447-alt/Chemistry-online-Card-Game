@@ -16,6 +16,10 @@
 
 Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。没有联网、账号、房间、存档、遥测或远程错误上报；刷新会丢失当前对局并回到默认角色预选。
 
+## 公开试玩地址与本轮状态
+
+公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。当前仓库发布基线仍为 `0.12.0-alpha.1` / `MVP0-P10`；Phase 13 仅补充首局引导，尚未发布、部署或创建新标签。本地实现阶段未联网复核该公开地址的实时可用性。
+
 ## 固定工具链
 
 - Node.js `24.18.0`，见 `.node-version`。

@@ -15,10 +15,19 @@
 - `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：Phase 10 三类成功反应事件与硫酸盐副产正式冻结规则。
 - `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`：Phase 11 稳定性、错误恢复、E2E、CI 与静态发布准备；不是规则冻结文档。
 - `docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`：Phase 12 反应域静态 Web 试玩发布边界、标签、回滚与停止公开说明；不是规则冻结文档。
+- `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`：Phase 13 新玩家首局引导的展示、可访问性、测试与发布边界；不改写现有规则冻结。
 
 ## Phase 12 发布边界
 
 Phase 12 将 UI 与发布身份升级为“反应域（REACTION FIELD）”Web Playtest Alpha `0.12.0-alpha.1`，并为 GitHub Pages 添加仅由 `web-playtest-v*` 标签触发的静态发布工作流。它不新增任何化学规则，不改变 MVP0-P10 引擎、卡池、角色、状态、DIY、反应、回合、淘汰或胜负逻辑。Phase 11 保持历史稳定性基线。
+
+## Phase 13 新玩家首局引导（当前实现阶段，未发布）
+
+Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`。本阶段在既有角色配置页和 playing sidebar 顶部增加同一份、纯展示的新手引导：默认可见，可折叠、跳过和重新显示，刷新重置；它只从现有本地会话和 `GameState` 派生当前阶段、当前行动者/选择者/响应者、目标与既有操作入口。
+
+- 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
+- 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色、冻结规则、版本 `0.12.0-alpha.1`、Pages 配置和发布标签不变。本阶段不部署，公开试玩地址的实时可用性不由本地实现阶段联网确认。
 
 ## MVP 0 定案范围
 
