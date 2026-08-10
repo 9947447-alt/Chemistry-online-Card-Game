@@ -2,6 +2,10 @@
 
 本说明仅记录已冻结品牌资产的网页接入用途，不构成新的规则或发布冻结文档。
 
+## 0.13.0-alpha.2 发布候选范围
+
+本候选仅发布已完成并通过 CI 的品牌资产：01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。候选不增加游戏功能或规则；当前仍是发布候选，`web-playtest-v0.13.0-alpha.2` 尚未创建、尚未部署，也尚未完成公开 URL 验收。`web-playtest-v0.13.0-alpha.1` 标签永久保持不变；iOS 27 beta Firefox 已知问题仍未修复，本候选不作修复声明。
+
 ## 资产与用途
 
 - 01-B（`reaction-field-game-icon.svg`）用于游戏图标、SVG favicon、ICO/PNG fallback、Apple Touch Icon 以及配置页主品牌区域的小型装饰图。

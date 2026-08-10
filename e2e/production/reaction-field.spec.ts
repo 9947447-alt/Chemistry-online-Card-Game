@@ -78,7 +78,7 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     expect(script?.contentType).toMatch(/^text\/javascript/u);
     expect(stylesheet?.path.startsWith(assetPrefix)).toBe(true);
     expect(stylesheet?.contentType).toMatch(/^text\/css/u);
-    await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.13\.0-alpha\.1/u);
+    await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.13\.0-alpha\.2/u);
     const iconLinks = await page.locator('link[rel~="icon"]').evaluateAll((links) => links.map((link) => ({
       href: link.getAttribute("href"),
       sizes: link.getAttribute("sizes"),
@@ -116,9 +116,9 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
     await page.getByRole("button", { name: "关于与帮助" }).click();
     await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("REACTION FIELD");
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("0.13.0-alpha.1");
+    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("0.13.0-alpha.2");
     await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("MVP0-P10");
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("b96238c472b1");
+    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("9e6ae5285743");
     await page.keyboard.press("Escape");
     await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
     await page.getByLabel("player_2 角色").selectOption("acid_king");
