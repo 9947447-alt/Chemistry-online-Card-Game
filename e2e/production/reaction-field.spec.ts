@@ -61,7 +61,7 @@ for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/
     expect(script?.contentType).toMatch(/^text\/javascript/u);
     expect(stylesheet?.path.startsWith(assetPrefix)).toBe(true);
     expect(stylesheet?.contentType).toMatch(/^text\/css/u);
-    await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.12\.0-alpha\.1/u);
+    await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.13\.0-alpha\.1/u);
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "新手引导：配置" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveText("REACTION FIELD");

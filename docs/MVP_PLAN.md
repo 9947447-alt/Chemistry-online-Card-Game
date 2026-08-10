@@ -21,13 +21,15 @@
 
 Phase 12 将 UI 与发布身份升级为“反应域（REACTION FIELD）”Web Playtest Alpha `0.12.0-alpha.1`，并为 GitHub Pages 添加仅由 `web-playtest-v*` 标签触发的静态发布工作流。它不新增任何化学规则，不改变 MVP0-P10 引擎、卡池、角色、状态、DIY、反应、回合、淘汰或胜负逻辑。Phase 11 保持历史稳定性基线。
 
-## Phase 13 新玩家首局引导（当前实现阶段，未发布）
+## Phase 13 新玩家首局引导（实现已完成并合并；0.13.0-alpha.1 发布候选准备中）
 
 Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`。本阶段在既有角色配置页和 playing sidebar 顶部增加同一份、纯展示的新手引导：默认可见，可折叠、跳过和重新显示，刷新重置；它只从现有本地会话和 `GameState` 派生当前阶段、当前行动者/选择者/响应者、目标与既有操作入口。
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色、冻结规则、版本 `0.12.0-alpha.1`、Pages 配置和发布标签不变。本阶段不部署，公开试玩地址的实时可用性不由本地实现阶段联网确认。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；当前应用版本为 `0.13.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。Phase 13 已实现并合并，当前仓库只是在准备发布候选：`web-playtest-v0.13.0-alpha.1` 尚未打标签、尚未部署，也尚未完成公开 URL 验收。新标签成功部署前，现有公开站点仍可能是 `0.12.0-alpha.1`；`web-playtest-v0.12.0-alpha.1` 是不可变历史标签，禁止移动或重写。发布仍需用户单独确认，公开试玩地址的实时可用性不由本地实现阶段联网确认。
+
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。Phase 13 不宣称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 ## MVP 0 定案范围
 
