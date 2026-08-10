@@ -62,6 +62,21 @@
   gap: 14px;
 }
 
+.character-selection-hero__heading {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.character-selection-hero__icon {
+  border-radius: 12px;
+  display: block;
+  height: 72px;
+  width: 72px;
+}
+
 .new-player-guidance {
   display: grid;
   gap: 12px;

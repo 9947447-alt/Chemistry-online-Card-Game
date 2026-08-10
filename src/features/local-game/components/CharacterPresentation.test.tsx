@@ -20,6 +20,32 @@ function publicText(container: HTMLElement) {
 }
 
 describe("Phase 12 character presentation", () => {
+  it("uses the 01-B game icon as a decorative configuration brand image", async () => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    try {
+      await act(async () => root.render(createElement(CharacterSelectionPanel, {
+        dispatch: vi.fn(),
+        guidanceCollapsed: false,
+        guidanceVisible: true,
+        onGuidanceCollapsedChange: vi.fn(),
+        onGuidanceVisibleChange: vi.fn(),
+        session: createConfiguringLocalGameSession(),
+      })));
+
+      const icon = container.querySelector(".character-selection-hero__icon");
+      expect(icon?.getAttribute("src")).toBe("./brand/reaction-field-game-icon.svg");
+      expect(icon?.getAttribute("alt")).toBe("");
+      expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
   it("keeps implementation terms inside closed debug details across public character panels", async () => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     const container = document.createElement("div");

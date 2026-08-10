@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">反应域游戏图标</title>
+  <desc id="desc">六边形反应场中，两张相对的卡牌围绕中央反应闪光</desc>
+  <rect x="24" y="24" width="464" height="464" rx="84" fill="#0B1B2B"/>
+  <path d="M135 160 256 88l121 72M135 352l121 72 121-72" fill="none" stroke="#0F8B83" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M106 190c0-13 13-21 25-15l77 39c10 5 16 15 16 26v83c0 13-13 21-25 15l-77-39c-10-5-16-15-16-26z" fill="#F7FAFC"/>
+  <path d="M406 190c0-13-13-21-25-15l-77 39c-10 5-16 15-16 26v83c0 13 13 21 25 15l77-39c10-5 16-15 16-26z" fill="#0F8B83" stroke="#F7FAFC" stroke-width="8"/>
+  <path d="m154 246 18-10 18 10v20l-18 10-18-10z" fill="#0F8B83"/>
+  <path d="m322 246 18-10 18 10v20l-18 10-18-10z" fill="#F7FAFC"/>
+  <path d="M256 218c6 20 18 32 38 38-20 6-32 18-38 38-6-20-18-32-38-38 20-6 32-18 38-38z" fill="#F6B73C"/>
+  <g stroke="#F7FAFC" stroke-width="9" stroke-linecap="round">
+    <path d="M256 188v15M256 309v15M220 220l10 10M282 282l10 10M292 220l-10 10M230 282l-10 10"/>
+  </g>
+</svg>

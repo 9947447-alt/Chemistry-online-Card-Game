@@ -1,6 +1,22 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-const test = base.extend<{ networkFailures: string[]; runtimeErrors: string[] }>({
+const test = base.extend<{
+  externalRequests: string[];
+  networkFailures: string[];
+  runtimeErrors: string[];
+}>({
+  externalRequests: async ({ page }, use) => {
+    const failures: string[] = [];
+    const baseOrigin = new URL("http://127.0.0.1:4175").origin;
+    page.on("request", (request) => {
+      const url = request.url();
+      if (/^https?:/u.test(url) && new URL(url).origin !== baseOrigin) {
+        failures.push(`${request.method()} ${url}`);
+      }
+    });
+    await use(failures);
+    expect(failures).toEqual([]);
+  },
   networkFailures: async ({ page }, use) => {
     const failures: string[] = [];
     const baseOrigin = new URL("http://127.0.0.1:4175").origin;
@@ -39,8 +55,9 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.documentScroll).toBeLessThanOrEqual(widths.documentClient);
 }
 
-for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/assets/"]] as const) {
-  test(`正式构建在 ${path} 保持可操作且无横向溢出`, async ({ page, networkFailures, runtimeErrors }) => {
+for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playtest/", "/playtest/assets/", "/playtest/"]] as const) {
+  test(`正式构建在 ${path} 保持可操作且无横向溢出`, async ({ page, externalRequests, networkFailures, runtimeErrors }) => {
+    void externalRequests;
     void runtimeErrors;
     void networkFailures;
     const successfulAssets: { contentType: string | null; path: string; resourceType: string }[] = [];
@@ -62,13 +79,46 @@ for (const [path, assetPrefix] of [["/", "/assets/"], ["/playtest/", "/playtest/
     expect(stylesheet?.path.startsWith(assetPrefix)).toBe(true);
     expect(stylesheet?.contentType).toMatch(/^text\/css/u);
     await expect(page).toHaveTitle(/反应域 · REACTION FIELD · Web Playtest Alpha · 0\.13\.0-alpha\.1/u);
+    const iconLinks = await page.locator('link[rel~="icon"]').evaluateAll((links) => links.map((link) => ({
+      href: link.getAttribute("href"),
+      sizes: link.getAttribute("sizes"),
+      type: link.getAttribute("type"),
+    })));
+    expect(iconLinks).toEqual([
+      { href: "./brand/reaction-field-game-icon.svg", sizes: null, type: "image/svg+xml" },
+      { href: "./brand/favicon.ico", sizes: null, type: "image/x-icon" },
+      { href: "./brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { href: "./brand/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ]);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "./brand/apple-touch-icon-180.png");
+    const brandAssets = [
+      ["brand/reaction-field-game-icon.svg", "image/svg+xml"],
+      ["brand/favicon.ico", "image/x-icon"],
+      ["brand/favicon-32.png", "image/png"],
+      ["brand/favicon-16.png", "image/png"],
+      ["brand/apple-touch-icon-180.png", "image/png"],
+    ] as const;
+    for (const [relativeAssetPath, contentType] of brandAssets) {
+      const asset = await page.evaluate(async (assetPath) => {
+        const response = await fetch(assetPath, { cache: "no-store" });
+        return { contentType: response.headers.get("content-type"), status: response.status };
+      }, `${brandPrefix}${relativeAssetPath}`);
+      expect(asset.status, relativeAssetPath).toBe(200);
+      expect(asset.contentType, relativeAssetPath).toBe(contentType);
+    }
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "新手引导：配置" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveText("REACTION FIELD");
+    await expect(page.locator(".character-selection-hero__icon")).toBeVisible();
+    await expect(page.locator(".character-selection-hero__icon")).toHaveAttribute("alt", "");
+    await expect(page.locator(".character-selection-hero__icon")).toHaveAttribute("aria-hidden", "true");
     await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
     await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
     await page.getByRole("button", { name: "关于与帮助" }).click();
     await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("REACTION FIELD");
+    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("0.13.0-alpha.1");
+    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("MVP0-P10");
+    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("b96238c472b1");
     await page.keyboard.press("Escape");
     await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
     await page.getByLabel("player_2 角色").selectOption("acid_king");

@@ -44,9 +44,19 @@ export function CharacterSelectionPanel({
         visible={guidanceVisible}
       />
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
-        <div>
-          <p className="debug-kicker">反应域 · Web Playtest Alpha · MVP0-P10</p>
-          <h1 id="character-selection-title">反应域 · 本地双人角色选择</h1>
+        <div className="character-selection-hero__heading">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="character-selection-hero__icon"
+            height="72"
+            src="./brand/reaction-field-game-icon.svg"
+            width="72"
+          />
+          <div>
+            <p className="debug-kicker">反应域 · Web Playtest Alpha · MVP0-P10</p>
+            <h1 id="character-selection-title">反应域 · 本地双人角色选择</h1>
+          </div>
         </div>
         <p className="panel-note">
           选择两名玩家的角色后开始本地同屏对局；双方手牌公开。刷新页面会丢失本局进度。

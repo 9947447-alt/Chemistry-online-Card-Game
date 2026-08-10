@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">反应域游戏图标单色版</title>
+  <rect x="24" y="24" width="464" height="464" rx="84" fill="#000"/>
+  <path d="M135 160 256 88l121 72M135 352l121 72 121-72" fill="none" stroke="#FFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M106 190c0-13 13-21 25-15l77 39c10 5 16 15 16 26v83c0 13-13 21-25 15l-77-39c-10-5-16-15-16-26zM406 190c0-13-13-21-25-15l-77 39c-10 5-16 15-16 26v83c0 13 13 21 25 15l77-39c10-5 16-15 16-26z" fill="none" stroke="#FFF" stroke-width="12"/>
+  <path d="m154 246 18-10 18 10v20l-18 10-18-10zm168 0 18-10 18 10v20l-18 10-18-10z" fill="#FFF"/>
+  <path d="M256 205c8 28 23 43 51 51-28 8-43 23-51 51-8-28-23-43-51-51 28-8 43-23 51-51z" fill="#FFF"/>
+</svg>
