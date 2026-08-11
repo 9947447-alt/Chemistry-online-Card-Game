@@ -15,10 +15,62 @@
   padding: 12px 24px;
 }
 
-.release-bar > div {
+.release-bar > :first-child {
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+.release-bar__actions {
+  align-items: center;
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.locale-switch {
+  border: 1px solid #bdd0dd;
+  border-radius: 6px;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.locale-switch__button {
+  background: #f7f9fb;
+  border: 0;
+  color: #17384d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+
+.locale-switch__button + .locale-switch__button {
+  border-left: 1px solid #bdd0dd;
+}
+
+.locale-switch__button[aria-pressed="true"] {
+  background: #d9edf6;
+  color: #102f40;
+}
+
+.feedback-link {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.feedback-link:focus-visible,
+.locale-switch__button:focus-visible {
+  outline: 3px solid #f9ca70;
+  outline-offset: 2px;
 }
 
 .release-bar strong,
@@ -1046,6 +1098,26 @@ select {
 
   .release-bar .secondary-button {
     width: 100%;
+  }
+
+  .release-bar__actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+
+  .locale-switch {
+    width: 100%;
+  }
+
+  .locale-switch__button {
+    flex: 1 1 0;
+  }
+
+  .feedback-link {
+    display: block;
+    text-align: center;
   }
 
   .local-game-page {

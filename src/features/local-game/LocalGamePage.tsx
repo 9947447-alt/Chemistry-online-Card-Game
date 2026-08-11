@@ -1,5 +1,7 @@
 import "./local-game.css";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FeedbackLink } from "../../app/feedback";
+import { LocaleSwitch, useLocale } from "../../app/locale";
 import { releaseMetadata } from "../../app/releaseMetadata";
 import type { GameAction } from "../../game/engine/actions";
 import type { CardInstanceId } from "../../game/engine/types";
@@ -53,6 +55,8 @@ function PlayingGame({
   onRequestSessionExit,
 }: PlayingGameProps) {
   const { game, error } = session;
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const [selectedCardId, setSelectedCardId] = useState<CardInstanceId | undefined>();
 
   useEffect(() => {
@@ -89,7 +93,7 @@ function PlayingGame({
           </div>
           <GameLog game={game} />
         </div>
-        <aside className="debug-sidebar" aria-label="操作面板">
+        <aside className="debug-sidebar" aria-label={isEnglish ? "Action panels" : "操作面板"}>
           <NewPlayerGuidance
             collapsed={guidanceCollapsed}
             game={game}
@@ -120,9 +124,9 @@ function PlayingGame({
           )}
           {game.phase === "gameOver" ? (
             <section className="debug-section">
-              <h2>对局结束</h2>
+              <h2>{isEnglish ? "Game over" : "对局结束"}</h2>
               <p className="panel-note">
-                可以查看完整日志，或使用顶部“按当前阵容重开”“返回角色选择”。
+                {isEnglish ? "Review the full log, or use the header to restart with the current lineup or return to character selection." : "可以查看完整日志，或使用顶部“按当前阵容重开”“返回角色选择”。"}
               </p>
             </section>
           ) : null}
@@ -148,6 +152,8 @@ export function LocalGamePage({
   reduceGame,
   createSession,
 }: LocalGamePageProps = {}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const [session, dispatch] = useLocalGameDebug(createGame, reduceGame, createSession);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<PendingSessionConfirmation | null>(null);
@@ -247,14 +253,18 @@ export function LocalGamePage({
               {releaseMetadata.channel} · v{releaseMetadata.version} · {releaseMetadata.rulesVersion}
             </span>
           </div>
-          <button
-            className="secondary-button"
-            onClick={openAbout}
-            ref={aboutTriggerRef}
-            type="button"
-          >
-            关于与帮助
-          </button>
+          <div className="release-bar__actions">
+            <LocaleSwitch />
+            <FeedbackLink />
+            <button
+              className="secondary-button"
+              onClick={openAbout}
+              ref={aboutTriggerRef}
+              type="button"
+            >
+              {isEnglish ? "About & help" : "关于与帮助"}
+            </button>
+          </div>
         </header>
 
         {session.mode === "configuring" ? (

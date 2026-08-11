@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useLocale } from "../../../app/locale";
 import type { GameAction } from "../../../game/engine/actions";
 import type { CardInstanceId, GameState } from "../../../game/engine/types";
-import { getPlayerName } from "../localGameView";
 import { CardDebugCard } from "./CardDebugCard";
+import { getPlayerDisplayName } from "../presentationLocale";
 
 type PreparationPanelProps = {
   game: GameState;
@@ -10,6 +11,8 @@ type PreparationPanelProps = {
 };
 
 export function PreparationPanel({ game, dispatchGameAction }: PreparationPanelProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const pending = game.pendingLaboratoryPreparation;
   const [selectedIds, setSelectedIds] = useState<CardInstanceId[]>([]);
   const currentPlayer = game.players.find((player) => player.id === pending?.playerId);
@@ -50,15 +53,15 @@ export function PreparationPanel({ game, dispatchGameAction }: PreparationPanelP
     <section className="debug-section preparation-panel" aria-labelledby="preparation-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">请保留指定数量的手牌</p>
-          <h2 id="preparation-title">实验室老师 · 备课</h2>
+          <p className="debug-kicker">{isEnglish ? "Keep the required number of cards" : "请保留指定数量的手牌"}</p>
+          <h2 id="preparation-title">{isEnglish ? "Laboratory Teacher · Preparation" : "实验室老师 · 备课"}</h2>
         </div>
         <strong className="selection-count">
-          已选 {validSelectedIds.length} / {pending.keepCount}
+          {isEnglish ? "Selected" : "已选"} {validSelectedIds.length} / {pending.keepCount}
         </strong>
       </div>
-      <p className="panel-note">当前选择玩家：{getPlayerName(game, pending.playerId)}</p>
-      <details className="debug-details"><summary>调试详情</summary><p>LABORATORY_PREPARATION</p></details>
+      <p className="panel-note">{isEnglish ? "Current selector" : "当前选择玩家"}：{getPlayerDisplayName(currentPlayer, locale)}</p>
+      <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>LABORATORY_PREPARATION</p></details>
       <div className="preparation-candidate-grid">
         {validCandidateIds.map((cardInstanceId) => (
           <CardDebugCard
@@ -83,7 +86,7 @@ export function PreparationPanel({ game, dispatchGameAction }: PreparationPanelP
         }}
         type="button"
       >
-        确认备课选择
+        {isEnglish ? "Confirm preparation selection" : "确认备课选择"}
       </button>
     </section>
   );

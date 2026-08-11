@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { installBrowserFatalHandlers } from "./app/browserFatalHandlers";
+import { LocaleProvider } from "./app/locale";
 import { RootErrorBoundary } from "./app/RootErrorBoundary";
 import { RootFailurePage } from "./app/RootFailurePage";
 import "./styles.css";
@@ -25,7 +26,11 @@ if (!rootElement) {
     }
 
     rootFailed = true;
-    root.render(<RootFailurePage code="ROOT_RUNTIME_FAILED" />);
+    root.render(
+      <LocaleProvider>
+        <RootFailurePage code="ROOT_RUNTIME_FAILED" />
+      </LocaleProvider>,
+    );
   };
 
   const cleanupBrowserHandlers = installBrowserFatalHandlers(renderRootFailure);
@@ -35,9 +40,11 @@ if (!rootElement) {
 
   root.render(
     <StrictMode>
-      <RootErrorBoundary>
-        <App />
-      </RootErrorBoundary>
+      <LocaleProvider>
+        <RootErrorBoundary>
+          <App />
+        </RootErrorBoundary>
+      </LocaleProvider>
     </StrictMode>,
   );
 }

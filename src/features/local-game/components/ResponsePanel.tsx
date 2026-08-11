@@ -1,4 +1,5 @@
 import type { GameAction } from "../../../game/engine/actions";
+import { useLocale } from "../../../app/locale";
 import type { GameState } from "../../../game/engine/types";
 import {
   describePendingResponse,
@@ -6,6 +7,7 @@ import {
   getResponseCards,
 } from "../localGameView";
 import { CardDebugCard } from "./CardDebugCard";
+import { getPlayerDisplayName } from "../presentationLocale";
 
 type ResponsePanelProps = {
   game: GameState;
@@ -13,6 +15,8 @@ type ResponsePanelProps = {
 };
 
 export function ResponsePanel({ game, dispatchGameAction }: ResponsePanelProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const pendingResponse = game.pendingResponse;
   const responder = pendingResponse ? getPlayer(game, pendingResponse.responderId) : undefined;
   const responseCards = responder ? getResponseCards(game, responder) : [];
@@ -25,20 +29,20 @@ export function ResponsePanel({ game, dispatchGameAction }: ResponsePanelProps) 
     <section className="debug-section response-panel" aria-labelledby="response-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">当前响应者可选择合法响应牌</p>
-          <h2 id="response-title">响应窗口</h2>
+          <p className="debug-kicker">{isEnglish ? "The current responder may choose a legal response card" : "当前响应者可选择合法响应牌"}</p>
+          <h2 id="response-title">{isEnglish ? "Response window" : "响应窗口"}</h2>
         </div>
         <button
           className="secondary-button"
           onClick={() => dispatchGameAction({ type: "PASS_RESPONSE", playerId: responder.id })}
           type="button"
         >
-          放弃响应
+          {isEnglish ? "Pass response" : "放弃响应"}
         </button>
       </div>
-      <p className="panel-note">轮到 {responder.name} 决定是否响应当前效果。</p>
+      <p className="panel-note">{isEnglish ? `${getPlayerDisplayName(responder, locale)} decides whether to respond to the current effect.` : `轮到 ${responder.name} 决定是否响应当前效果。`}</p>
       <details className="debug-details">
-        <summary>调试详情</summary>
+        <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
         <p>{describePendingResponse(game)}</p>
         <p>RESPOND_WITH_CARD / PASS_RESPONSE</p>
       </details>
@@ -59,7 +63,7 @@ export function ResponsePanel({ game, dispatchGameAction }: ResponsePanelProps) 
             />
           ))
         ) : (
-          <p className="empty-note">当前响应者没有 UI 判定可用的响应牌。</p>
+          <p className="empty-note">{isEnglish ? "The current responder has no response card available according to the UI's existing check." : "当前响应者没有 UI 判定可用的响应牌。"}</p>
         )}
       </div>
     </section>

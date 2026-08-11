@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useLocale } from "../../../app/locale";
 import { ModalDialog } from "./ModalDialog";
 
 export type SessionConfirmationKind = "restart" | "return";
@@ -26,13 +27,27 @@ const confirmationCopy: Readonly<Record<SessionConfirmationKind, Readonly<{
   },
 };
 
+const englishConfirmationCopy: typeof confirmationCopy = {
+  restart: {
+    title: "Restart with the current lineup?",
+    description: "The current game, both hands, statuses, and log will be discarded. A completely new game will be created with the current lineup.",
+    confirmLabel: "Confirm restart",
+  },
+  return: {
+    title: "Return to character selection?",
+    description: "The current game, both hands, statuses, and log will be discarded. The current lineup remains available for adjustment.",
+    confirmLabel: "Confirm return",
+  },
+};
+
 export function ConfirmationDialog({
   kind,
   onCancel,
   onConfirm,
 }: ConfirmationDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const copy = confirmationCopy[kind];
+  const { locale } = useLocale();
+  const copy = (locale === "en" ? englishConfirmationCopy : confirmationCopy)[kind];
 
   return (
     <ModalDialog
@@ -52,7 +67,7 @@ export function ConfirmationDialog({
             ref={cancelButtonRef}
             type="button"
           >
-            取消
+            {locale === "en" ? "Cancel" : "取消"}
           </button>
           <button className="danger-button" onClick={onConfirm} type="button">
             {copy.confirmLabel}

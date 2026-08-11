@@ -1,6 +1,8 @@
 import type { CardInstanceId } from "../../../game/engine/types";
+import { useLocale } from "../../../app/locale";
 import { formatList, getCardDefinition } from "../localGameView";
 import type { GameState } from "../../../game/engine/types";
+import { getCardDisplayName } from "../presentationLocale";
 
 type CardDebugCardProps = {
   cardInstanceId: CardInstanceId;
@@ -18,12 +20,14 @@ export function CardDebugCard({
   onSelect,
 }: CardDebugCardProps) {
   const definition = getCardDefinition(game, cardInstanceId);
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
 
   if (!definition) {
     return (
       <article className="debug-card is-missing">
         <button className="debug-card__select" disabled type="button">
-          未知卡牌 {cardInstanceId}
+          {isEnglish ? "Unknown card" : "未知卡牌"} {cardInstanceId}
         </button>
       </article>
     );
@@ -39,14 +43,14 @@ export function CardDebugCard({
         onClick={() => onSelect?.(cardInstanceId)}
         type="button"
       >
-        <span className="debug-card__name">{definition.name}</span>
-        <span className="debug-card__line">可在当前对局中选择</span>
+        <span className="debug-card__name">{getCardDisplayName(definition.id, definition.name, locale)}</span>
+        <span className="debug-card__line">{isEnglish ? "Selectable in this game" : "可在当前对局中选择"}</span>
       </button>
       <details className="debug-details debug-card__details">
-        <summary>调试详情</summary>
+        <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
         <span className="debug-card__meta">{definition.type} · {cardInstanceId}</span>
-        <span className="debug-card__line">标签：{formatList(definition.tags)}</span>
-        <span className="debug-card__line">时机：{formatList(definition.allowedTimings)}</span>
+        <span className="debug-card__line">{isEnglish ? "Tags" : "标签"}：{formatList(definition.tags)}</span>
+        <span className="debug-card__line">{isEnglish ? "Timing" : "时机"}：{formatList(definition.allowedTimings)}</span>
       </details>
     </article>
   );

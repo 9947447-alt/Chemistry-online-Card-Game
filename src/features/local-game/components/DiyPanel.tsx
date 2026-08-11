@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "../../../app/locale";
 import type { GameAction } from "../../../game/engine/actions";
 import type { CardInstanceId, GameState, PlayerId } from "../../../game/engine/types";
 import {
@@ -11,6 +12,11 @@ import {
   getRecipeById,
   getRequiredComponentSlots,
 } from "../localGameView";
+import {
+  getCardDisplayName,
+  getDiyRecipeDisplayName,
+  getPlayerDisplayName,
+} from "../presentationLocale";
 
 type DiyPanelProps = {
   game: GameState;
@@ -18,6 +24,8 @@ type DiyPanelProps = {
 };
 
 export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const activePlayer = getActivePlayer(game);
   const recipes = getPlayableDiyRecipes();
   const [recipeId, setRecipeId] = useState(recipes[0]?.id);
@@ -50,25 +58,25 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
     <section className="debug-section diy-panel" aria-labelledby="diy-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">选择配方和组件后执行</p>
-          <h2 id="diy-title">主动 DIY</h2>
+          <p className="debug-kicker">{isEnglish ? "Choose a recipe and components, then run it" : "选择配方和组件后执行"}</p>
+          <h2 id="diy-title">{isEnglish ? "Active DIY" : "主动 DIY"}</h2>
         </div>
         <span className={activePlayer.usedDIYThisCycle ? "warn-pill" : "ok-pill"}>
-          {activePlayer.usedDIYThisCycle ? "本周期已用" : "本周期可用"}
+          {activePlayer.usedDIYThisCycle ? (isEnglish ? "Used this cycle" : "本周期已用") : (isEnglish ? "Available this cycle" : "本周期可用")}
         </span>
       </div>
-      <details className="debug-details"><summary>调试详情</summary><p>START_ACTIVE_DIY</p></details>
+      <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>START_ACTIVE_DIY</p></details>
       <label className="field-row">
-        <span>配方</span>
+        <span>{isEnglish ? "Recipe" : "配方"}</span>
         <select value={recipe.id} onChange={(event) => setRecipeId(event.target.value)}>
           {recipes.map((candidate) => (
             <option key={candidate.id} value={candidate.id}>
-              {candidate.name}
+              {getDiyRecipeDisplayName(candidate.id, candidate.name, locale)}
             </option>
           ))}
         </select>
       </label>
-      <div className="recipe-list" aria-label="全部 MVP 0 主动 DIY 配方">
+      <div className="recipe-list" aria-label={isEnglish ? "All MVP 0 active DIY recipes" : "全部 MVP 0 主动 DIY 配方"}>
         {recipes.map((candidate) => (
           <button
             className={`recipe-chip${candidate.id === recipe.id ? " is-selected" : ""}`}
@@ -76,7 +84,7 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
             onClick={() => setRecipeId(candidate.id)}
             type="button"
           >
-            {candidate.name}
+            {getDiyRecipeDisplayName(candidate.id, candidate.name, locale)}
           </button>
         ))}
       </div>
@@ -91,11 +99,14 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
             slot.definitionId,
             selectedForOtherSlots,
           );
-          const definitionName = cardDefinitionById.get(slot.definitionId)?.name ?? slot.definitionId;
+          const definition = cardDefinitionById.get(slot.definitionId);
+          const definitionName = definition
+            ? getCardDisplayName(definition.id, definition.name, locale)
+            : slot.definitionId;
 
           return (
             <label className="field-row" key={slot.slotId}>
-              <span>{slot.label}</span>
+              <span>{definitionName}</span>
               <select
                 onChange={(event) =>
                   setComponentIds((current) => ({
@@ -105,12 +116,14 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
                 }
                 value={componentIds[slot.slotId] ?? ""}
               >
-                <option value="">选择 {definitionName}</option>
+                <option value="">{isEnglish ? "Select" : "选择"} {definitionName}</option>
                 {options.map((cardInstanceId) => {
                   const cardDefinition = getCardDefinition(game, cardInstanceId);
                   return (
                     <option key={cardInstanceId} value={cardInstanceId}>
-                      {cardDefinition?.name ?? "未知卡牌"}
+                      {cardDefinition
+                        ? getCardDisplayName(cardDefinition.id, cardDefinition.name, locale)
+                        : (isEnglish ? "Unknown card" : "未知卡牌")}
                     </option>
                   );
                 })}
@@ -121,24 +134,24 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
       </div>
       {recipe.requiresTarget ? (
         <label className="field-row">
-          <span>DIY 目标</span>
+          <span>{isEnglish ? "DIY target" : "DIY 目标"}</span>
           <select
             onChange={(event) => setTargetPlayerId(event.target.value)}
             value={targetPlayerId ?? ""}
           >
             {targets.map((target) => (
               <option key={target.id} value={target.id}>
-                {target.name}
+                {getPlayerDisplayName(target, locale)}
               </option>
             ))}
           </select>
         </label>
       ) : (
-        <p className="empty-note">此配方不需要选择目标。</p>
+        <p className="empty-note">{isEnglish ? "This recipe does not require a target." : "此配方不需要选择目标。"}</p>
       )}
       <details className="debug-details">
-        <summary>调试详情</summary>
-        <p>targetPlayerId：{recipe.requiresTarget ? targetPlayerId ?? "未选择" : "未设置"}</p>
+        <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
+        <p>targetPlayerId：{recipe.requiresTarget ? targetPlayerId ?? (isEnglish ? "not selected" : "未选择") : (isEnglish ? "not set" : "未设置")}</p>
       </details>
       <button
         className="primary-button"
@@ -154,7 +167,7 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
         }
         type="button"
       >
-        执行主动 DIY
+        {isEnglish ? "Run active DIY" : "执行主动 DIY"}
       </button>
     </section>
   );

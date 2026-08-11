@@ -2,6 +2,7 @@ import { StrictMode, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "../src/app/App";
 import { installBrowserFatalHandlers } from "../src/app/browserFatalHandlers";
+import { LocaleProvider } from "../src/app/locale";
 import { RootErrorBoundary } from "../src/app/RootErrorBoundary";
 import { RootFailurePage } from "../src/app/RootFailurePage";
 import "../src/styles.css";
@@ -54,25 +55,31 @@ if (!rootElement) {
       return;
     }
     rootFailed = true;
-    root.render(<RootFailurePage code="ROOT_RUNTIME_FAILED" />);
+    root.render(
+      <LocaleProvider>
+        <RootFailurePage code="ROOT_RUNTIME_FAILED" />
+      </LocaleProvider>,
+    );
   };
   installBrowserFatalHandlers(renderRootFailure);
 
   root.render(
     <StrictMode>
-      <RootErrorBoundary>
-        {scenario === "render-error" ? (
-          <ThrowingFixture />
-        ) : (
-          <>
-            <FixtureDiagnostics />
-            <App
-              createGame={deterministicFixtureFactory}
-              createSession={getFixtureInitializer(readFixtureScenario())}
-            />
-          </>
-        )}
-      </RootErrorBoundary>
+      <LocaleProvider>
+        <RootErrorBoundary>
+          {scenario === "render-error" ? (
+            <ThrowingFixture />
+          ) : (
+            <>
+              <FixtureDiagnostics />
+              <App
+                createGame={deterministicFixtureFactory}
+                createSession={getFixtureInitializer(readFixtureScenario())}
+              />
+            </>
+          )}
+        </RootErrorBoundary>
+      </LocaleProvider>
     </StrictMode>,
   );
 }
