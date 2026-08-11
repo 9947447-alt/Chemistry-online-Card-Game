@@ -1,0 +1,68 @@
+name: Phase 12 Web Playtest Pages
+
+on:
+  push:
+    tags:
+      - web-playtest-v*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-playtest-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+      - name: Install pnpm 11.9.0
+        run: npm install --global pnpm@11.9.0
+      - name: Verify tag matches package version
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: pnpm run check:web-playtest-tag
+      - name: Install dependencies from lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Build production bundle
+        run: pnpm run build
+      - name: Run regular Vitest
+        run: pnpm run test:run
+      - name: Run fixed-seed shuffled Vitest
+        run: pnpm run test:shuffle
+      - name: Install Playwright Chromium only
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run fixture and formal production E2E
+        run: pnpm run test:e2e && pnpm run test:e2e:production
+      - name: Check production artifact boundaries
+        run: pnpm run check:production
+      - name: Check production artifact size
+        run: pnpm run check:size
+      - name: Check patch formatting
+        run: git diff --check
+      - name: Require tracked worktree cleanliness
+        run: pnpm run check:tracked-clean
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@87c3283f01cd6fe19a0ab93a23b2f6fcba5a8e42 # v4.0.3

@@ -1,0 +1,41 @@
+{
+  "name": "chemistry-online-card-game",
+  "version": "0.13.0-alpha.3",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && pnpm run check:production",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:shuffle": "vitest run --sequence.shuffle --sequence.seed=20260723",
+    "build:e2e": "tsc -b && vite build --config vite.e2e.config.ts",
+    "preview:e2e": "vite preview --config vite.e2e.config.ts --host 127.0.0.1",
+    "test:e2e": "pnpm run build:e2e && playwright test",
+    "test:e2e:production": "pnpm run build && playwright test --config playwright.production.config.ts",
+    "check:production": "node scripts/check-production.mjs",
+    "check:web-playtest-tag": "node scripts/check-web-playtest-tag.mjs",
+    "check:size": "node scripts/check-size.mjs",
+    "check:tracked-clean": "node scripts/check-tracked-clean.mjs"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "happy-dom": "^20.10.6",
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Reaction Field RF 标识单色版</title>
+  <path d="M256 48 432 150v204L256 456 80 354V150z" fill="none" stroke="#000" stroke-width="28" stroke-linejoin="round"/>
+  <g fill="none" stroke="#000" stroke-width="32" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M138 350V166h70c29 0 50 18 50 44s-21 44-50 44h-70M203 254l61 96"/>
+    <path d="M290 350V166h88M290 250h72"/>
+  </g>
+</svg>

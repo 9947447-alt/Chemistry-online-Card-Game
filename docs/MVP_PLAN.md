@@ -1,4 +1,4 @@
-# 化学在线卡牌游戏 MVP 0 规划
+# 反应域 / REACTION FIELD · MVP 0 规划
 
 ## 规则来源
 
@@ -6,6 +6,34 @@
 
 - `core-rules-v0.1.docx`：核心游戏流程、伤害、状态与基础卡池。
 - `ion-reaction-and-diy-manual-v1.0.docx`：离子反应、DIY 构建、气体与状态裁定手册。
+
+仓库内的冻结口径由以下文档补充：
+
+- `docs/MVP0_RULE_FREEZE.md`：MVP 0 已冻结规则和历史实现边界。
+- `docs/PHASE8_CHARACTER_RULE_FREEZE.md`：Phase 8 角色系统正式冻结规则；本计划只记录开发拆分，不覆盖该文档。
+- `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`：Phase 9 本地双人角色选择和 Debug UI 会话规则；不覆盖引擎冻结规则。
+- `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：Phase 10 三类成功反应事件与硫酸盐副产正式冻结规则。
+- `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`：Phase 11 稳定性、错误恢复、E2E、CI 与静态发布准备；不是规则冻结文档。
+- `docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`：Phase 12 反应域静态 Web 试玩发布边界、标签、回滚与停止公开说明；不是规则冻结文档。
+- `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`：Phase 13 新玩家首局引导的展示、可访问性、测试与发布边界；不改写现有规则冻结。
+
+## Phase 12 发布边界
+
+Phase 12 将 UI 与发布身份升级为“反应域（REACTION FIELD）”Web Playtest Alpha `0.12.0-alpha.1`，并为 GitHub Pages 添加仅由 `web-playtest-v*` 标签触发的静态发布工作流。它不新增任何化学规则，不改变 MVP0-P10 引擎、卡池、角色、状态、DIY、反应、回合、淘汰或胜负逻辑。Phase 11 保持历史稳定性基线。
+
+## Phase 13 新玩家首局引导（实现已完成并合并；alpha.1 历史基线）
+
+Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`。本阶段在既有角色配置页和 playing sidebar 顶部增加同一份、纯展示的新手引导：默认可见，可折叠、跳过和重新显示，刷新重置；它只从现有本地会话和 `GameState` 派生当前阶段、当前行动者/选择者/响应者、目标与既有操作入口。
+
+- 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
+- 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.13.0-alpha.3`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。`0.13.0-alpha.3` 是 alpha.2 失败后的替代发布候选；对外产品阶段仍称 Reaction Field Alpha 2。发布仍需用户单独确认，公开试玩地址的实时可用性不由本地实现阶段联网确认。
+
+## 0.13.0-alpha.3 发布恢复候选（未发布）
+
+alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。alpha.3 是替代候选，修复该断言并添加 Apache-2.0 许可基础，不增加游戏功能或规则；`MVP0-P10`、68 张普通实体卡池、初始 `event_lab_fire` 数量与三类结构化反应定义均保持不变。alpha.1 与 alpha.2 标签均不移动、不重写；alpha.3 在最终批准前不创建标签或部署。除非有实时证据，公开站点可能仍运行 alpha.1。
+
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 alpha.3 替代候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 ## MVP 0 定案范围
 
@@ -15,17 +43,19 @@ MVP 0 只做一个可运行、可调试、可复盘的本地双人规则模拟�
 
 - 只支持本地双人。
 - 只支持公开调试模式：双方手牌、牌堆数量、弃牌堆、状态、日志全部可见。
-- 无角色：不实现角色选择、角色体力差异、角色技能、角色摸牌规则。
+- MVP 0 历史基线无角色；Phase 8 已通过独立冻结文档解冻角色选择、角色体力差异、角色技能和角色摸牌规则。
 - 双方初始体力均为 10。
 - 关闭响应 DIY；仅保留每名玩家每周期 1 次主动 DIY。
-- 采用 V0.1 默认自由出牌；正常行动不要求与场面基准牌关联。
-- 保留 70 张固定测试卡池，不压缩到 40 张。
-- 禁止任何“无即时合法效果”的主行动出牌。
-- 元素牌、普通离子牌只能作为 DIY 组件。
-- H+、OH-、CO3^2- 等特殊离子仅能在各自合法响应窗口或状态处理窗口使用。
-- H2O、手牌 CO2 仅能在火情状态处理窗口使用。
-- Na2CO3 仅能作为酸性攻击的响应牌。
-- 暂不实现 Ag+、AgCl、方程式牌、金属置换、高危牌、专业处置牌、多人技能。
+- 7C 已完成：采用关联出牌；`tableReference` 为空时可用任意实体手牌建立首张基准，非空时主行动实体出牌必须与当前基准牌关联。
+- “实验台起火”退出普通卡池已完成；普通实体卡池冻结为 68 张，不补回到 70 张，也不为角色技能增加普通 `CardInstance`。
+- 存活 `activePlayer` 在 `mainAction` 可将与当前 `tableReference` 关联的实体手牌普通出牌为场面基准；`tableReference` 为空时可用任意实体手牌建立首张基准。
+- 无即时效果的实体牌不能走“执行效果”路径，但可以走“普通出牌 / 场面基准”路径。
+- 元素牌、普通离子牌可作为 DIY 组件，也可在 `tableReference` 为空或与当前基准关联时于 `mainAction` 普通出牌。
+- H+、OH-、CO3^2- 等特殊离子的响应或状态处理效果仅能在各自合法窗口执行；它们仍可在 `tableReference` 为空或与当前基准关联时于 `mainAction` 普通出牌。
+- H2O、手牌 CO2 的灭火效果仅能在 `FIRE` 的 `statusWindow` 执行；它们仍可在 `tableReference` 为空或与当前基准关联时于 `mainAction` 普通出牌，普通出牌时不触发灭火效果。
+- O2 是可从牌库摸到的物质牌，可在主行动中仅对自己使用并回复 2 HP。
+- Na2CO3 的响应效果仅能作为酸性攻击响应执行；它仍可在 `tableReference` 为空或与当前基准关联时于 `mainAction` 普通出牌。
+- 暂不实现 Ag+、AgCl、方程式牌、金属置换、高危牌和专业处置牌。
 - 暂不实现 BaSO4 沉淀链，直到先定义零伤害盐/离子牌在正常行动中的触发窗口和收益。
 - 暂不实现私密手牌、账号、匹配、房间、断线重连、观战、AI。
 
@@ -35,6 +65,8 @@ MVP 0 核心反应仅保留：
 - 酸与碳酸盐生成 CO2。
 - SO2 泄漏与碱性吸收。
 - 火情与 H2O / CO2 灭火。
+
+Phase 10 只把前三类中的成功结算事件化：`acid_base_neutralization`、`acid_carbonate_co2`、`so2_alkaline_absorption`。`FIRE` 处理继续是普通状态处理，不属于成功反应事件。
 
 MVP 0 对 SO2 的定案：
 
@@ -46,15 +78,65 @@ MVP 0 对 SO2 的定案：
 
 MVP 0 对火情的定案：
 
-- 加入测试事件牌“实验台起火”，类型为 `event`。
-- “实验台起火”效果：选择一名其他玩家，使其获得 `FIRE`。
-- “实验台起火”不造成即时伤害，不描述现实操作。
+- 不加入普通测试事件牌“实验台起火”；它是角色“手残党党委书记”的未来专属主动技能，不进入普通主牌堆。
+- `FIRE` 状态本身保留：未来角色技能或测试夹具可使玩家获得 `FIRE`。
 - `FIRE` 在目标行动开始时进入状态处理窗口；若未移除，才造成 2 点伤害。
 - `FIRE` 是持续状态：伤害后不自动移除，直到被合法处理牌或效果移除。
-- “实验台起火”施加 `FIRE` 时不开启即时响应窗口；目标只能在其下一次行动开始时的状态处理窗口中处理。
+- 未来角色技能施加 `FIRE` 时不应作为普通手牌出牌，不创建 `CardInstance`，不更新 `tableReference`；目标只能在其下一次行动开始时的状态处理窗口中处理。
 - DIY 生成 CO2 时，仅当行动玩家当前拥有 `FIRE` 时，才允许选择该配方。
 - DIY 生成 CO2 后，立即移除行动玩家自己的 `FIRE`。
 - 如果该行动开始时 `FIRE` 未被手牌处理，则玩家已经先承受本次 2 点状态伤害；主行动中 DIY CO2 只能阻止后续行动开始时再次受伤，不能追溯抵消本次伤害。
+
+MVP 0 对 O2 的定案：
+
+- O2 是可从牌库摸到的物质牌，不是通过 O + O 临时生成。
+- O2 仅允许存活的 `activePlayer` 在 `mainAction` 对自己使用。
+- 使用 O2 时，弃置 1 张手牌中的 O2，回复 2 HP，且不超过最大 HP。
+- O2 不进入 `responseWindow`。
+- 满 HP 时不能使用 O2。
+- 当自己拥有 `SO2_LEAK` 或 `FIRE` 时不能使用 O2。
+- `SO2_LEAK` 与 `FIRE` 在 MVP 0 中标记为“阻止回复”的负面状态。
+- H2O 执行灭火效果时仅用于处理 `FIRE`，不回复 HP；H2O 也可普通出牌，普通出牌时不触发灭火效果。
+- O + O -> O2 主动 DIY 仍暂缓。
+
+## MVP 0 关联出牌与 tableReference
+
+普通出牌：
+
+- 存活的 `activePlayer` 在 `mainAction` 可以进行“普通出牌”。
+- `tableReference` 为空时，普通出牌可以选择任意 1 张自己手牌中的实体卡，用于建立首张场面基准牌。
+- `tableReference` 非空时，普通出牌必须选择与当前 `tableReference` 关联的实体手牌。
+- 普通出牌不需要 `targetPlayerId`。
+- 普通出牌不结算该牌原本的攻击、回复、状态、响应或 DIY 效果。
+- 普通出牌不消耗、不会设置、也不会重置 `usedDIYThisCycle`。
+- 普通出牌只作为实体牌进入 `discardPile` 一次，更新 `tableReference`，写入明确日志，并推进一次行动。
+- 普通出牌不进入 `responseWindow`。
+- 普通出牌不创建新的 `CardInstance`。
+- 有主行动效果的实体牌，玩家可选择执行原有效果，或仅普通出牌作为场面基准；两种路径必须在后续实现中保持可区分。
+- 不关联时不得出牌、不得结算、不得弃牌、不得更新 `tableReference`、不得推进回合。
+
+场面基准牌 `tableReference`：
+
+- `tableReference` 表示最近一次 `mainAction` 中从手牌打出的实体牌。
+- `tableReference` 至少记录 `cardInstanceId`、`definitionId`、显示名称、`playedBy`、`cycle`、`round`。
+- `tableReference` 用于展示化学关联、未来技能、方程式与反应引用。
+- `mainAction` 中的普通出牌会更新 `tableReference`。
+- `mainAction` 中执行效果的实体手牌出牌也会更新 `tableReference`。
+- `responseWindow`、`statusWindow` 中打出的牌不更新 `tableReference`。
+- `virtual-diy` 与 `status` 伤害不更新 `tableReference`。
+- `PASS_ACTION` 不更新 `tableReference`。
+- 新实验周期开始时清空 `tableReference`。
+
+关联关系：
+
+- `tableReference` 为空时，存活 `activePlayer` 可在 `mainAction` 使用任意实体手牌建立首张基准牌；可走“执行效果”或“普通出牌”路径，该首张出牌不视为额外的“自由出牌次数”。
+- `tableReference` 非空时，`mainAction` 中从手牌打出的实体卡必须与 `tableReference` 关联；该限制同时适用于 `PLAY_REFERENCE_CARD` 普通出牌路径，以及酸碱攻击、`SO2`、`FIRE`、`O2` 等执行实体主行动效果路径。
+- 元素基准牌可接同一游戏分类的元素牌，或包含该元素的物质牌，或包含该元素的方程式牌；元素游戏分类使用 `metal` / `nonmetal` / `halogen`，当前 MVP 卡池中的 `O`、`C`、`S` 均为 `nonmetal`。
+- 离子/原子团、物质、方程式基准牌按原始规则书已有的“相关离子 / 含该离子物质 / 可反应物质 / 共享关键成分”等原则实现当前 MVP 卡池可表达的部分。
+- “实验台起火”不是普通主牌堆实体牌，不能从手牌打出，不能作为 `tableReference`，不存在以它为基准的万能接牌规则。
+- 关联关系不是 `responseWindow`、`statusWindow`、主动 DIY、`PASS_ACTION` 的合法性门槛。
+- 例：`O` 为基准时，`Na+` 不关联，不能普通出牌或执行效果；`O2`、`H2O`、`CO2`、`SO2` 等含 O 物质可出；当前同为 `nonmetal` 的 `C`、`S` 元素牌可出。
+- “每周期一次万能自由出牌”或 UNO 强制变体不属于当前默认规则。
 
 ## MVP 0 状态规则
 
@@ -75,7 +157,7 @@ MVP 0 对火情的定案：
 
 MVP 0 特别覆写：
 
-- SO2 与“实验台起火”施加状态时，不开启即时响应窗口。
+- SO2 施加状态时，不开启即时响应窗口；未来角色技能施加 FIRE 时也不作为普通手牌事件结算。
 - 目标只能在其下一次行动开始时的状态处理窗口中处理对应状态。
 
 ## MVP 0 完整对局流程
@@ -92,12 +174,12 @@ MVP 0 特别覆写：
 10. 若玩家不处理或无法处理，仍存在的当前状态造成 2 点伤害；伤害后状态不自动移除。
 11. 若玩家因状态伤害被淘汰，立刻停止后续状态结算。
 12. 状态处理完成后进入主行动窗口。
-13. 主行动窗口中，当前玩家可以选择：正常打出 1 张允许主行动使用且会产生即时合法效果的牌、进行 1 次主动 DIY、或放弃行动。
-14. 正常打出酸/碱攻击牌时，若目标手中有合法响应牌，可进入响应窗口。
-15. SO2 与“实验台起火”施加状态时不进入即时响应窗口。
+13. 主行动窗口中，当前玩家可以选择：普通出牌 1 张合法关联的实体手牌作为场面基准、执行 1 张合法关联的实体手牌的主行动效果、进行 1 次主动 DIY、或放弃行动；若 `tableReference` 为空，任意实体手牌均可建立首张基准。
+14. 执行酸/碱攻击牌效果时，若目标手中有合法响应牌，可进入响应窗口；仅普通出牌时不进入响应窗口。
+15. SO2 施加状态时不进入即时响应窗口；FIRE 状态由状态窗口处理，普通卡池不提供“实验台起火”手牌事件。
 16. 响应窗口只允许打出现有手牌；不允许响应 DIY。
-17. 酸伤害可被碱中和，也可被碳酸盐响应并生成 CO2；碱伤害可被酸中和。
-18. 酸与碳酸盐响应后生成的 CO2 在 MVP 0 只写入操作日志，不创建临时资源或 CO2 token。
+17. 酸伤害可被碱中和，也可被普通 CO3^2- 或 Na2CO3 响应并生成 CO2；碱伤害可被酸中和。
+18. 酸与碳酸盐响应后生成的 CO2 在 MVP 0 只写入操作日志，不创建临时资源、CO2 token 或可用于灭火的临时 CO2。
 19. MVP 0 不实现反击伤害；响应成功只取消或改变当前效果。
 20. 每次效果结算后检查体力。体力降至 0 的玩家立即淘汰。
 21. 若只剩 1 名玩家存活，该玩家获胜。
@@ -108,23 +190,19 @@ MVP 0 特别覆写：
 
 ## MVP 0 暂缓规则
 
-这些规则来自原始规则书，但不进入 MVP 0：
+这些规则来自原始规则书，但不进入 MVP 0 历史基线。角色系统已由 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 单独解冻，不再属于未裁定事项：
 
-- 角色牌与角色技能。
 - 响应 DIY。
-- 接牌限制变体。
+- “每周期一次万能自由出牌”或 UNO 强制变体。
 - 方程式牌。
 - Ag+ / AgCl 检验链。
 - BaSO4 沉淀链。
 - 金属活动性与金属置换。
 - 高危牌与专业处置牌。
-- 多目标技能。
+- Phase 8 角色冻结规则之外的通用多目标卡牌或技能。
 - 多人座位响应顺序。
 - 私密手牌与不同玩家视角。
-- 任意无效果主行动弃牌。
-- H2O、手牌 CO2 在主行动中自由弃置。
-- Na2CO3 在主行动中自由弃置。
-- H + H -> H2、O + O -> O2、2Na+ + CO3^2- -> Na2CO3 这三条无即时收益的主动 DIY 配方。
+- H + H -> H2、O + O -> O2、2Na+ + CO3^2- -> Na2CO3 这三条主动 DIY 配方。
 
 BaSO4 沉淀链暂缓的原因：BaCl2、Na2SO4 等零伤害盐牌如果能在主行动中正常打出，需要先定义它们的主动收益、目标、是否占用行动、是否建立场面资源、是否可被对方立即响应。否则很容易出现“为了以后反应而空打一张牌”的体验和程序判定都不清楚。
 
@@ -171,6 +249,8 @@ type PlayTiming =
 type Tag =
   | "acid"
   | "base"
+  | "strong-acid"
+  | "strong-alkali"
   | "carbonate"
   | "harmful-gas"
   | "aqueous"
@@ -221,6 +301,15 @@ interface PlayerStatus {
   sourcePlayerId?: string;
 }
 
+interface TableReference {
+  cardInstanceId: string;
+  definitionId: string;
+  displayName: string;
+  playedBy: string;
+  cycle: number;
+  round: 1 | 2 | 3;
+}
+
 interface GameState {
   id: string;
   phase:
@@ -240,8 +329,9 @@ interface GameState {
   cardInstances: Record<string, CardInstance>;
   deck: string[];
   discardPile: string[];
-  baselineCardId?: string;
+  tableReference?: TableReference;
   pendingResponse?: PendingResponse;
+  pendingExperimentCounterattack?: PendingExperimentCounterattack;
   effectQueue: Effect[];
   log: GameLogEntry[];
   winnerPlayerId?: string;
@@ -249,18 +339,72 @@ interface GameState {
   settings: GameSettings;
 }
 
-type Action =
-  | { type: "START_GAME"; payload: StartGamePayload }
+type GameAction =
   | { type: "PLAY_CARD"; playerId: string; cardInstanceId: string; targetPlayerId?: string }
   | { type: "START_ACTIVE_DIY"; playerId: string; recipeId: string; componentCardInstanceIds: string[]; targetPlayerId?: string }
   | { type: "RESPOND_WITH_CARD"; playerId: string; cardInstanceId: string }
   | { type: "PASS_RESPONSE"; playerId: string }
   | { type: "HANDLE_STATUS_WITH_CARD"; playerId: string; statusInstanceId: string; cardInstanceId: string }
   | { type: "PASS_STATUS_HANDLING"; playerId: string; statusInstanceId: string }
+  | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "extra_lesson" | "emergency_supply" | "exhaust_leak" | "lab_fire" | "exothermic_accident" }
+  | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "alkali_recovery"; cardInstanceId: string }
+  | { type: "ACTIVATE_CHARACTER_SKILL"; playerId: string; skillId: "exhaust_discharge"; targetPlayerId: string }
+  | { type: "RESOLVE_EXPERIMENT_COUNTERATTACK"; playerId: string; option: "recover" }
+  | { type: "RESOLVE_EXPERIMENT_COUNTERATTACK"; playerId: string; option: "metal-counterattack" | "acid-base-pursuit"; cardInstanceId: string }
   | { type: "PASS_ACTION"; playerId: string };
 
+type DamageSource =
+  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string; sourceSkillId?: never }
+  | { kind: "card"; sourcePlayerId: string; cardInstanceId: string; cardDefinitionId: string; sourceSkillId: "experiment_counterattack" }
+  | { kind: "diy"; sourcePlayerId: string; recipeId: string }
+  | { kind: "status"; sourcePlayerId: null; statusInstanceId: string; statusId: "SO2_LEAK" | "FIRE" }
+  | { kind: "character-skill"; sourcePlayerId: string; skillId: CharacterSkillId };
+
+type DamageTag =
+  | "acid"
+  | "base"
+  | "strong-acid"
+  | "strong-alkali"
+  | "so2"
+  | "fire"
+  | "status";
+
+type ResponsePolicy = "acid-base" | "alkali-absorption" | "none";
+
+interface DamageContext {
+  targetPlayerId: string;
+  baseAmount: number;
+  source: DamageSource;
+  tags: readonly DamageTag[];
+  responsePolicy: ResponsePolicy;
+}
+
+type DamageModifierSource = {
+  readonly kind: "character-skill";
+  readonly sourcePlayerId: string;
+  readonly skillId: CharacterSkillId;
+};
+
+interface DamageAmountModifier {
+  readonly source: DamageModifierSource;
+  readonly amount: number;
+}
+
+interface DamageModifierSet {
+  readonly setValue?: DamageAmountModifier;
+  readonly increase?: DamageAmountModifier;
+  readonly immunity?: { readonly source: DamageModifierSource };
+  readonly reduction?: DamageAmountModifier;
+  readonly minimum?: DamageAmountModifier;
+}
+
+interface LoseHpTarget {
+  readonly targetPlayerId: string;
+  readonly amount: number;
+}
+
 type Effect =
-  | { type: "DAMAGE"; sourceId: string; targetPlayerId: string; amount: number; damageKind: "acid" | "base" | "status"; canRespond: boolean }
+  | { type: "DAMAGE"; context: DamageContext }
   | { type: "HEAL"; sourceId: string; targetPlayerId: string; amount: number }
   | { type: "DRAW"; playerId: string; count: number }
   | { type: "DISCARD"; playerId: string; cardInstanceIds: string[] }
@@ -271,25 +415,63 @@ type Effect =
 
 interface PendingResponse {
   responderId: string;
-  sourceEffect: Effect;
+  sourceEffect: Extract<Effect, { type: "DAMAGE" }>;
   chainDepth: number;
   effectsAfterPass: Effect[];
+  multiTargetSequence?: {
+    readonly sourcePlayerId: string;
+    readonly sourceSkillId: "exhaust_leak";
+    readonly targetPlayerIds: readonly string[];
+    readonly remainingTargetPlayerIds: readonly string[];
+    readonly completedResults: readonly {
+      readonly targetPlayerId: string;
+      readonly outcome: "absorbed" | "damaged";
+      readonly finalDamage: number;
+    }[];
+    readonly finishBehavior: "exhaust-leak";
+  };
 }
 
-interface Reaction {
-  id: string;
-  name: string;
-  trigger:
-    | "acid_vs_base"
-    | "acid_vs_carbonate"
-    | "base_vs_acid"
-    | "so2_absorption"
-    | "fire_extinguish";
-  responseRequirements: ResponseRequirement[];
-  cancelsSourceEffect: boolean;
-  producedEffects: Effect[];
-  logOnlyProducts?: string[];
-  rulesText: string;
+type ResponseContinuation =
+  | { readonly kind: "single-response" }
+  | {
+      readonly kind: "multi-target-response";
+      readonly sequence: NonNullable<PendingResponse["multiTargetSequence"]>;
+      readonly completedResult: {
+        readonly targetPlayerId: string;
+        readonly outcome: "absorbed";
+        readonly finalDamage: 0;
+      };
+    };
+
+interface PendingExperimentCounterattack {
+  readonly responderPlayerId: string;
+  readonly attackerPlayerId: string;
+  readonly originalDamageContext: DamageContext;
+  readonly responseType: "acid-base" | "alkali-absorption";
+  readonly legalOptions: readonly ("recover" | "metal-counterattack" | "acid-base-pursuit")[];
+  readonly legalMetalCardInstanceIds: readonly string[];
+  readonly legalPursuitCardInstanceIds: readonly string[];
+  readonly continuation: ResponseContinuation;
+}
+
+type ReactionDefinitionId =
+  | "acid_base_neutralization"
+  | "acid_carbonate_co2"
+  | "so2_alkaline_absorption";
+
+interface ReactionDefinition {
+  readonly id: ReactionDefinitionId;
+  readonly name: string;
+  readonly rulesText: string;
+}
+
+// Phase 10 生产类型使用判别联合；这里只保留规划级摘要。
+interface SuccessfulReactionEvent {
+  readonly definitionId: ReactionDefinitionId;
+  readonly trigger: ReactionTrigger;
+  readonly participants: readonly ReactionParticipant[];
+  readonly outcome: ReactionOutcome;
 }
 
 interface DIYRecipe {
@@ -318,31 +500,32 @@ interface StatusDefinition {
 
 ## 每种可使用卡的效果
 
-MVP 0 中，元素牌和离子牌不能在主行动中无效果打出。它们只能在 `allowedTimings` 指定的窗口使用。
+MVP 0 中，任意实体手牌都可以在 `mainAction` 走“普通出牌 / 场面基准”路径。下表“允许时机”和“主行动效果”描述的是执行原有效果路径；无即时效果的实体牌不能走执行效果路径，但可以普通出牌。
 
 | 卡牌 | 允许时机 | 主行动效果 | 响应窗口效果 | 状态处理窗口效果 |
 | --- | --- | --- | --- | --- |
-| O 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| C 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| S 元素 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| H+ 离子 | diy-component, response | 不可主行动打出 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| OH- 离子 | diy-component, response, status-window | 不可主行动打出 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏，视为碱性吸收并移除状态 |
-| CO3 2- 离子 | diy-component, response | 不可主行动打出 | 可响应酸性伤害，取消伤害并记录生成 CO2 | 不可处理状态 |
-| Cl- 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| SO4 2- 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| Na+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| K+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| Ca2+ 离子 | diy-component | 不可主行动打出 | 不可响应 | 不可处理状态 |
-| H2O | status-window | 不可主行动打出 | 不可响应普通伤害 | 可处理火情并移除 `FIRE` |
-| CO2 | status-window | 不可主行动打出 | 不可响应普通伤害 | 可处理火情并移除 `FIRE` |
-| SO2 | main-action | 使目标获得 `SO2_LEAK`，不造成即时伤害 | 不可响应 | 不可处理状态 |
-| 稀 HCl | main-action, response | 对目标造成 1 点酸性伤害，可被响应 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| 稀 H2SO4 | main-action, response | 对目标造成 1 点酸性伤害，可被响应 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
-| 稀 NaOH | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| 稀 KOH | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| 石灰水 Ca(OH)2 | main-action, response, status-window | 对目标造成 1 点碱性伤害，可被响应 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
-| Na2CO3 | response | 不可主行动打出 | 可响应酸性伤害，取消伤害并记录生成 CO2 | 不可处理状态 |
-| 实验台起火 | main-action | 选择一名其他玩家，使其获得 `FIRE` | 不可响应 | 不可处理状态 |
+| O 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| C 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| S 元素 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| H+ 离子 | diy-component, response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| OH- 离子 | diy-component, response, status-window | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏，视为碱性吸收并移除状态 |
+| CO3 2- 离子 | diy-component, response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
+| Cl- 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| SO4 2- 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| Na+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| K+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| Ca2+ 离子 | diy-component | 普通出牌：可作为场面基准；执行效果：不可 | 不可响应 | 不可处理状态 |
+| H2O | status-window | 普通出牌：可作为场面基准，不触发灭火效果；执行效果：不可 | 不可响应普通伤害 | 执行灭火效果时可处理火情并移除 `FIRE` |
+| CO2 | status-window | 普通出牌：可作为场面基准，不触发灭火效果；执行效果：不可 | 不可响应普通伤害 | 执行灭火效果时可处理火情并移除 `FIRE` |
+| O2 | main-action | 执行效果：仅可对自己使用；若自己未满 HP 且没有 `SO2_LEAK` / `FIRE`，弃置 O2 并回复 2 HP，不超过最大 HP；也可普通出牌作为场面基准 | 不可响应 | 不可处理状态 |
+| SO2 | main-action | 执行效果：使目标获得 `SO2_LEAK`，不造成即时伤害；也可普通出牌作为场面基准 | 不可响应 | 不可处理状态 |
+| 稀 HCl | main-action, response | 执行效果：对目标造成 1 点酸性伤害，可被响应；也可普通出牌作为场面基准 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| 稀 H2SO4 | main-action, response | 执行效果：对目标造成 1 点酸性伤害，可被响应；也可普通出牌作为场面基准 | 可响应碱性伤害，视为酸碱中和并取消伤害 | 不可处理状态 |
+| 稀 NaOH | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| 稀 KOH | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| 石灰水 Ca(OH)2 | main-action, response, status-window | 执行效果：对目标造成 1 点碱性伤害，可被响应；也可普通出牌作为场面基准 | 可响应酸性伤害，视为酸碱中和并取消伤害 | 可处理 SO2 泄漏并移除 `SO2_LEAK` |
+| Na2CO3 | response | 普通出牌：可作为场面基准；执行效果：不可 | 可响应酸性伤害，取消伤害并记录生成 CO2；不创建 CO2 卡牌、token 或灭火资源 | 不可处理状态 |
+| 实验台起火 | 暂不作为普通卡牌 | 角色“手残党党委书记”的未来专属主动技能；本阶段不进入主牌堆、不从手牌打出、不作为场面基准 | 不作为普通响应对象 | 不可处理状态 |
 
 ## MVP 0 主动 DIY 配方
 
@@ -354,6 +537,7 @@ MVP 0 移除无即时效果的主动 DIY 配方：H2、O2、Na2CO3。
 | --- | --- | --- |
 | C + O + O | CO2 | 仅当行动玩家当前拥有 `FIRE` 时可选择；生成后立即移除自己的 `FIRE` |
 | S + O + O | SO2 | 使目标获得 `SO2_LEAK` |
+| H+ + OH- | H2O | 仅当行动玩家当前拥有 `FIRE` 时可选择；两张组件弃置，立即移除自己的 `FIRE`；不创建 H2O 卡牌，不影响自己的 `SO2_LEAK` 或对方状态 |
 | H+ + Cl- | 稀 HCl | 对目标造成 1 点酸性伤害 |
 | 2H+ + SO4 2- | 稀 H2SO4 | 对目标造成 1 点酸性伤害 |
 | Na+ + OH- | 稀 NaOH | 对目标造成 1 点碱性伤害 |
@@ -362,16 +546,16 @@ MVP 0 移除无即时效果的主动 DIY 配方：H2、O2、Na2CO3。
 
 ## 固定测试卡池
 
-MVP 0 使用固定测试卡池，不做卡组构筑。总数 70 张。
+MVP 0 使用固定测试卡池，不做卡组构筑。移除误入普通卡池的 2 张“实验台起火”后，普通实体卡池冻结为 68 张；不补回到 70 张，不能用虚构化学牌填充。
 
 | 类别 | 卡牌 | 张数 | 用途 |
 | --- | --- | ---: | --- |
-| 元素 | O | 6 | DIY CO2、SO2 |
+| 元素 | O | 4 | DIY CO2、SO2 |
 | 元素 | C | 3 | DIY CO2 |
 | 元素 | S | 3 | DIY SO2 |
 | 离子 | H+ | 5 | DIY 酸、响应碱 |
 | 离子 | OH- | 5 | DIY 碱、响应酸、处理 SO2 |
-| 离子 | CO3 2- | 4 | 响应酸 |
+| 离子 | CO3 2- | 4 | 响应酸生成 CO2 日志 |
 | 离子 | Cl- | 4 | DIY HCl |
 | 离子 | SO4 2- | 3 | DIY H2SO4 |
 | 离子 | Na+ | 5 | DIY NaOH |
@@ -379,6 +563,7 @@ MVP 0 使用固定测试卡池，不做卡组构筑。总数 70 张。
 | 离子 | Ca2+ | 2 | DIY 石灰水 |
 | 物质 | H2O | 3 | 灭火 |
 | 物质 | CO2 | 4 | 灭火 |
+| 物质 | O2 | 2 | 主行动自我回复 |
 | 物质 | SO2 | 4 | 施加 SO2 泄漏 |
 | 物质 | 稀 HCl | 3 | 酸性攻击 |
 | 物质 | 稀 H2SO4 | 2 | 酸性攻击 |
@@ -386,7 +571,7 @@ MVP 0 使用固定测试卡池，不做卡组构筑。总数 70 张。
 | 物质 | 稀 KOH | 2 | 碱性攻击、SO2 吸收 |
 | 物质 | 石灰水 Ca(OH)2 | 2 | 碱性攻击、SO2 吸收 |
 | 物质 | Na2CO3 | 2 | 响应酸生成 CO2 |
-| 事件 | 实验台起火 | 2 | 施加 FIRE |
+| 事件 | 实验台起火 | 0 | 不进入普通主牌堆；未来作为角色“手残党党委书记”主动技能处理 |
 
 ## 6 个可复现调试对局场景
 
@@ -394,10 +579,10 @@ MVP 0 使用固定测试卡池，不做卡组构筑。总数 70 张。
 
 1. 酸碱中和：玩家 A 打出稀 HCl 攻击玩家 B；玩家 B 用稀 NaOH 响应；结果为 B 不掉血，两张牌进入弃牌堆，日志记录中和。
 2. 碱酸中和：玩家 A 打出稀 KOH 攻击玩家 B；玩家 B 用稀 HCl 响应；结果为 B 不掉血，日志记录中和。
-3. 酸与碳酸盐：玩家 A 打出稀 HCl 攻击玩家 B；玩家 B 用 Na2CO3 响应；结果为 B 不掉血，日志记录生成 CO2；不创建临时 CO2 资源。
+3. 酸与碳酸盐：玩家 A 打出稀 HCl 攻击玩家 B；玩家 B 用 CO3^2- 或 Na2CO3 响应；结果为 B 不掉血，日志记录生成 CO2；不创建临时 CO2 资源，也不触发灭火连锁。
 4. SO2 泄漏处理成功：玩家 A 打出 SO2 使玩家 B 获得 `SO2_LEAK`；到 B 行动开始时，B 用稀 NaOH 处理；结果为 `SO2_LEAK` 移除，B 不受状态伤害。
 5. SO2 泄漏处理失败：玩家 A 打出 SO2 使玩家 B 获得 `SO2_LEAK`；到 B 行动开始时，B 选择不处理；结果为 B 受到 2 点状态伤害。
-6. 火情事件与处理：玩家 A 打出“实验台起火”使玩家 B 获得 `FIRE`；到 B 行动开始时，B 用 H2O 或 CO2 处理；结果为 `FIRE` 移除，B 不受状态伤害。另一个分支为 B 不处理并受到 2 点状态伤害；随后 B 在主行动中使用 C + O + O 主动 DIY 生成 CO2，移除自己的 `FIRE`，但不追溯抵消刚刚承受的 2 点伤害。
+6. 火情状态处理：通过测试夹具或未来角色技能使玩家 B 获得 `FIRE`；到 B 行动开始时，B 用 H2O 或 CO2 处理；结果为 `FIRE` 移除，B 不受状态伤害。另一个分支为 B 不处理并受到 2 点状态伤害；随后 B 在主行动中使用 C + O + O 主动 DIY 生成 CO2，移除自己的 `FIRE`，但不追溯抵消刚刚承受的 2 点伤害。
 
 ## 技术栈建议
 
@@ -440,6 +625,7 @@ src/
       resolution.ts
       turnFlow.ts
       damage.ts
+      loseHp.ts
       reactions.ts
       diy.ts
       statuses.ts
@@ -484,16 +670,90 @@ server/
   # MVP 0 不启用；正式多人阶段再实现
 ```
 
+## Phase 8 角色系统开发拆分
+
+Phase 8 的规则以 `docs/PHASE8_CHARACTER_RULE_FREEZE.md` 为唯一正式冻结口径。本节只安排实现顺序，不新增、删减或解释角色规则。
+
+### 8A：角色数据结构与基础挂载（已完成）
+
+实现状态：角色静态定义、玩家挂载、`maxHp`、角色次数状态与周期/轮次重置、Debug UI 只读展示已完成；所有具体角色技能效果仍未实现。
+
+- 增加 `CharacterId`、`CharacterDefinition` 和 7 个角色静态定义。
+- 为 `Player` 挂载 `characterId`，接入角色 `maxHp` 与初始 HP。
+- 建立每周期、每实验轮次角色次数状态的最小可扩展结构及周期重置基础设施。
+- Debug UI 显示角色名称、`maxHp` 和技能说明，但不实现具体技能效果。
+- 角色不进入主牌堆，普通 `CardInstance` 保持 68。
+- 补充 `event_lab_fire.allowedTimings` 为空的数据级保护测试。
+
+### 8B：周期摸牌与低复杂度主动技能
+
+实现状态：8B-1 已完成角色周期摸牌、实验室老师“备课”选择阶段及 CEO 14 张持续手牌上限基础设施；8B-2 已完成“补课”和“紧急调货”，其他主动技能仍未实现。
+
+- 实现实验室老师的“备课”“补课”。
+- 实现化工厂 CEO 的“资金储备”“紧急调货”。
+- 增加必要的安全选牌阶段和 CEO 持续手牌上限。
+- 可在基础标签准备完成后实现“碱液回收”。
+- 不实现复杂伤害修饰和多目标响应。
+
+### 8C：复杂技能与通用修饰层
+
+- 实现状态：8C-0A 已完成实体标签；8C-0B 已完成统一 `DamageContext`；8C-1 已完成普通 DAMAGE 与批量失去体力；8C-2 已完成六个单目标伤害被动；8C-3 已完成剩余主动技能和连续响应；8C-4 已完成实验反击选择窗口、回复与实体酸碱追击，金属元素选项因当前真实卡池缺失而延期。
+- 8C-2 已通过集中式生产收集器接入“强碱防护”“强碱专精”“酸性侵蚀”“耐酸层”“DIY 实验”“硫酸工艺”。每个修饰均记录角色技能、对应玩家 ID 和技能 ID；当前角色组合保证每个阶段至多产生一个修饰，不定义未冻结的同阶段叠加规则。
+- 角色被动只在放弃响应后的原始 `DamageContext` 上进入既有八步管线；响应成功仍完全抵消。虚拟 DIY 不获得实体强酸/强碱标签，状态伤害不猜测来源玩家，独立失去体力不读取普通伤害修饰器。
+- 8C-3 使用按 `skillId` 判别的强类型主动技能 action；碱液回收携带 `cardInstanceId`，排放尾气携带 `targetPlayerId`，书记三项技能无额外载荷。
+- 尾气泄漏的多目标状态保存稳定目标快照、当前响应者、剩余目标和完成结果；全部目标结束后才统一判断胜负。全吸收惩罚和强放热事故继续使用独立失去体力入口。
+- 8C-4 使用专用 `experimentCounterattackWindow` 与强类型 pending，稳定保存原攻击者、原始伤害上下文、合法选项 CardInstance 快照及单目标/多目标 continuation。普通酸碱响应和尾气泄漏碱性吸收成功均可触发；状态处理、放弃响应、免疫和状态来源均不触发。
+- 实体酸碱追击不走 mainAction 或 7C 关联入口，使用真实 card source、`responsePolicy: none` 及 increase 阶段的 `experiment_counterattack` +1 修饰；不更新 `tableReference` 或 `usedDIYThisCycle`，不递归触发响应技能。
+- 当前 68 张卡池没有正式金属元素 CardDefinition，因此 UI 和 pending 均不提供可执行金属卡；角色定义标记为“8C-4 部分实现”，未新增虚构卡或标签。冻结文本未授权放弃已建立的实验反击窗口，因此本阶段不增加 DECLINE action。
+- 完成实体强酸、实体强碱及正式伤害标签映射；不将虚拟 DIY 稀酸、稀碱自动视为实体强酸、强碱。
+- Phase 8 结束时“硫酸盐副产”仍等待反应事件边界；Phase 10 已以三类最小成功反应事件启用。
+
+## Phase 9 本地双人 Debug Alpha 可玩闭环（已完成）
+
+Phase 9 的边界以 `docs/PHASE9_DEBUG_UI_RULE_FREEZE.md` 为准。本阶段完成本地 UI 会话闭环，不修改 Phase 8 角色技能、MVP 0 引擎规则或 68 张普通卡池。
+
+- 首次打开进入 `configuring`，默认预选实验室老师与化工厂 CEO；点击“开始游戏”后才调用真实 `createInitialGame({ characterIds })`。
+- 选择数据直接来自 7 个正式 `characterDefinitions`；允许全部 49 种有序组合和 7 种镜像阵容。
+- `playing` 持有真实 `GameState`；全部局内 action 继续只通过 `engineReducer`。
+- “按当前阵容重开”创建全新 `GameState` 并整体清空局内数据及 React 局部选择，不再隐式恢复默认老师/CEO。
+- “返回角色选择”丢弃活动 `GameState`，保留当前阵容预选并等待再次显式开始。
+- README 已更新为真实 Debug Alpha 状态；浏览器验收覆盖桌面与 390×844 视口。
+- 不增加存档、联网、正式多人、角色随机、卡池变更或延期规则实现。
+
+## Phase 10 成功反应事件最小可玩闭环（已完成）
+
+Phase 10 的权威边界见 `docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`：
+
+- 数据表只定义 `acid_base_neutralization`、`acid_carbonate_co2`、`so2_alkaline_absorption` 三条反应；`FIRE` 不事件化。
+- `SuccessfulReactionEvent` 作为只读结构化事实只附着于对应 `GameLogEntry`，不加入 `Effect`，不增加 reaction action、phase 或全局 history。
+- 实体/虚拟酸碱响应、书记即时 SO2 多目标响应和 `SO2_LEAK` 状态处理接入统一记录入口；continuation 与实验反击顺序保持不变。
+- 硫酸厂厂长“硫酸盐副产”通过统一事件消费者启用，只读取真实参与实体物质牌的 `ionsProvided`；空牌失败不消耗每轮次数。
+- Debug UI 在既有日志中展示反应名称、入口、参与来源和虚拟或状态结果，不解析 message，不增加操作面板。
+- 68 张普通卡池、零 `event_lab_fire` 初始实例、starter deck、CardZone、`DamageContext`、`tableReference`、`usedDIYThisCycle` 与 Phase 9 会话行为保持不变。
+
+## Phase 11 Debug Alpha 稳定性与发布就绪基线（已完成）
+
+Phase 11 的工程边界见 `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`。本阶段不修改 MVP 0 至 Phase 10 的冻结规则。
+
+- 当前 Debug Alpha 发布身份统一为“化学卡牌在线游戏”，版本 `0.11.0-alpha.1`，规则版本 `MVP0-P10`；应用版本以 `package.json` 为单一真值。
+- “反应域”仅记录为后续正式品牌名称；Phase 11 UI、诊断与 production bundle 不使用该名称。
+- `LocalGameSessionState` 新增不持有旧 `GameState` 的 fatal 判别分支；初始化、工厂、重开与引擎异常在会话边界停止旧对局并脱敏展示。
+- 新增 React ErrorBoundary、React 19 根级回调及浏览器最后保护；不上传错误、日志或用户状态。
+- playing 中重开与返回角色选择使用页面内可访问确认；`gameOver` 后直接执行。
+- 角色选择、playing 与 `gameOver` 共用 About/帮助界面，明确能力、公开调试、安全和延期边界。
+- Vite 使用相对 `base`；Node、pnpm、production preview、source map、体积和 fixture 泄漏检查形成可重复门禁。
+- 独立 E2E production build 复用真实初始化器、CardInstance 与 reducer，不形成 production route 或全局调试入口。
+- GitHub Actions 固定第三方 action 完整 SHA，持续执行 build、两轮 Vitest、Chromium E2E、体积、diff 与 tracked 洁净检查。
+- GitHub Pages 尚未启用；Tauri、Electron、PWA 与桌面安装包留到 Phase 12 或后续阶段。
+
 ## 暂缓功能回收清单
 
 本清单记录 MVP 0 明确不做、但后续可回收进入第二阶段或正式多人阶段的功能。回收任何一项前，都应补齐规则口径、数据定义、测试场景和 UI 操作入口。
 
 规则规模：
 
-- 角色牌与 6 个 V0.1 角色。
-- 角色技能，包括被动、主动、响应、每周期限次、每轮次限次。
 - 响应 DIY。
-- 接牌限制变体，例如“每周期一次自由出牌”。
+- “每周期一次万能自由出牌”或 UNO 强制变体。
 - 方程式牌。
 - 条件牌，例如加热、点燃、通电、催化。
 - 多目标技能。
@@ -508,16 +768,14 @@ server/
 - 金属-离子置换。
 - 铵根、硝酸盐、氨气等进阶模块。
 - 酸与碳酸盐响应生成的 CO2 转化为可用临时资源。
+- Phase 10 三条定义之外的通用反应链。
 
 卡牌与行动：
 
-- 任意无效果主行动弃牌。
-- H2O、手牌 CO2 在主行动中自由弃置。
-- Na2CO3 在主行动中自由弃置。
 - H + H -> H2 主动 DIY。
 - O + O -> O2 主动 DIY。
 - 2Na+ + CO3^2- -> Na2CO3 主动 DIY。
-- 零伤害盐/离子牌在主行动中的资源收益。
+- 零伤害盐/离子牌在主行动中除普通出牌 / 场面基准之外的资源收益。
 - 卡牌构筑与自定义卡池。
 
 状态与高危模块：
@@ -542,7 +800,7 @@ server/
 
 ## 第二阶段候选内容
 
-- 引入角色牌与 6 个 V0.1 角色。
+- 按 Phase 8A、8B、8C 实现已冻结的 7 个角色，不重新讨论或覆盖角色冻结规则。
 - 定义零伤害盐/离子牌在主行动中的收益后，再加入 BaSO4 沉淀链。
 - 加入 Ag+ / AgCl 检验链。
 - 加入方程式牌与条件牌，例如加热、点燃、催化。
