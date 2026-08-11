@@ -1,6 +1,6 @@
 # 反应域
 
-**反应域（REACTION FIELD）** 当前仓库正在准备 Web Playtest Alpha `0.13.0-alpha.3` 替代发布候选，规则版本严格为 `MVP0-P10`。对外产品阶段仍称 Reaction Field Alpha 2；本候选恢复 alpha.2 的发布验证，并建立 Apache-2.0 许可基础，不增加任何游戏功能或规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
+**反应域（REACTION FIELD）** 已公开发布 Web Playtest Alpha，技术版本为 `0.13.0-alpha.3`，规则版本严格为 `MVP0-P10`，对外阶段名为 Reaction Field Alpha 2。本次发布不增加任何游戏功能或规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
 ## 当前能力
 
@@ -18,7 +18,7 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 ## 公开试玩地址与本轮状态
 
-公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。Phase 13 首局引导已经实现并合并。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。`0.13.0-alpha.3` 是替代发布候选，尚未创建标签或部署。`web-playtest-v0.13.0-alpha.1` 同样是永久保持不变的历史标签。本地实现阶段未联网复核公开地址的实时可用性；除非取得实时证据，公开站点可能仍运行 alpha.1。
+公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。当前公开发布事实为：对外阶段 Reaction Field Alpha 2，技术版本 `0.13.0-alpha.3`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3`，peeled commit `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。`main` 已包含完整稳定历史；Pages workflow、部署和简略公开页面验收均已成功，但这不等同于广泛跨浏览器兼容性验收。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署。`web-playtest-v0.13.0-alpha.1` 与 alpha.2 标签均保持不可变。
 
 ## 固定工具链
 
@@ -101,9 +101,9 @@ Commit：<短 SHA 或 dev/unknown>
 
 - 仅本地同屏双人公开试玩，无私密手牌和持久化；刷新即丢失进度。
 - 真实金属卡池及实验反击金属选项、方程式、沉淀、响应 DIY、多人、联网、账号、存档和回放均延期。
-- 首个静态公开目标是 GitHub Pages；本地实现不执行部署，最终公开仍需人工批准。
+- 当前公开发布使用 GitHub Pages；本地开发与验证不执行部署。
 - Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现，也不在本阶段范围。
-- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。本次 alpha.3 替代候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。本次 alpha.3 发布不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 发布、标签、回滚与停止公开试玩说明见 [`docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`](docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md)。Phase 11 是历史稳定性基线；规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。
 

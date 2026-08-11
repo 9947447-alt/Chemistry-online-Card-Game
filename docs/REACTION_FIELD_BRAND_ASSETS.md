@@ -2,9 +2,9 @@
 
 本说明仅记录已冻结品牌资产的网页接入用途，不构成新的规则或发布冻结文档。
 
-## 0.13.0-alpha.3 发布恢复候选范围
+## 0.13.0-alpha.3 已公开发布范围
 
-alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。`0.13.0-alpha.3` 是替代发布候选，修复验证并添加 Apache-2.0 许可基础，不增加游戏功能或规则；对外产品阶段仍称 Reaction Field Alpha 2。alpha.1 与 alpha.2 标签永久保持不变，alpha.3 在最终批准前不创建标签或部署；除非有实时证据，公开站点可能仍运行 alpha.1。iOS 27 beta Firefox 已知问题仍未修复，本候选不作修复声明。
+alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。`0.13.0-alpha.3` 已公开发布，技术版本为 `0.13.0-alpha.3`，规则版本为 `MVP0-P10`，对外阶段名为 Reaction Field Alpha 2；标签 `web-playtest-v0.13.0-alpha.3` 精确 peeled 到 `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。Pages workflow、部署和简略公开页面验收已成功；不宣称广泛跨浏览器兼容性验收。alpha.1 与 alpha.2 标签永久保持不变，iOS 27 beta Firefox 已知问题仍未修复，本次发布不作修复声明。
 
 ## 许可证与品牌资产边界
 
