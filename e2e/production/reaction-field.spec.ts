@@ -58,6 +58,19 @@ const test = base.extend<{
   },
 });
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, "language", {
+      configurable: true,
+      get: () => "zh-CN",
+    });
+    Object.defineProperty(Navigator.prototype, "languages", {
+      configurable: true,
+      get: () => ["zh-CN"],
+    });
+  });
+});
+
 async function expectNoHorizontalOverflow(page: Page) {
   const widths = await page.evaluate(() => ({
     bodyClient: document.body.clientWidth,
@@ -123,6 +136,10 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "新手引导：配置" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveText("REACTION FIELD");
+    const feedback = page.getByRole("link", { name: "在新标签页打开 Microsoft Forms 反馈表" });
+    await expect(feedback).toHaveAttribute("href", "https://forms.cloud.microsoft/r/QG8PACUnsa");
+    await expect(feedback).toHaveAttribute("target", "_blank");
+    await expect(feedback).toHaveAttribute("rel", "noopener noreferrer");
     await expect(page.locator(".character-selection-hero__icon")).toBeVisible();
     await expect(page.locator(".character-selection-hero__icon")).toHaveAttribute("alt", "");
     await expect(page.locator(".character-selection-hero__icon")).toHaveAttribute("aria-hidden", "true");

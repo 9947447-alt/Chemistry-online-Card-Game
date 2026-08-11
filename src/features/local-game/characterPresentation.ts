@@ -3,6 +3,13 @@ import type {
   CharacterSkillImplementationStatus,
   CharacterSkillType,
 } from "../../game/engine/types";
+import type { DisplayLocale } from "../../app/locale";
+import {
+  getImplementationStatusDisplayName,
+  getSkillAvailabilityDisplayName,
+  getSkillDisplayName,
+  getSkillTypeDisplayName,
+} from "./presentationLocale";
 
 export const skillTypeLabels: Record<CharacterSkillType, string> = {
   active: "主动",
@@ -32,16 +39,13 @@ export type PublicCharacterSkill = Readonly<{
   availability: string;
 }>;
 
-function publicAvailability(status: CharacterSkillImplementationStatus) {
-  if (status === "implemented-8c-4-partial") return "当前试玩部分可用";
-  if (status.startsWith("implemented")) return "当前试玩可用";
-  return "当前试玩为说明项";
-}
-
-export function getPublicCharacterSkills(character: CharacterDefinition): readonly PublicCharacterSkill[] {
+export function getPublicCharacterSkills(
+  character: CharacterDefinition,
+  locale: DisplayLocale = "zh-CN",
+): readonly PublicCharacterSkill[] {
   return character.skills.map((skill) => ({
-    name: skill.name,
-    type: skillTypeLabels[skill.type],
-    availability: publicAvailability(skill.implementationStatus),
+    name: getSkillDisplayName(skill.id, locale),
+    type: getSkillTypeDisplayName(skill.type, locale),
+    availability: getSkillAvailabilityDisplayName(skill.implementationStatus, locale),
   }));
 }

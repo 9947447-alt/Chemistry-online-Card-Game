@@ -18,6 +18,19 @@ const test = base.extend<{ runtimeErrors: string[] }>({
   },
 });
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, "language", {
+      configurable: true,
+      get: () => "zh-CN",
+    });
+    Object.defineProperty(Navigator.prototype, "languages", {
+      configurable: true,
+      get: () => ["zh-CN"],
+    });
+  });
+});
+
 async function startNoTeacherGame(page: Page) {
   await page.goto("/");
   await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
@@ -114,6 +127,117 @@ async function openAndCloseAbout(page: Page) {
   await expect(dialog).toBeHidden();
   await expect(aboutTrigger).toBeFocused();
 }
+
+test("Alpha 4 language layer changes only presentation and keeps feedback static", async ({ page, runtimeErrors }) => {
+  void runtimeErrors;
+  await startNoTeacherGame(page);
+
+  const beforeLanguageSwitch = await page.evaluate(() => ({
+    cards: document.querySelectorAll(".debug-card").length,
+    detailText: document.querySelector(".debug-detail-list")?.textContent ?? "",
+    logEntries: Array.from(document.querySelectorAll(".game-log li")).map((entry) => entry.textContent),
+    phase: Array.from(document.querySelectorAll(".debug-detail-list > div")).find(
+      (row) => row.querySelector("dt")?.textContent === "phase",
+    )?.querySelector("dd")?.textContent ?? null,
+  }));
+
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { exact: true, name: "Main action" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "New player guidance: Main action" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Full game log" })).toBeVisible();
+  await expect(page.getByText("The formal game record currently remains in Simplified Chinese.", { exact: false })).toBeVisible();
+
+  const feedback = page.getByRole("link", { name: "Open Microsoft Forms feedback in a new tab" });
+  await expect(feedback).toHaveAttribute("href", "https://forms.cloud.microsoft/r/QG8PACUnsa");
+  await expect(feedback).toHaveAttribute("target", "_blank");
+  await expect(feedback).toHaveAttribute("rel", "noopener noreferrer");
+
+  expect(await page.evaluate(() => ({
+    cookie: document.cookie,
+    localStorage: window.localStorage.length,
+    sessionStorage: window.sessionStorage.length,
+    formsRequests: performance.getEntriesByType("resource").filter((entry) =>
+      entry.name.includes("forms.cloud.microsoft"),
+    ).length,
+  }))).toEqual({ cookie: "", localStorage: 0, sessionStorage: 0, formsRequests: 0 });
+
+  await page.getByRole("button", { name: "中文" }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  expect(await page.evaluate(() => ({
+    cards: document.querySelectorAll(".debug-card").length,
+    detailText: document.querySelector(".debug-detail-list")?.textContent ?? "",
+    logEntries: Array.from(document.querySelectorAll(".game-log li")).map((entry) => entry.textContent),
+    phase: Array.from(document.querySelectorAll(".debug-detail-list > div")).find(
+      (row) => row.querySelector("dt")?.textContent === "phase",
+    )?.querySelector("dd")?.textContent ?? null,
+  }))).toEqual(beforeLanguageSwitch);
+
+  await page.getByRole("button", { name: "English" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
+});
+
+test("Alpha 4 suggests English from an English browser preference", async ({ page, runtimeErrors }) => {
+  void runtimeErrors;
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, "language", {
+      configurable: true,
+      get: () => "en-US",
+    });
+    Object.defineProperty(Navigator.prototype, "languages", {
+      configurable: true,
+      get: () => ["zh-CN", "en-US"],
+    });
+  });
+  await page.goto("/");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", {
+    name: "REACTION FIELD · Local two-player character selection",
+  })).toBeVisible();
+  await expect(page.getByLabel("player_1 character")).toHaveValue("laboratory_teacher");
+});
+
+test("Alpha 4 English display covers setup, all public phases, dialogs, and fatal fallback", async ({ page, runtimeErrors }) => {
+  void runtimeErrors;
+  const switchToEnglish = async (path: string) => {
+    await page.goto(path);
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  };
+
+  await switchToEnglish("/");
+  await expect(page.getByRole("heading", { name: "REACTION FIELD · Local two-player character selection" })).toBeVisible();
+  await page.getByRole("button", { name: "About & help" }).click();
+  await expect(page.getByRole("dialog", { name: "About & help" })).toBeVisible();
+  await page.getByRole("button", { name: "Close help" }).click();
+
+  await page.getByRole("button", { name: "Start game" }).click();
+  await expect(page.getByRole("heading", { name: "Laboratory Teacher · Preparation" })).toBeVisible();
+
+  await startNoTeacherGame(page);
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.getByRole("heading", { name: "Main action", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "End this action" }).click();
+  await page.getByRole("button", { name: "Restart with current lineup" }).click();
+  await expect(page.getByRole("alertdialog", { name: "Restart with the current lineup?" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await switchToEnglish("/?scenario=response-window");
+  await expect(page.getByRole("heading", { name: "Response window" })).toBeVisible();
+  await switchToEnglish("/?scenario=status-window");
+  await expect(page.getByRole("heading", { name: "Status handling window" })).toBeVisible();
+  await switchToEnglish("/?scenario=experiment-counterattack-window");
+  await expect(page.getByRole("heading", { name: "Experiment Counterattack selection" })).toBeVisible();
+  await switchToEnglish("/?scenario=reaction-h2o");
+  await expect(page.getByText("Successful reaction · Acid-base neutralization", { exact: true })).toBeVisible();
+  await switchToEnglish("/?scenario=game-over");
+  await expect(page.getByRole("heading", { name: "Game over", exact: true })).toBeVisible();
+  await switchToEnglish("/?scenario=fatal");
+  await expect(page.getByRole("heading", { name: "The current game stopped safely" })).toBeVisible();
+});
 
 test("默认配置、正式元数据与 configuring 帮助界面", async ({ page, runtimeErrors }) => {
   void runtimeErrors;

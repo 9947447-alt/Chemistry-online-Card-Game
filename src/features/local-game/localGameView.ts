@@ -2,6 +2,7 @@ import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { characterDefinitions } from "../../game/data/characterDefinitions";
 import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
 import { getReactionDefinition } from "../../game/data/reactions";
+import type { DisplayLocale } from "../../app/locale";
 import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
 import { getAcidBaseDamageTag } from "../../game/engine/damageContext";
 import { isAlkalineAbsorptionDefinition } from "../../game/engine/multiTargetResponse";
@@ -24,6 +25,13 @@ import type {
   ReactionParticipant,
   SuccessfulReactionEvent,
 } from "../../game/engine/reactions";
+import {
+  getCardDisplayName,
+  getDiyRecipeDisplayName,
+  getReactionDisplayName,
+  getSkillDisplayName,
+  getPlayerDisplayName,
+} from "./presentationLocale";
 
 export const cardDefinitionById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
@@ -52,17 +60,35 @@ const reactionParticipantRoleLabels: Record<ReactionParticipant["role"], string>
 function describePublicReactionParticipant(
   state: GameState,
   participant: ReactionParticipant,
+  locale: DisplayLocale,
 ): string {
-  const role = reactionParticipantRoleLabels[participant.role];
+  const role = locale === "en"
+    ? {
+        attacker: "Attack source",
+        responder: "Response card",
+        "status-handler": "Status handler card",
+        "affected-status": "Status being handled",
+      }[participant.role]
+    : reactionParticipantRoleLabels[participant.role];
 
   if (participant.kind === "card") {
     const definition = cardDefinitionById.get(participant.cardDefinitionId);
-    return `${role}：${getPlayerName(state, participant.playerId)} · ${definition?.name ?? participant.cardDefinitionId}`;
+    const name = definition
+      ? getCardDisplayName(definition.id, definition.name, locale)
+      : participant.cardDefinitionId;
+    return locale === "en"
+      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.playerId), locale)} · ${name}`
+      : `${role}：${getPlayerName(state, participant.playerId)} · ${name}`;
   }
 
   if (participant.kind === "diy") {
     const recipe = diyRecipes.find((candidate) => candidate.id === participant.recipeId);
-    return `${role}：${getPlayerName(state, participant.playerId)} · 虚拟 DIY ${recipe?.name ?? participant.recipeId}`;
+    const name = recipe
+      ? getDiyRecipeDisplayName(recipe.id, recipe.name, locale)
+      : participant.recipeId;
+    return locale === "en"
+      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.playerId), locale)} · Virtual DIY ${name}`
+      : `${role}：${getPlayerName(state, participant.playerId)} · 虚拟 DIY ${name}`;
   }
 
   if (participant.kind === "character-skill") {
@@ -72,20 +98,25 @@ function describePublicReactionParticipant(
     const skill = characterDefinitions
       .find((definition) => definition.id === character?.characterId)
       ?.skills.find((candidate) => candidate.id === participant.skillId);
-    return `${role}：${getPlayerName(state, participant.sourcePlayerId)} · ${skill?.name ?? participant.skillId}`;
+    const name = skill ? getSkillDisplayName(skill.id, locale) : participant.skillId;
+    return locale === "en"
+      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.sourcePlayerId), locale)} · ${name}`
+      : `${role}：${getPlayerName(state, participant.sourcePlayerId)} · ${name}`;
   }
 
-  return `${role}：${getPlayerName(state, participant.targetPlayerId)} · 待处理状态`;
+  return locale === "en"
+    ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.targetPlayerId), locale)} · Status being handled`
+    : `${role}：${getPlayerName(state, participant.targetPlayerId)} · 待处理状态`;
 }
 
-function describePublicReactionTrigger(event: SuccessfulReactionEvent): string {
+function describePublicReactionTrigger(event: SuccessfulReactionEvent, locale: DisplayLocale): string {
   switch (event.trigger.kind) {
     case "single-damage-response":
-      return "单目标伤害响应";
+      return locale === "en" ? "Single-target damage response" : "单目标伤害响应";
     case "multi-target-damage-response":
-      return "即时多目标响应";
+      return locale === "en" ? "Immediate multi-target response" : "即时多目标响应";
     case "status-handling":
-      return "状态处理响应";
+      return locale === "en" ? "Status-handling response" : "状态处理响应";
     default: {
       const exhaustiveTrigger: never = event.trigger;
       return exhaustiveTrigger;
@@ -93,14 +124,16 @@ function describePublicReactionTrigger(event: SuccessfulReactionEvent): string {
   }
 }
 
-function describePublicReactionOutcome(event: SuccessfulReactionEvent): string {
+function describePublicReactionOutcome(event: SuccessfulReactionEvent, locale: DisplayLocale): string {
   switch (event.outcome.kind) {
     case "virtual-product":
-      return `伤害已完全抵消；生成虚拟结果 ${event.outcome.product}`;
+      return locale === "en"
+        ? `Damage was fully cancelled; virtual result ${event.outcome.product} was produced`
+        : `伤害已完全抵消；生成虚拟结果 ${event.outcome.product}`;
     case "damage-cancelled":
-      return "伤害已完全抵消";
+      return locale === "en" ? "Damage was fully cancelled" : "伤害已完全抵消";
     case "status-removed":
-      return "待处理状态已移除";
+      return locale === "en" ? "The pending status was removed" : "待处理状态已移除";
     default: {
       const exhaustiveOutcome: never = event.outcome;
       return exhaustiveOutcome;
@@ -140,7 +173,7 @@ function describeReactionParticipant(
   if (participant.kind === "status") {
     return `${reactionParticipantRoleLabels[participant.role]}：${getPlayerName(state, participant.targetPlayerId)} · ${participant.statusId} (${participant.statusInstanceId})`;
   }
-  return describePublicReactionParticipant(state, participant);
+  return describePublicReactionParticipant(state, participant, "zh-CN");
 }
 
 function describeReactionTrigger(event: SuccessfulReactionEvent): string {
@@ -170,15 +203,19 @@ function describeReactionOutcome(event: SuccessfulReactionEvent): string {
 export function getPublicReactionLogView(
   state: GameState,
   entry: GameLogEntry,
+  locale: DisplayLocale = "zh-CN",
 ): ReactionLogView | undefined {
   if (!entry.reaction) return undefined;
   return {
-    name: getReactionDefinition(entry.reaction.definitionId).name,
-    trigger: describePublicReactionTrigger(entry.reaction),
-    participants: entry.reaction.participants.map((participant) =>
-      describePublicReactionParticipant(state, participant),
+    name: getReactionDisplayName(
+      entry.reaction.definitionId,
+      locale,
     ),
-    outcome: describePublicReactionOutcome(entry.reaction),
+    trigger: describePublicReactionTrigger(entry.reaction, locale),
+    participants: entry.reaction.participants.map((participant) =>
+      describePublicReactionParticipant(state, participant, locale),
+    ),
+    outcome: describePublicReactionOutcome(entry.reaction, locale),
   };
 }
 
@@ -310,14 +347,15 @@ export function describeTableReferenceAssociation(
   state: GameState,
   player: Player,
   cardInstanceId: CardInstanceId,
+  locale: DisplayLocale = "zh-CN",
 ) {
   if (!state.tableReference) {
-    return "可建立首张基准牌";
+    return locale === "en" ? "Can establish the first reference card" : "可建立首张基准牌";
   }
 
   return canPlayAgainstCurrentTableReference(state, player, cardInstanceId)
-    ? "可关联出牌"
-    : "与当前基准牌不关联";
+    ? (locale === "en" ? "Can play as associated" : "可关联出牌")
+    : (locale === "en" ? "Not associated with the current reference card" : "与当前基准牌不关联");
 }
 
 export function getMainActionCards(state: GameState, player: Player) {

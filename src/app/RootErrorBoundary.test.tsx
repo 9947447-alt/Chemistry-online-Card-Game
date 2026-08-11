@@ -28,7 +28,7 @@ describe("Phase 11 React ErrorBoundary", () => {
       expect(container.textContent).toContain("页面遇到无法继续处理的错误");
       expect(container.textContent).toContain("UI_RENDER_FAILED");
       expect(container.textContent).not.toContain("PRIVATE_STACK_AND_GAME_STATE");
-      expect(container.querySelector("button")?.textContent).toBe("重新加载页面");
+      expect(container.querySelector(".root-failure-card button")?.textContent).toBe("重新加载页面");
     } finally {
       await act(async () => root.unmount());
       container.remove();

@@ -1,4 +1,6 @@
 import type { GamePhase, GameState, PlayerId } from "../../game/engine/types";
+import type { DisplayLocale } from "../../app/locale";
+import { getPlayerDisplayName } from "./presentationLocale";
 
 export type NewPlayerGuidancePhase =
   | "configuring"
@@ -18,8 +20,12 @@ export type NewPlayerGuidanceView = Readonly<{
   concept: string;
 }>;
 
-function getPlayerName(game: GameState, playerId: PlayerId | undefined): string {
-  return game.players.find((player) => player.id === playerId)?.name ?? "当前玩家";
+function getPlayerName(
+  game: GameState,
+  playerId: PlayerId | undefined,
+  locale: DisplayLocale,
+): string {
+  return getPlayerDisplayName(game.players.find((player) => player.id === playerId), locale);
 }
 
 const phaseCopy: Readonly<Record<Exclude<NewPlayerGuidancePhase, "configuring">, Omit<
@@ -64,7 +70,57 @@ const phaseCopy: Readonly<Record<Exclude<NewPlayerGuidancePhase, "configuring">,
   },
 };
 
-export function getConfiguringGuidance(): NewPlayerGuidanceView {
+const englishPhaseCopy: typeof phaseCopy = {
+  preparationSelection: {
+    title: "Preparation",
+    goal: "Use the existing preparation panel to choose and confirm this hand's kept cards.",
+    entry: "Use the cards and Confirm preparation selection in the Laboratory Teacher · Preparation panel below.",
+    concept: "The existing panel determines the keep count and eligible cards; guidance does not make a second decision.",
+  },
+  mainAction: {
+    title: "Main action",
+    goal: "The active player completes one main action or ends this action.",
+    entry: "Use Main action, Active DIY, character-skill entries, or End this action below.",
+    concept: "The table reference only describes the current reference; use the existing action-panel notice to determine association.",
+  },
+  responseWindow: {
+    title: "Response",
+    goal: "The current responder uses an existing response entry or passes.",
+    entry: "Use the options in Response window below, or Pass response.",
+    concept: "Response DIY is disabled in MVP0-P10; guidance does not judge whether any card is legal.",
+  },
+  statusWindow: {
+    title: "Status handling",
+    goal: "The current handler handles the pending status or uses the existing continue entry.",
+    entry: "Use the options in Status handling window below, or Pass handling.",
+    concept: "The existing status panel determines usable cards; guidance does not create or judge handling options.",
+  },
+  experimentCounterattackWindow: {
+    title: "Experiment Counterattack",
+    goal: "The current counterattacker completes this Experiment Counterattack with an implemented option.",
+    entry: "Use the currently displayed options in Experiment Counterattack selection below.",
+    concept: "The real metal option remains deferred; no missing card or option is added here.",
+  },
+  gameOver: {
+    title: "Game over",
+    goal: "Review the public log and result, then decide whether to start the next game.",
+    entry: "Review the public log and use Restart with current lineup or Return to character selection in the header.",
+    concept: "Existing resolution determined the outcome; guidance does not change the outcome or restart behavior.",
+  },
+};
+
+export function getConfiguringGuidance(locale: DisplayLocale = "zh-CN"): NewPlayerGuidanceView {
+  if (locale === "en") {
+    return {
+      phase: "configuring",
+      title: "Setup",
+      actor: "Both players",
+      goal: "Confirm the local shared-screen two-player lineup before starting this public game.",
+      entry: "Use Player A and Player B character selection and Start game below.",
+      concept: "Both hands are public; refreshing returns to the default character selections and does not save this game.",
+    };
+  }
+
   return {
     phase: "configuring",
     title: "配置",
@@ -75,50 +131,69 @@ export function getConfiguringGuidance(): NewPlayerGuidanceView {
   };
 }
 
-export function getPlayingGuidance(game: GameState): NewPlayerGuidanceView | undefined {
+export function getPlayingGuidance(
+  game: GameState,
+  locale: DisplayLocale = "zh-CN",
+): NewPlayerGuidanceView | undefined {
   const phase: GamePhase = game.phase;
+  const copy = locale === "en" ? englishPhaseCopy : phaseCopy;
 
   switch (phase) {
     case "preparationSelection":
       return {
-        ...phaseCopy.preparationSelection,
+        ...copy.preparationSelection,
         phase,
-        actor: `当前选择者：${getPlayerName(game, game.pendingLaboratoryPreparation?.playerId)}`,
+        actor: locale === "en"
+          ? `Current selector: ${getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale)}`
+          : `当前选择者：${getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale)}`,
       };
     case "mainAction":
       return {
-        ...phaseCopy.mainAction,
+        ...copy.mainAction,
         phase,
-        actor: `当前行动者：${getPlayerName(game, game.activePlayerId)}`,
+        actor: locale === "en"
+          ? `Active player: ${getPlayerName(game, game.activePlayerId, locale)}`
+          : `当前行动者：${getPlayerName(game, game.activePlayerId, locale)}`,
       };
     case "responseWindow":
       return {
-        ...phaseCopy.responseWindow,
+        ...copy.responseWindow,
         phase,
-        actor: `当前响应者：${getPlayerName(game, game.pendingResponse?.responderId)}`,
+        actor: locale === "en"
+          ? `Current responder: ${getPlayerName(game, game.pendingResponse?.responderId, locale)}`
+          : `当前响应者：${getPlayerName(game, game.pendingResponse?.responderId, locale)}`,
       };
     case "statusWindow":
       return {
-        ...phaseCopy.statusWindow,
+        ...copy.statusWindow,
         phase,
-        actor: `当前处理者：${getPlayerName(game, game.pendingStatusHandling?.playerId)}`,
+        actor: locale === "en"
+          ? `Current handler: ${getPlayerName(game, game.pendingStatusHandling?.playerId, locale)}`
+          : `当前处理者：${getPlayerName(game, game.pendingStatusHandling?.playerId, locale)}`,
       };
     case "experimentCounterattackWindow":
       return {
-        ...phaseCopy.experimentCounterattackWindow,
+        ...copy.experimentCounterattackWindow,
         phase,
-        actor: `当前反击者：${getPlayerName(
+        actor: locale === "en" ? `Current counterattacker: ${getPlayerName(
           game,
           game.pendingExperimentCounterattack?.responderPlayerId,
+          locale,
+        )}` : `当前反击者：${getPlayerName(
+          game,
+          game.pendingExperimentCounterattack?.responderPlayerId,
+          locale,
         )}`,
       };
     case "gameOver":
       return {
-        ...phaseCopy.gameOver,
+        ...copy.gameOver,
         phase,
         actor: game.isDraw
-          ? "本局结果：平局"
-          : `本局结果：${getPlayerName(game, game.winnerPlayerId)} 获胜`,
+          ? (locale === "en" ? "Game result: Draw" : "本局结果：平局")
+          : locale === "en"
+            ? `Game result: ${getPlayerName(game, game.winnerPlayerId, locale)} wins`
+            : `本局结果：${getPlayerName(game, game.winnerPlayerId, locale)} 获胜`,
       };
     case "setup":
     case "cycleStart":

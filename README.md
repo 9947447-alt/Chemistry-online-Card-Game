@@ -20,6 +20,12 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。当前公开发布事实为：对外阶段 Reaction Field Alpha 2，技术版本 `0.13.0-alpha.3`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3`，peeled commit `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。`main` 已包含完整稳定历史；Pages workflow、部署和简略公开页面验收均已成功，但这不等同于广泛跨浏览器兼容性验收。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署。`web-playtest-v0.13.0-alpha.1` 与 alpha.2 标签均保持不可变。
 
+## Feedback / 反馈
+
+<a href="https://forms.cloud.microsoft/r/QG8PACUnsa" target="_blank" rel="noopener noreferrer">Feedback / 反馈 — opens Microsoft Forms in a new tab / 将在新标签页打开 Microsoft Forms</a>
+
+点击反馈会离开游戏，提交内容由 Microsoft Forms 处理。游戏不会向该表单传递手牌、日志、角色、浏览器信息、错误诊断、语言偏好或任何 `GameState` 内容。 / Clicking Feedback leaves the game and Microsoft Forms handles submitted content. The game sends the form no hand, log, character, browser information, error diagnostic, language preference, or `GameState` content.
+
 ## 固定工具链
 
 - Node.js `24.18.0`，见 `.node-version`。
