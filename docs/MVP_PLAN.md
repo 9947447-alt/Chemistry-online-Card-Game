@@ -27,13 +27,17 @@ Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`�
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.13.0-alpha.3`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。该版本已公开发布，对外阶段名为 Reaction Field Alpha 2；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前候选应用版本为 `0.14.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本仍是 Reaction Field Alpha 2 / `0.13.0-alpha.3`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。
 
 ## 0.13.0-alpha.3 已公开发布（Reaction Field Alpha 2）
 
 alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。alpha.3 将该断言修复为动态 checked-out HEAD 短 SHA，并已在不增加游戏功能或规则的前提下公开发布；技术版本为 `0.13.0-alpha.3`，规则版本为 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3` 精确 peeled 到 `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。Pages workflow、部署和简略公开页面验收已成功；不宣称广泛跨浏览器兼容性验收。alpha.1 与 alpha.2 标签均不移动、不重写，alpha.3 发布对象保持不变。
 
-已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 alpha.3 发布不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+## 0.14.0-alpha.1 发布候选（Reaction Field Alpha 4）
+
+Alpha 4 的简体中文与 English 展示层、页面内语言切换和 Microsoft Forms 普通外链反馈入口已经实现并合入 `main`；普通 engine 正式日志在英文模式下仍为简体中文。当前只准备 `0.14.0-alpha.1` 候选，预定标签 `web-playtest-v0.14.0-alpha.1` 尚未创建、尚未部署，也未执行真实 Pages 验收；新标签部署完成前，公开站点仍可能运行 Alpha 2 / `0.13.0-alpha.3`。游戏不会自动向 Forms 发送 `GameState`、手牌、日志、诊断或浏览器数据；iOS 27 beta Firefox 的 modal / `ROOT_RUNTIME_FAILED` 风险仍未解决。
+
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 4 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 ## MVP 0 定案范围
 

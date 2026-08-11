@@ -7,7 +7,7 @@ import {
   forbiddenProductionMarkers,
 } from "./check-production.mjs";
 
-const expectedTitle = "反应域 · REACTION FIELD · Web Playtest Alpha · 0.13.0-alpha.3 · MVP0-P10";
+const expectedTitle = "反应域 · REACTION FIELD · Web Playtest Alpha · 0.14.0-alpha.1 · MVP0-P10";
 const cleanIndex = `<!doctype html><html><head><title>${expectedTitle}</title><script src="./assets/app.js"></script><link href="./assets/app.css" rel="stylesheet"></head><body></body></html>`;
 const temporaryRoots = [];
 
