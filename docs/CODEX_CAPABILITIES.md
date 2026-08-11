@@ -74,7 +74,7 @@ engine modules → game/data definitions → typed GameState / GameAction
 - fatal 会话从本地状态移除旧 `GameState`，旧 action 被拒绝；恢复需要重新创建匹配阵容的状态。
 - 测试文件分布在 `src` 和 `scripts`，覆盖引擎规则、会话边界、UI 组件、产物扫描、标签检查和静态服务器。
 - E2E 配置当前只声明 Chromium；本轮没有取得 Firefox、Safari、真实 iOS 或 Pages 运行结果。
-- 本地 Git 已确认 `web-playtest-v0.13.0-alpha.2` 指向审计 HEAD；README 和部分 Phase 文档仍写作“尚未创建”。这只证明本地 Git/文档状态，不证明远端 Pages 部署状态。
+- 本地 Git 已确认 `web-playtest-v0.13.0-alpha.2` 指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 的旧 commit 固定断言失败，未成功部署。alpha.3 是替代候选；这不证明公开站点当前运行的版本。
 
 ## Codex 可协助的工作矩阵
 
@@ -83,7 +83,7 @@ engine modules → game/data definitions → typed GameState / GameAction
 | 类别 | 可协助事项 | 关键文件 | 风险 | 推荐验证方式 |
 |---|---|---|---|---|
 | 功能开发 | 在规则冻结后补齐真实金属卡池和实验反击金属选项 | `src/game/data/*`、`src/game/engine/experimentCounterattack.ts`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md` | 高 | reducer/不变量测试、E2E、卡池计数复核 |
-| Bug 修复 | 同步 alpha.2 标签、README 和 Phase 文档的发布状态 | `README.md`、`docs/MVP_PLAN.md`、`docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`、`scripts/check-web-playtest-tag.mjs` | 低 | 本地 tag 目标、package 版本、文档交叉检查 |
+| Bug 修复 | 修复 production E2E 的旧 commit 断言并准备 alpha.3 替代候选 | `e2e/production/reaction-field.spec.ts`、`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`、`scripts/check-web-playtest-tag.mjs` | 低 | 本地 tag 目标、当前 HEAD、package 版本、文档交叉检查 |
 | 测试与质量 | 增加覆盖率和浏览器矩阵（需单独批准后形成门禁） | `vite.config.ts`、`package.json`、`playwright.config.ts`、`playwright.production.config.ts`、`.github/workflows/phase11-debug-alpha.yml` | 中 | 实际执行测试、覆盖率报告、浏览器 E2E |
 | 架构和重构 | 抽取正式 fixture builder，减少直接拼装 `GameState`；清理未使用脚手架 | `e2e/fixtureScenarios.ts`、`src/game/tests/*`、`src/game/data/debugScenarios.ts`、`src/game/data/statusDefinitions.ts`、`src/app/routes.tsx`、`src/game/engine/statuses.ts`、`src/shared/ids.ts` | 中 | 牌区/pending 不变量、全量 Vitest |
 | 性能 | 评估长日志和大牌区的渲染成本，必要时优化 | `src/features/local-game/components/GameLog.tsx`、`src/features/local-game/local-game.css`、`scripts/check-size.mjs` | 中 | 长日志场景、浏览器 profile、体积检查 |

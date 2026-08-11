@@ -22,12 +22,12 @@
 
 - ID：`PIT-002`
 - 标题：本地 `web-playtest-v0.13.0-alpha.2` 已存在，但文档仍写“尚未创建”
-- 状态：已确认；文档尚未在本轮同步
+- 状态：已确认；在 alpha.3 发布恢复候选中已同步文档，保留本历史记录
 - 适用范围：本地 Git 发布核对、README/Phase 发布说明、候选版本判断
-- 症状：本地标签 `web-playtest-v0.13.0-alpha.2` 的提交目标是审计 HEAD；`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 仍描述该标签尚未创建
+- 症状：2026-08-10，本地标签 `web-playtest-v0.13.0-alpha.2` 的提交目标是审计 HEAD；`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 当时仍描述该标签尚未创建
 - 根因：本地 Git ref 与文档文本快照不一致；本轮只确认了本地状态和文档内容
 - 错误做法：据此推断远端 Pages 已部署或未部署，或移动/重写标签来“修正文档”
-- 正确做法：分别记录本地 tag、文档状态和远端部署证据；标签/部署动作必须获得明确授权
+- 正确做法：分别记录本地 tag、文档状态和远端部署证据；标签/部署动作必须获得明确授权。2026-08-11 已确认 alpha.2 Pages workflow 因 production E2E 的旧 commit 固定断言失败，alpha.2 未成功部署；改用不移动旧标签的 alpha.3 替代候选。
 - 验证方法：`git rev-parse web-playtest-v0.13.0-alpha.2^{commit}`、`git rev-parse HEAD`，并检索 `README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 中的发布状态文字
 - 证据文件/测试/提交：`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`；本地 Git tag；审计 HEAD `57550f7`
 - 最近核验日期：2026-08-10

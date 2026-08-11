@@ -27,13 +27,13 @@ Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`�
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.13.0-alpha.2`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前仓库只是在准备 alpha.2 品牌资产更新发布候选；`web-playtest-v0.13.0-alpha.2` 尚未创建、尚未部署，也尚未完成公开 URL 验收。发布仍需用户单独确认，公开试玩地址的实时可用性不由本地实现阶段联网确认。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.13.0-alpha.3`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。`0.13.0-alpha.3` 是 alpha.2 失败后的替代发布候选；对外产品阶段仍称 Reaction Field Alpha 2。发布仍需用户单独确认，公开试玩地址的实时可用性不由本地实现阶段联网确认。
 
-## 0.13.0-alpha.2 品牌资产更新发布候选（未发布）
+## 0.13.0-alpha.3 发布恢复候选（未发布）
 
-本候选仅包含已完成并通过 CI 的品牌资产更新：01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。它不增加任何游戏功能或规则；`MVP0-P10`、68 张普通实体卡池、初始 `event_lab_fire` 数量与三类结构化反应定义均保持不变。应用版本继续由 `package.json` 唯一提供，`releaseMetadata` 继续读取该版本；alpha.1 标签永久保持不变。alpha.2 标签尚未创建，候选尚未部署，也尚未完成公开 URL 验收。
+alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Icon 与 11-C RF 品牌资产。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。alpha.3 是替代候选，修复该断言并添加 Apache-2.0 许可基础，不增加游戏功能或规则；`MVP0-P10`、68 张普通实体卡池、初始 `event_lab_fire` 数量与三类结构化反应定义均保持不变。alpha.1 与 alpha.2 标签均不移动、不重写；alpha.3 在最终批准前不创建标签或部署。除非有实时证据，公开站点可能仍运行 alpha.1。
 
-已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 alpha.2 品牌资产更新不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 alpha.3 替代候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 ## MVP 0 定案范围
 
