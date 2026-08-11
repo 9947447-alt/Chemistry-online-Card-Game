@@ -9,10 +9,11 @@ English | [简体中文](./README.zh-CN.md)
 - Play: [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
 - Current public milestone: **Reaction Field Alpha 2**
 - Current published technical version: `0.13.0-alpha.3`
+- Alpha 4 release-candidate version: `0.14.0-alpha.1`
 - Rules version: `MVP0-P10`
 - GitHub Release: [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)
 
-The Alpha 4 international playtest work described below is implemented on the current feature branch. It has not been merged, released, or deployed. The public URL and Release above still serve Alpha 2 / `0.13.0-alpha.3`.
+The Alpha 4 international playtest work described below has been merged into `main`. This candidate prepares `0.14.0-alpha.1`; the planned `web-playtest-v0.14.0-alpha.1` tag has not been created or deployed, and no real Pages acceptance check has run for it. Until that deployment completes, the public URL and Release above may still serve Alpha 2 / `0.13.0-alpha.3`.
 
 ## What Is Reaction Field?
 
@@ -44,7 +45,7 @@ The earlier `web-playtest-v0.13.0-alpha.2` tag remains unchanged at `57550f70856
 
 ## International Playtest Status
 
-Alpha 4 is implemented on this branch but is not merged, released, or deployed. It provides Simplified Chinese and English presentation layers without changing game state or rules.
+Alpha 4 is implemented and merged into `main`. The current release candidate prepares `0.14.0-alpha.1`, but it is not released or deployed. It provides Simplified Chinese and English presentation layers without changing game state or rules.
 
 - The display language is suggested from browser language preferences and can be switched in the page.
 - The selection is held only for the current React page lifecycle. It is not persisted; after a refresh, the suggestion is evaluated again from the browser language.
@@ -54,7 +55,7 @@ Alpha 4 is implemented on this branch but is not merged, released, or deployed. 
 
 [Open Microsoft Forms feedback in a new tab](https://forms.cloud.microsoft/r/QG8PACUnsa).
 
-The game does not contact Microsoft Forms before the user clicks the feedback link. It does not automatically pass `GameState`, hands, logs, characters, browser information, error diagnostics, or language preference to the form. After the link is opened, Microsoft Forms handles the content entered there. This project does not claim that the form is anonymous, requires no sign-in, or collects no identity information.
+The feedback entry is an ordinary external link opened only by an explicit user click. The game does not contact Microsoft Forms before that click and does not automatically pass `GameState`, hands, logs, characters, browser information, error diagnostics, or language preference to the form. After the link is opened, Microsoft Forms handles the content entered there. This project does not claim that the form is anonymous, requires no sign-in, or collects no identity information.
 
 ## Running Locally
 

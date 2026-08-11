@@ -1,6 +1,6 @@
 {
   "name": "chemistry-online-card-game",
-  "version": "0.13.0-alpha.3",
+  "version": "0.14.0-alpha.1",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

@@ -2,7 +2,7 @@
 
 # 反应域
 
-**反应域（REACTION FIELD）** 已公开发布 Web Playtest Alpha，技术版本为 `0.13.0-alpha.3`，规则版本严格为 `MVP0-P10`，对外阶段名为 Reaction Field Alpha 2。本次发布不增加任何游戏功能或规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
+**反应域（REACTION FIELD）** 当前公开版本仍是 Reaction Field Alpha 2 / `0.13.0-alpha.3`；Alpha 4 国际试玩功能已合入 `main`，本候选正在准备 `0.14.0-alpha.1`。规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
 ## 当前能力
 
@@ -24,7 +24,7 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 ## Alpha 4 国际试玩状态
 
-Alpha 4 国际试玩功能已在当前分支实现，但尚未合并、发布或部署。Alpha 4 提供简体中文和英文展示层，不改变游戏状态或规则。
+Alpha 4 国际试玩功能已经实现并合入 `main`；当前候选正在准备 `0.14.0-alpha.1`。预定标签 `web-playtest-v0.14.0-alpha.1` 尚未创建、尚未部署，也未执行真实 Pages 验收；在新标签部署完成前，公开站点仍可能运行 Alpha 2 / `0.13.0-alpha.3`。Alpha 4 提供简体中文和英文展示层，不改变游戏状态或规则。
 
 - 展示语言根据浏览器语言偏好给出建议，也可以在页面内切换。
 - 语言选择仅保存在当前 React 页面生命周期，不做持久化；刷新后会重新根据浏览器语言建议。
@@ -34,7 +34,7 @@ Alpha 4 国际试玩功能已在当前分支实现，但尚未合并、发布或
 
 <a href="https://forms.cloud.microsoft/r/QG8PACUnsa" target="_blank" rel="noopener noreferrer">Feedback / 反馈 — opens Microsoft Forms in a new tab / 将在新标签页打开 Microsoft Forms</a>
 
-点击反馈会离开游戏，提交内容由 Microsoft Forms 处理。游戏不会向该表单传递手牌、日志、角色、浏览器信息、错误诊断、语言偏好或任何 `GameState` 内容。 / Clicking Feedback leaves the game and Microsoft Forms handles submitted content. The game sends the form no hand, log, character, browser information, error diagnostic, language preference, or `GameState` content.
+反馈入口是仅由用户主动点击的普通外链。点击反馈会离开游戏，提交内容由 Microsoft Forms 处理。游戏不会自动向该表单传递手牌、日志、角色、浏览器信息、错误诊断、语言偏好或任何 `GameState` 内容。 / Feedback is an ordinary external link opened only by an explicit user click. Clicking it leaves the game and Microsoft Forms handles submitted content. The game does not automatically send any hand, log, character, browser information, error diagnostic, language preference, or `GameState` content.
 
 游戏不会在用户点击反馈链接前访问 Microsoft Forms。点击后由 Microsoft Forms 处理用户填写的内容。本项目不声称该表单匿名、无需登录或不收集身份信息。
 
@@ -106,7 +106,7 @@ fatal 页面可复制的本地安全诊断只包含：
 
 ```text
 名称：反应域
-应用版本：0.13.0-alpha.3
+应用版本：0.14.0-alpha.1
 规则版本：MVP0-P10
 Commit：<短 SHA 或 dev/unknown>
 错误码：<稳定错误码>
@@ -121,7 +121,7 @@ Commit：<短 SHA 或 dev/unknown>
 - 真实金属卡池及实验反击金属选项、方程式、沉淀、响应 DIY、多人、联网、账号、存档和回放均延期。
 - 当前公开发布使用 GitHub Pages；本地开发与验证不执行部署。
 - Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现，也不在本阶段范围。
-- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。本次 alpha.3 发布不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。本次 Alpha 4 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 发布、标签、回滚与停止公开试玩说明见 [`docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`](docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md)。Phase 11 是历史稳定性基线；规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。
 
