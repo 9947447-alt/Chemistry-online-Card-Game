@@ -2,7 +2,7 @@
 
 ## 结论
 
-Phase 13 采用一个独立、非模态的阶段引导面板，集中解释既有 MVP0-P10 的当前阶段、当前参与者、阶段目标与已有操作入口。它是纯展示层，不改变规则、合法性、发布身份或任何游戏状态。实现已经完成并合并；当前仓库正在准备 `0.13.0-alpha.3` 发布恢复 Web Playtest 替代候选。
+Phase 13 采用一个独立、非模态的阶段引导面板，集中解释既有 MVP0-P10 的当前阶段、当前参与者、阶段目标与已有操作入口。它是纯展示层，不改变规则、合法性、发布身份或任何游戏状态。实现已经完成并合并；`0.13.0-alpha.3` 已公开发布，对外阶段名为 Reaction Field Alpha 2。
 
 ## 权威来源与范围
 
@@ -43,7 +43,7 @@ About 首局速查固定说明：响应 DIY 关闭；虚拟 H2O / CO2 不创建 
 ## 不变量、测试与发布边界
 
 - 不修改 `GameState`、`GameAction`、reducer、引擎、数据、starter deck、CardInstance 数量或实例化规则；引导控件仅更新 React 本地可见/折叠状态，且不 dispatch `GameAction`。
-- 规则版本严格保持 `MVP0-P10`；应用版本由 `package.json` 唯一提供，当前为 `0.13.0-alpha.3`，`releaseMetadata` 继续从构建注入值读取版本。Phase 13 引导已在 alpha.1 基线实现并合并，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。alpha.3 是替代发布候选，修复验证并增加 Apache-2.0 许可基础，不增加游戏功能或规则；对外产品阶段仍称 Reaction Field Alpha 2。发布仍需用户单独确认，且在 alpha.3 真正部署前不能宣称 Alpha 2 已发布成功；除非有实时证据，公开站点可能仍运行 alpha.1。
+- 规则版本严格保持 `MVP0-P10`；应用版本由 `package.json` 唯一提供，当前为 `0.13.0-alpha.3`，`releaseMetadata` 继续从构建注入值读取版本。Phase 13 引导已在 alpha.1 基线实现并合并，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署，也未完成公开 URL 验收。alpha.3 已公开发布，不增加游戏功能或规则；对外阶段名为 Reaction Field Alpha 2，标签 `web-playtest-v0.13.0-alpha.3` 精确 peeled 到 `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。Pages workflow、部署和简略公开页面验收已成功，但不宣称广泛跨浏览器兼容性验收。
 - 组件测试覆盖七类阶段文案、默认可见、折叠、跳过、重新显示与焦点稳定；Chromium E2E 覆盖配置和真实 reducer 可到达的引导，并以 fixture 覆盖难稳定进入的窗口。桌面与 390×844 均检查无水平溢出、console error、pageerror 与本地静态资源失败。
 
 ## 已知兼容性边界
@@ -51,4 +51,4 @@ About 首局速查固定说明：响应 DIY 关闭；虚拟 H2O / CO2 不创建 
 - 在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。
 - 先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 - Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。
-- 本次 alpha.3 替代候选不修复也不声称修复 iOS Firefox beta。
+- 本次 alpha.3 发布不修复也不声称修复 iOS Firefox beta。

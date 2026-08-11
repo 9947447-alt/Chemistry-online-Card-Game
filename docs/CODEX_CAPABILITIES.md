@@ -2,12 +2,12 @@
 
 ## 审计基线
 
-- 审计日期：2026-08-10
-- 审计分支：`feat/debug-ui-alpha`
-- 审计 HEAD：`57550f70856d5d5e27ac3fcb0fa508cd698d3be6`
+- 审计日期：2026-08-11
+- 审计分支：`docs/alpha2-release-closeout`
+- 审计 HEAD：`0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`
 - 本文是基于该提交的仓库快照；后续架构、分支或发布状态变化后必须重新核验。
-- 本轮文档写入和验证仅针对当前主工作树；其他 linked worktree 不在本文件操作范围。
-- 本轮未安装依赖、未运行测试/构建/审计、未联网验证 GitHub Pages，也未创建或修改发布状态。
+- 本轮文档写入和验证仅针对 `/Users/a0000/Documents/Chemistry-online-Card-Game-alpha2-release-closeout`；其他 linked worktree 不在本文件操作范围。
+- 本轮未安装依赖、未运行测试/构建/审计；本轮未修改标签、Release、Pages workflow、部署或 GitHub 设置。
 
 ## 项目目标与范围
 
@@ -73,8 +73,8 @@ engine modules → game/data definitions → typed GameState / GameAction
 - `src/game/engine/reducer.ts` 是正式 `GameAction` 入口；UI 对局操作经会话层转发。
 - fatal 会话从本地状态移除旧 `GameState`，旧 action 被拒绝；恢复需要重新创建匹配阵容的状态。
 - 测试文件分布在 `src` 和 `scripts`，覆盖引擎规则、会话边界、UI 组件、产物扫描、标签检查和静态服务器。
-- E2E 配置当前只声明 Chromium；本轮没有取得 Firefox、Safari、真实 iOS 或 Pages 运行结果。
-- 本地 Git 已确认 `web-playtest-v0.13.0-alpha.2` 指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 的旧 commit 固定断言失败，未成功部署。alpha.3 是替代候选；这不证明公开站点当前运行的版本。
+- E2E 配置当前只声明 Chromium；本轮没有取得 Firefox、Safari 或真实 iOS 运行结果，也未进行广泛跨浏览器兼容性验收。
+- `web-playtest-v0.13.0-alpha.2` 保持不可变并指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 的旧 commit 固定断言失败，alpha.2 未成功部署。alpha.3 已公开发布：对外阶段 Reaction Field Alpha 2，技术版本 `0.13.0-alpha.3`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3` peeled 到 `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`；GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)，公开试玩为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。Pages workflow、部署和简略公开页面验收已成功。
 
 ## Codex 可协助的工作矩阵
 
@@ -83,7 +83,7 @@ engine modules → game/data definitions → typed GameState / GameAction
 | 类别 | 可协助事项 | 关键文件 | 风险 | 推荐验证方式 |
 |---|---|---|---|---|
 | 功能开发 | 在规则冻结后补齐真实金属卡池和实验反击金属选项 | `src/game/data/*`、`src/game/engine/experimentCounterattack.ts`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md` | 高 | reducer/不变量测试、E2E、卡池计数复核 |
-| Bug 修复 | 修复 production E2E 的旧 commit 断言并准备 alpha.3 替代候选 | `e2e/production/reaction-field.spec.ts`、`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`、`scripts/check-web-playtest-tag.mjs` | 低 | 本地 tag 目标、当前 HEAD、package 版本、文档交叉检查 |
+| 发布文档 | 收口 Reaction Field Alpha 2 的 alpha.3 已发布事实，保留 alpha.2 失败与不可变标签记录 | `README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`、`docs/REACTION_FIELD_BRAND_ASSETS.md`、`docs/CODEX_CAPABILITIES.md`、`docs/CODEX_PITFALLS.md` | 低 | Git 基线、tag peeled commit、版本、公开试玩与 Release URL、允许路径差异检查 |
 | 测试与质量 | 增加覆盖率和浏览器矩阵（需单独批准后形成门禁） | `vite.config.ts`、`package.json`、`playwright.config.ts`、`playwright.production.config.ts`、`.github/workflows/phase11-debug-alpha.yml` | 中 | 实际执行测试、覆盖率报告、浏览器 E2E |
 | 架构和重构 | 抽取正式 fixture builder，减少直接拼装 `GameState`；清理未使用脚手架 | `e2e/fixtureScenarios.ts`、`src/game/tests/*`、`src/game/data/debugScenarios.ts`、`src/game/data/statusDefinitions.ts`、`src/app/routes.tsx`、`src/game/engine/statuses.ts`、`src/shared/ids.ts` | 中 | 牌区/pending 不变量、全量 Vitest |
 | 性能 | 评估长日志和大牌区的渲染成本，必要时优化 | `src/features/local-game/components/GameLog.tsx`、`src/features/local-game/local-game.css`、`scripts/check-size.mjs` | 中 | 长日志场景、浏览器 profile、体积检查 |
@@ -94,4 +94,4 @@ engine modules → game/data definitions → typed GameState / GameAction
 
 ## 仍未取得的证据
 
-本快照不包含当前测试/构建通过结论、漏洞扫描结果、Firefox 结果、远端标签状态或 GitHub Pages 部署状态。后续报告必须逐项标记实际执行与未验证项。
+本快照不包含当前测试/构建通过结论、漏洞扫描结果、Firefox、Safari 或真实 iOS 结果，也不构成广泛跨浏览器兼容性结论。Alpha.3 的公开发布、标签、GitHub Release、Pages 部署和简略公开页面验收按本轮权威发布记录已完成；后续报告仍必须逐项标记实际执行与未验证项。

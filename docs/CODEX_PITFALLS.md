@@ -1,6 +1,6 @@
 # Codex 踩坑与保护边界
 
-本文件只记录可复核的信息。历史事故、根因和修复结果必须有代码、测试、日志、CI 或可复现步骤证据；推测只能放入“待验证候选”。最近核验日期：2026-08-10。
+本文件只记录可复核的信息。历史事故、根因和修复结果必须有代码、测试、日志、CI 或可复现步骤证据；推测只能放入“待验证候选”。最近核验日期：2026-08-11。
 
 ## A. 已确认踩坑
 
@@ -16,23 +16,23 @@
 - 正确做法：先确认根目录、分支、HEAD、状态；若仍有歧义，停止并请求路径确认
 - 验证方法：在用户指定路径执行 `git rev-parse --show-toplevel`、`git branch --show-current`、`git rev-parse HEAD` 和 `git status --short`
 - 证据文件/测试/提交：2026-08-10 只读 Git 基线检查与用户路径确认；无专门测试；无新增提交
-- 最近核验日期：2026-08-10
+- 最近核验日期：2026-08-11
 
 ### PIT-002：alpha.2 本地标签与发布文档状态不一致
 
 - ID：`PIT-002`
 - 标题：本地 `web-playtest-v0.13.0-alpha.2` 已存在，但文档仍写“尚未创建”
-- 状态：已确认；在 alpha.3 发布恢复候选中已同步文档，保留本历史记录
+- 状态：已确认；alpha.3 已成功公开发布，保留本历史记录
 - 适用范围：本地 Git 发布核对、README/Phase 发布说明、候选版本判断
 - 症状：2026-08-10，本地标签 `web-playtest-v0.13.0-alpha.2` 的提交目标是审计 HEAD；`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 当时仍描述该标签尚未创建
 - 根因：本地 Git ref 与文档文本快照不一致；本轮只确认了本地状态和文档内容
 - 错误做法：据此推断远端 Pages 已部署或未部署，或移动/重写标签来“修正文档”
-- 正确做法：分别记录本地 tag、文档状态和远端部署证据；标签/部署动作必须获得明确授权。2026-08-11 已确认 alpha.2 Pages workflow 因 production E2E 的旧 commit 固定断言失败，alpha.2 未成功部署；改用不移动旧标签的 alpha.3 替代候选。
+- 正确做法：分别记录本地 tag、文档状态和远端部署证据；标签/部署动作必须获得明确授权。2026-08-11 已确认 alpha.2 Pages workflow 因 production E2E 的旧 commit 固定断言失败，alpha.2 未成功部署；改用不移动旧标签的 alpha.3 替代发布。alpha.3 已成功公开发布，对外阶段为 Reaction Field Alpha 2，技术版本为 `0.13.0-alpha.3`，规则版本为 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3` peeled 到 `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`；GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)，公开试玩为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
 - 验证方法：`git rev-parse web-playtest-v0.13.0-alpha.2^{commit}`、`git rev-parse HEAD`，并检索 `README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 中的发布状态文字
-- 证据文件/测试/提交：`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`；本地 Git tag；审计 HEAD `57550f7`
-- 最近核验日期：2026-08-10
+- 证据文件/测试/提交：`README.md`、`docs/MVP_PLAN.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`；本地 Git tag；当时审计 HEAD `57550f7`
+- 最近核验日期：2026-08-11
 
-本项不证明 GitHub Pages 已经部署，也不证明没有部署；远端状态需要单独授权和独立证据。
+本项中关于 alpha.2 的历史描述不用于推断 alpha.3 的当前状态；alpha.3 的公开发布、Pages 部署和 URL 事实见上文记录。
 
 ## B. 项目保护性不变量
 
