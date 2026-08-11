@@ -18,18 +18,7 @@ const test = base.extend<{ runtimeErrors: string[] }>({
   },
 });
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, "language", {
-      configurable: true,
-      get: () => "zh-CN",
-    });
-    Object.defineProperty(Navigator.prototype, "languages", {
-      configurable: true,
-      get: () => ["zh-CN"],
-    });
-  });
-});
+test.use({ locale: "zh-CN" });
 
 async function startNoTeacherGame(page: Page) {
   await page.goto("/");
@@ -131,6 +120,10 @@ async function openAndCloseAbout(page: Page) {
 test("Alpha 4 language layer changes only presentation and keeps feedback static", async ({ page, runtimeErrors }) => {
   void runtimeErrors;
   await startNoTeacherGame(page);
+  expect(await page.evaluate(() => ({
+    language: navigator.language,
+    languages: navigator.languages,
+  }))).toEqual({ language: "zh-CN", languages: ["zh-CN"] });
 
   const beforeLanguageSwitch = await page.evaluate(() => ({
     cards: document.querySelectorAll(".debug-card").length,
@@ -179,25 +172,23 @@ test("Alpha 4 language layer changes only presentation and keeps feedback static
   await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
 });
 
-test("Alpha 4 suggests English from an English browser preference", async ({ page, runtimeErrors }) => {
-  void runtimeErrors;
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, "language", {
-      configurable: true,
-      get: () => "en-US",
-    });
-    Object.defineProperty(Navigator.prototype, "languages", {
-      configurable: true,
-      get: () => ["zh-CN", "en-US"],
-    });
-  });
-  await page.goto("/");
+test.describe("English browser preference", () => {
+  test.use({ locale: "en-US" });
 
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByRole("heading", {
-    name: "REACTION FIELD · Local two-player character selection",
-  })).toBeVisible();
-  await expect(page.getByLabel("player_1 character")).toHaveValue("laboratory_teacher");
+  test("Alpha 4 suggests English from an English browser preference", async ({ page, runtimeErrors }) => {
+    void runtimeErrors;
+    await page.goto("/");
+
+    expect(await page.evaluate(() => ({
+      language: navigator.language,
+      languages: navigator.languages,
+    }))).toEqual({ language: "en-US", languages: ["en-US"] });
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("heading", {
+      name: "REACTION FIELD · Local two-player character selection",
+    })).toBeVisible();
+    await expect(page.getByLabel("player_1 character")).toHaveValue("laboratory_teacher");
+  });
 });
 
 test("Alpha 4 English display covers setup, all public phases, dialogs, and fatal fallback", async ({ page, runtimeErrors }) => {
