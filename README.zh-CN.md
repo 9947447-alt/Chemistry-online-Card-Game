@@ -9,7 +9,7 @@
 - [规则书（一）](https://1drv.ms/w/c/c8f765bca077d05c/IQCSnB79Sf12Qr23WokLeoXFASUzet25LWZcJu6Lyr1pwZ0)
 - [规则书（二）](https://1drv.ms/w/c/c8f765bca077d05c/IQAmizLdNIPeR64VpWkG0ja5ASq7JOTM1CD2C5KupV6W4Nc)
 
-本规则书描述的是游戏的目标规则；当前游戏版本可能仍有未实现内容或实现差异，请以游戏内实际表现为准。
+完整规则书与适用的已冻结裁定描述目标规则；当前 Alpha 可能仍有未实现内容或实现差异。试玩时可根据当前界面和游戏反馈判断“现在能做什么”，但实现差异不会自动覆盖正式规则；发现不一致时，应按规则书与适用的已冻结裁定核对。
 
 ## 当前能力
 
