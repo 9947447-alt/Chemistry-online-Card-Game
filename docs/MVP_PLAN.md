@@ -16,6 +16,11 @@
 - `docs/PHASE11_DEBUG_ALPHA_STABILITY_PLAN.md`：Phase 11 稳定性、错误恢复、E2E、CI 与静态发布准备；不是规则冻结文档。
 - `docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`：Phase 12 反应域静态 Web 试玩发布边界、标签、回滚与停止公开说明；不是规则冻结文档。
 - `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`：Phase 13 新玩家首局引导的展示、可访问性、测试与发布边界；不改写现有规则冻结。
+- `docs/PHASE15_FIRST_GAME_CONVERSION_FREEZE.md`：Phase 15 配置页信息层级、静态示例、非模态成功反应提示和 GitHub 入口边界；不改写现有规则冻结。
+
+## Phase 15 首局转化与玩法可理解性（未发布候选）
+
+Phase 15 只调整配置页信息层级、默认折叠的双语三步示例、消费既有 `GameLogEntry.reaction` 的约两秒非模态成功反应提示，以及 About / `gameOver` 的静态 GitHub 仓库链接。规则版本保持 `MVP0-P10`，默认实验室老师 / 化工厂 CEO 阵容不变，不新增媒体或外部请求，也不修改 engine、data、game tests、reaction definitions、Forms、版本、size gate 或发布状态。
 
 ## Phase 12 发布边界
 

@@ -3,6 +3,7 @@
 import { act, createElement, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
+import { LocaleProvider, LocaleSwitch } from "../../../app/locale";
 import { createInitialGame } from "../../../game/engine/createInitialGame";
 import { engineReducer } from "../../../game/engine/reducer";
 import type {
@@ -305,6 +306,10 @@ describe("Phase 13 new-player guidance", () => {
       await act(async () => collapseButton.click());
       expect(collapseButton.getAttribute("aria-expanded")).toBe("false");
       expect(document.activeElement).toBe(collapseButton);
+      expect(container.textContent).toContain(
+        "当前目标：由当前行动玩家完成一次主行动，或结束本次行动。",
+      );
+      expect(container.textContent).not.toContain("当前行动者：玩家 A");
 
       await act(async () => collapseButton.click());
       const skipButton = Array.from(container.querySelectorAll("button")).find(
@@ -317,6 +322,17 @@ describe("Phase 13 new-player guidance", () => {
         (button) => button.textContent === "重新显示新手引导",
       );
       if (!showButton) throw new Error("Expected stable guidance restore control.");
+      expect(container.querySelector(".new-player-guidance")?.getAttribute("aria-label")).toBe("新手引导");
+      expect(container.textContent).toContain(
+        "当前目标：由当前行动玩家完成一次主行动，或结束本次行动。",
+      );
+      expect(container.textContent).not.toContain("当前行动者：玩家 A");
+      expect(container.textContent).not.toContain(
+        "使用下方“主行动”“主动 DIY”与角色技能入口，或“结束本次行动”。",
+      );
+      expect(container.textContent).not.toContain(
+        "场面基准只说明当前场面的参考；是否可关联以现有操作面板的提示为准。",
+      );
       expect(document.activeElement).toBe(showButton);
 
       await act(async () => showButton.click());
@@ -324,6 +340,13 @@ describe("Phase 13 new-player guidance", () => {
         (button) => button.textContent === "折叠新手引导",
       );
       expect(document.activeElement).toBe(restoredCollapseButton);
+      expect(container.textContent).toContain("当前行动者：玩家 A");
+      expect(container.textContent).toContain(
+        "使用下方“主行动”“主动 DIY”与角色技能入口，或“结束本次行动”。",
+      );
+      expect(container.textContent).toContain(
+        "场面基准只说明当前场面的参考；是否可关联以现有操作面板的提示为准。",
+      );
       expect(getPlayingGuidance(game)?.title).toBe("主行动");
       expect({
         activePlayerId: game.activePlayerId,
@@ -334,6 +357,65 @@ describe("Phase 13 new-player guidance", () => {
         pendingExperimentCounterattack: game.pendingExperimentCounterattack,
         phase: game.phase,
       }).toEqual(baseline);
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
+  it("keeps only the current goal and exact restore control visible while English details are hidden", async () => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const game = createMainActionGame();
+    const baseline = JSON.stringify(game);
+
+    try {
+      await act(async () => root.render(createElement(
+        LocaleProvider,
+        null,
+        createElement(LocaleSwitch),
+        createElement(GuidanceHarness, { game }),
+      )));
+      const englishButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "English",
+      );
+      if (!englishButton) throw new Error("Expected English locale control.");
+      await act(async () => englishButton.click());
+
+      const hideButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Hide new player guidance",
+      );
+      if (!hideButton) throw new Error("Expected English hide control.");
+      await act(async () => hideButton.click());
+
+      const showButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Show new player guidance again",
+      );
+      if (!showButton) throw new Error("Expected exact English restore control.");
+      expect(document.activeElement).toBe(showButton);
+      expect(container.querySelector(".new-player-guidance")?.getAttribute("aria-label")).toBe(
+        "New player guidance",
+      );
+      expect(container.textContent).toContain(
+        "Current goal: The active player completes one main action or ends this action.",
+      );
+      expect(container.textContent).not.toContain("Active player: Player A");
+      expect(container.textContent).not.toContain(
+        "Use Main action, Active DIY, character-skill entries, or End this action below.",
+      );
+      expect(container.textContent).not.toContain(
+        "The table reference only describes the current reference; use the existing action-panel notice to determine association.",
+      );
+
+      await act(async () => showButton.click());
+      const collapseButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Collapse guidance",
+      );
+      expect(document.activeElement).toBe(collapseButton);
+      expect(container.textContent).toContain("Active player: Player A");
+      expect(JSON.stringify(game)).toBe(baseline);
     } finally {
       await act(async () => root.unmount());
       container.remove();

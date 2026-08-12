@@ -59,6 +59,10 @@ export function NewPlayerGuidance({
   if (!visible) {
     return (
       <section className="new-player-guidance new-player-guidance--hidden" aria-label={isEnglish ? "New player guidance" : "新手引导"}>
+        <p className="new-player-guidance__goal">
+          <strong>{isEnglish ? "Current goal: " : "当前目标："}</strong>
+          {guidance.goal}
+        </p>
         <button
           className="secondary-button new-player-guidance__show"
           onClick={() => onVisibleChange(true)}
@@ -91,11 +95,14 @@ export function NewPlayerGuidance({
           {collapsed ? (isEnglish ? "Expand guidance" : "展开新手引导") : (isEnglish ? "Collapse guidance" : "折叠新手引导")}
         </button>
       </div>
+      <p className="new-player-guidance__goal">
+        <strong>{isEnglish ? "Current goal: " : "当前目标："}</strong>
+        {guidance.goal}
+      </p>
       {!collapsed ? (
         <div className="new-player-guidance__content" id={contentId}>
           <p className="new-player-guidance__actor">{guidance.actor}</p>
           <dl className="new-player-guidance__facts">
-            <div><dt>{isEnglish ? "Goal" : "本阶段目标"}</dt><dd>{guidance.goal}</dd></div>
             <div><dt>{isEnglish ? "Action entry" : "操作入口"}</dt><dd>{guidance.entry}</dd></div>
             <div><dt>{isEnglish ? "Concept" : "相关概念"}</dt><dd>{guidance.concept}</dd></div>
           </dl>

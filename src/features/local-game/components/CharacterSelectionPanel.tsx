@@ -15,6 +15,7 @@ import {
   getImplementationStatusDisplayName,
   getSkillTypeDisplayName,
 } from "../presentationLocale";
+import { FirstGameExample } from "./FirstGameExample";
 
 type CharacterSelectionPanelProps = {
   session: ConfiguringLocalGameSession;
@@ -42,13 +43,6 @@ export function CharacterSelectionPanel({
 
   return (
     <main className="local-game-page character-selection-page">
-      <NewPlayerGuidance
-        collapsed={guidanceCollapsed}
-        mode="configuring"
-        onCollapsedChange={onGuidanceCollapsedChange}
-        onVisibleChange={onGuidanceVisibleChange}
-        visible={guidanceVisible}
-      />
       <section className="debug-section character-selection-hero" aria-labelledby="character-selection-title">
         <div className="character-selection-hero__heading">
           <img
@@ -117,6 +111,16 @@ export function CharacterSelectionPanel({
           {isEnglish ? "Start game" : "开始游戏"}
         </button>
       </section>
+
+      <NewPlayerGuidance
+        collapsed={guidanceCollapsed}
+        mode="configuring"
+        onCollapsedChange={onGuidanceCollapsedChange}
+        onVisibleChange={onGuidanceVisibleChange}
+        visible={guidanceVisible}
+      />
+
+      <FirstGameExample />
 
       <section className="character-catalog" aria-labelledby="character-catalog-title">
         <div className="character-catalog__heading">
