@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useLocale } from "../../../app/locale";
 import { releaseMetadata } from "../../../app/releaseMetadata";
+import { ProjectRepositoryLink } from "../../../app/projectRepository";
 import { characterDefinitions } from "../../../game/data/characterDefinitions";
 import {
   getPublicCharacterSkills,
@@ -57,6 +58,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
             <div><dt>{isEnglish ? "Rules version" : "规则版本"}</dt><dd>{releaseMetadata.rulesVersion}</dd></div>
             <div><dt>Commit</dt><dd>{releaseMetadata.commit}</dd></div>
           </dl>
+          <ProjectRepositoryLink />
         </section>
 
         <section className="about-section">

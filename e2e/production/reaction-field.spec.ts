@@ -135,6 +135,15 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     }
     await expect(page.getByRole("heading", { name: "反应域 · 本地双人角色选择" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "新手引导：配置" })).toBeVisible();
+    await expect(page.getByText(
+      "当前目标：确认本地同屏双人阵容后，再开始本局公开对局。",
+      { exact: true },
+    )).toBeVisible();
+    await expect(page.getByRole("button", { name: "展开新手引导" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(page.locator(".first-game-example details")).not.toHaveAttribute("open", "");
     await expect(page.locator(".release-bar .secondary-brand")).toHaveText("REACTION FIELD");
     const feedback = page.getByRole("link", { name: "在新标签页打开 Microsoft Forms 反馈表" });
     await expect(feedback).toHaveAttribute("href", "https://forms.cloud.microsoft/r/QG8PACUnsa");
@@ -146,10 +155,18 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
     await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
     await page.getByRole("button", { name: "关于与帮助" }).click();
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("REACTION FIELD");
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("0.14.0-alpha.1");
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText("MVP0-P10");
-    await expect(page.getByRole("dialog", { name: "关于与帮助" })).toContainText(expectedBuildCommit);
+    const about = page.getByRole("dialog", { name: "关于与帮助" });
+    await expect(about).toContainText("REACTION FIELD");
+    await expect(about).toContainText("0.14.0-alpha.1");
+    await expect(about).toContainText("MVP0-P10");
+    await expect(about).toContainText(expectedBuildCommit);
+    const repository = about.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
+    await expect(repository).toHaveAttribute(
+      "href",
+      "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+    );
+    await expect(repository).toHaveAttribute("target", "_blank");
+    await expect(repository).toHaveAttribute("rel", "noopener noreferrer");
     await page.keyboard.press("Escape");
     await page.getByLabel("player_1 角色").selectOption("chemical_factory_ceo");
     await page.getByLabel("player_2 角色").selectOption("acid_king");

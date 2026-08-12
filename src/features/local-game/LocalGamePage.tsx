@@ -2,6 +2,7 @@ import "./local-game.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FeedbackLink } from "../../app/feedback";
 import { LocaleSwitch, useLocale } from "../../app/locale";
+import { ProjectRepositoryLink } from "../../app/projectRepository";
 import { releaseMetadata } from "../../app/releaseMetadata";
 import type { GameAction } from "../../game/engine/actions";
 import type { CardInstanceId } from "../../game/engine/types";
@@ -22,6 +23,7 @@ import { PlayerPanel } from "./components/PlayerPanel";
 import { PreparationPanel } from "./components/PreparationPanel";
 import { ResponsePanel } from "./components/ResponsePanel";
 import { StatusPanel } from "./components/StatusPanel";
+import { SuccessfulReactionNotice } from "./components/SuccessfulReactionNotice";
 import { useLocalGameDebug } from "./hooks/useLocalGameDebug";
 import type {
   LocalGameEngineReducer,
@@ -76,6 +78,7 @@ function PlayingGame({
         onRestart={(trigger) => onRequestSessionExit("restart", trigger)}
         onReturnToCharacterSelection={(trigger) => onRequestSessionExit("return", trigger)}
       />
+      <SuccessfulReactionNotice game={game} />
       <div className="debug-layout">
         <div className="debug-main">
           <div className="players-grid">
@@ -128,6 +131,7 @@ function PlayingGame({
               <p className="panel-note">
                 {isEnglish ? "Review the full log, or use the header to restart with the current lineup or return to character selection." : "可以查看完整日志，或使用顶部“按当前阵容重开”“返回角色选择”。"}
               </p>
+              <ProjectRepositoryLink />
             </section>
           ) : null}
         </aside>
@@ -158,7 +162,7 @@ export function LocalGamePage({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<PendingSessionConfirmation | null>(null);
   const [guidanceVisible, setGuidanceVisible] = useState(true);
-  const [guidanceCollapsed, setGuidanceCollapsed] = useState(false);
+  const [guidanceCollapsed, setGuidanceCollapsed] = useState(true);
   const aboutTriggerRef = useRef<HTMLButtonElement>(null);
   const confirmationExecutedRef = useRef(false);
   const playingPhase = session.mode === "playing" ? session.game.phase : session.mode;

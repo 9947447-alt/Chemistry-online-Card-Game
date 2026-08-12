@@ -163,6 +163,15 @@
   padding: 8px 10px;
 }
 
+.new-player-guidance__goal {
+  background: #eef7f2;
+  border-left: 4px solid #2f7658;
+  border-radius: 6px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+}
+
 .new-player-guidance__facts {
   display: grid;
   gap: 8px;
@@ -185,6 +194,65 @@
 .new-player-guidance__skip,
 .new-player-guidance__show {
   justify-self: start;
+}
+
+.first-game-example {
+  display: grid;
+  gap: 10px;
+}
+
+.first-game-example__details ol {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.first-game-example__details li {
+  line-height: 1.5;
+}
+
+.project-repository-link {
+  color: #175f47;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.successful-reaction-notice {
+  animation: successful-reaction-notice-in 160ms ease-out;
+  background: #e6f4ee;
+  border: 1px solid #9bcdb7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  margin: 16px auto 0;
+  max-width: 1480px;
+  padding: 12px 14px;
+}
+
+.successful-reaction-notice strong {
+  color: #205d44;
+}
+
+.successful-reaction-notice span {
+  color: #3d5f50;
+}
+
+@keyframes successful-reaction-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .successful-reaction-notice {
+    animation: none;
+  }
 }
 
 .mirror-note,

@@ -13,6 +13,9 @@ const test = base.extend<{ runtimeErrors: string[] }>({
       }
     });
     page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+    page.on("requestfailed", (request) => errors.push(
+      `requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`,
+    ));
     await use(errors);
     expect(errors).toEqual([]);
   },
@@ -64,6 +67,10 @@ async function expectGuidanceCopy(
   concept: string,
 ) {
   await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+  const expand = page.getByRole("button", { name: "展开新手引导" });
+  if (await expand.isVisible().catch(() => false)) {
+    await expand.click();
+  }
   await expect(page.getByText(actor, { exact: true })).toBeVisible();
   await expect(page.getByText(entry, { exact: true })).toBeVisible();
   await expect(page.getByText(concept, { exact: true })).toBeVisible();
@@ -107,9 +114,12 @@ async function openAndCloseAbout(page: Page) {
   await expect(page.locator(".application-shell")).toHaveAttribute("inert", "");
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   const closeButton = page.getByRole("button", { name: "关闭帮助" });
+  const repositoryLink = dialog.getByRole("link", {
+    name: "在新标签页打开反应域 GitHub 仓库",
+  });
   await expect(closeButton).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(closeButton).toBeFocused();
+  await expect(repositoryLink).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(closeButton).toBeFocused();
   await closeButton.click();
@@ -201,8 +211,44 @@ test("Alpha 4 English display covers setup, all public phases, dialogs, and fata
 
   await switchToEnglish("/");
   await expect(page.getByRole("heading", { name: "REACTION FIELD · Local two-player character selection" })).toBeVisible();
+  await expect(page.getByText(
+    "Current goal: Confirm the local shared-screen two-player lineup before starting this public game.",
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByRole("button", { name: "Expand guidance" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await page.getByRole("button", { name: "Expand guidance" }).click();
+  await page.getByRole("button", { name: "Hide new player guidance" }).click();
+  const englishRestore = page.getByRole("button", { name: "Show new player guidance again" });
+  await expect(page.getByText(
+    "Current goal: Confirm the local shared-screen two-player lineup before starting this public game.",
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByText("Both players", { exact: true })).toBeHidden();
+  await expect(page.getByText(
+    "Use Player A and Player B character selection and Start game below.",
+    { exact: true },
+  )).toBeHidden();
+  await expect(page.getByText(
+    "Both hands are public; refreshing returns to the default character selections and does not save this game.",
+    { exact: true },
+  )).toBeHidden();
+  await expect(englishRestore).toBeFocused();
+  await englishRestore.click();
+  await expect(page.getByRole("button", { name: "Collapse guidance" })).toBeFocused();
+  await expect(page.getByText("Both players", { exact: true })).toBeVisible();
+  await page.locator(".first-game-example summary").click();
+  await expect(page.locator(".first-game-example")).toContainText(
+    "Play a card: The active player chooses a card through the available action controls.",
+  );
   await page.getByRole("button", { name: "About & help" }).click();
-  await expect(page.getByRole("dialog", { name: "About & help" })).toBeVisible();
+  const englishAbout = page.getByRole("dialog", { name: "About & help" });
+  await expect(englishAbout).toBeVisible();
+  await expect(englishAbout.getByRole("link", {
+    name: "Open the Reaction Field GitHub repository in a new tab",
+  })).toHaveAttribute("rel", "noopener noreferrer");
   await page.getByRole("button", { name: "Close help" }).click();
 
   await page.getByRole("button", { name: "Start game" }).click();
@@ -223,7 +269,10 @@ test("Alpha 4 English display covers setup, all public phases, dialogs, and fata
   await switchToEnglish("/?scenario=experiment-counterattack-window");
   await expect(page.getByRole("heading", { name: "Experiment Counterattack selection" })).toBeVisible();
   await switchToEnglish("/?scenario=reaction-h2o");
-  await expect(page.getByText("Successful reaction · Acid-base neutralization", { exact: true })).toBeVisible();
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
+  await expect(page.locator(".game-log__reaction")).toContainText(
+    "Successful reaction · Acid-base neutralization",
+  );
   await switchToEnglish("/?scenario=game-over");
   await expect(page.getByRole("heading", { name: "Game over", exact: true })).toBeVisible();
   await switchToEnglish("/?scenario=fatal");
@@ -259,6 +308,53 @@ test("默认配置、正式元数据与 configuring 帮助界面", async ({ page
 test("新手引导覆盖真实流程和 fixture 窗口，并保持可键盘恢复", async ({ page, runtimeErrors }) => {
   void runtimeErrors;
   await page.goto("/");
+  await expect(page.getByText(
+    "当前目标：确认本地同屏双人阵容后，再开始本局公开对局。",
+    { exact: true },
+  )).toBeVisible();
+  const initialExpand = page.getByRole("button", { name: "展开新手引导" });
+  await expect(initialExpand).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("双方玩家", { exact: true })).toBeHidden();
+
+  const playerASelect = page.getByLabel("player_1 角色");
+  const playerBSelect = page.getByLabel("player_2 角色");
+  const startButton = page.getByRole("button", { name: "开始游戏" });
+  const firstGameExample = page.locator(".first-game-example");
+  expect(await page.evaluate(() => {
+    const playerA = document.querySelector('[aria-label="player_1 角色"]');
+    const playerB = document.querySelector('[aria-label="player_2 角色"]');
+    const start = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent === "开始游戏",
+    );
+    const guidance = document.querySelector(".new-player-guidance");
+    const example = document.querySelector(".first-game-example");
+    const catalog = document.querySelector(".character-catalog");
+    if (!playerA || !playerB || !start || !guidance || !example || !catalog) return false;
+    const follows = (left: Node, right: Node) => Boolean(
+      left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    return follows(playerA, playerB) && follows(playerB, start) &&
+      follows(start, guidance) && follows(guidance, example) && follows(example, catalog);
+  })).toBe(true);
+
+  await playerASelect.focus();
+  await page.keyboard.press("Tab");
+  await expect(playerBSelect).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(startButton).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(initialExpand).toBeFocused();
+
+  const exampleDetails = firstGameExample.locator("details");
+  await expect(exampleDetails).not.toHaveAttribute("open", "");
+  await exampleDetails.locator("summary").click();
+  await expect(firstGameExample).toContainText("出牌：当前玩家选择一张符合现有操作条件的牌。");
+  await expect(firstGameExample).toContainText("响应：另一位玩家可使用现有响应入口。");
+  await expect(firstGameExample).toContainText(
+    "反应与记录：若形成已实现的成功反应，结果显示并写入公开日志。",
+  );
+  await expect(firstGameExample.locator("button")).toHaveCount(0);
+
   await expectGuidanceCopy(
     page,
     "新手引导：配置",
@@ -281,6 +377,19 @@ test("新手引导覆盖真实流程和 fixture 窗口，并保持可键盘恢�
   await skip.focus();
   await page.keyboard.press("Space");
   const show = page.getByRole("button", { name: "重新显示新手引导" });
+  await expect(page.getByText(
+    "当前目标：确认本地同屏双人阵容后，再开始本局公开对局。",
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByText("双方玩家", { exact: true })).toBeHidden();
+  await expect(page.getByText(
+    "使用下方“玩家 A”“玩家 B”角色选择与“开始游戏”。",
+    { exact: true },
+  )).toBeHidden();
+  await expect(page.getByText(
+    "双方手牌公开；刷新页面会回到默认角色预选，不保存当前对局。",
+    { exact: true },
+  )).toBeHidden();
   await expect(show).toBeFocused();
   expect(await readGuidanceInvariants(page)).toEqual(configuringGuidanceBaseline);
   await page.keyboard.press("Enter");
@@ -490,8 +599,23 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   await page.goto("/?scenario=game-over");
   await expectFactoryCount(page, 1);
   await expect(page.getByRole("heading", { name: "本地双人公开对局" })).toBeVisible();
+  const gameOverRepository = page.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
+  await expect(gameOverRepository).toHaveAttribute(
+    "href",
+    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+  );
+  await expect(gameOverRepository).toHaveAttribute("target", "_blank");
+  await expect(gameOverRepository).toHaveAttribute("rel", "noopener noreferrer");
   await page.getByRole("button", { name: "关于与帮助" }).click();
-  await expect(page.getByRole("dialog", { name: "关于与帮助" })).toBeVisible();
+  const about = page.getByRole("dialog", { name: "关于与帮助" });
+  await expect(about).toBeVisible();
+  const aboutRepository = about.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
+  await expect(aboutRepository).toHaveAttribute(
+    "href",
+    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+  );
+  await expect(aboutRepository).toHaveAttribute("target", "_blank");
+  await expect(aboutRepository).toHaveAttribute("rel", "noopener noreferrer");
   await page.getByRole("button", { name: "关闭帮助" }).click();
 
   await page.getByRole("button", { name: "按当前阵容重开" }).click();
@@ -541,17 +665,25 @@ test("React ErrorBoundary 显示脱敏兜底且提供重新加载", async ({ pag
 test("成功反应公开摘要不泄漏内部状态标识，调试详情保留结构化诊断", async ({ page, runtimeErrors }) => {
   void runtimeErrors;
   await page.goto("/?scenario=reaction-h2o");
-  await expect(page.getByText("伤害已完全抵消；生成虚拟结果 H2O")).toBeVisible();
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
+  await expect(page.locator(".game-log__reaction")).toContainText("成功反应 · 酸碱中和");
+  await expect(page.locator(".game-log__reaction")).toContainText("伤害已完全抵消；生成虚拟结果 H2O");
 
   await page.goto("/?scenario=reaction-co2");
-  await expect(page.getByText("伤害已完全抵消；生成虚拟结果 CO2")).toBeVisible();
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
+  await expect(page.locator(".game-log__reaction")).toContainText("成功反应 · 酸与碳酸盐");
+  await expect(page.locator(".game-log__reaction")).toContainText("伤害已完全抵消；生成虚拟结果 CO2");
 
   await page.goto("/?scenario=reaction-so2-immediate");
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
+  await expect(page.locator(".game-log__reaction")).toContainText("成功反应 · SO2 碱性吸收");
   await expect(page.getByText("入口：即时多目标响应")).toBeVisible();
   await expect(page.getByText("结果：伤害已完全抵消")).toBeVisible();
 
   await page.goto("/?scenario=reaction-so2-status");
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
   const reaction = page.locator(".game-log__reaction");
+  await expect(reaction).toContainText("成功反应 · SO2 碱性吸收");
   await expect(reaction).toContainText("入口：状态处理响应");
   await expect(reaction).toContainText("结果：待处理状态已移除");
   await expect(reaction).not.toContainText("status_phase11_fixture_so2");
@@ -560,6 +692,30 @@ test("成功反应公开摘要不泄漏内部状态标识，调试详情保留�
   await expect(details).not.toHaveAttribute("open", "");
   await details.locator("summary").click();
   await expect(details).toContainText("status_phase11_fixture_so2");
+
+  await page.goto("/?scenario=response-window");
+  await expect(page.locator(".successful-reaction-notice")).toHaveCount(0);
+  await page.locator(".response-panel").getByRole("button", {
+    name: "稀 NaOH 可在当前对局中选择",
+  }).click();
+  await expect(page.locator(".successful-reaction-notice")).toContainText("成功反应 · 酸碱中和");
+  await expect(page.locator(".game-log__reaction")).toContainText("成功反应 · 酸碱中和");
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.locator(".successful-reaction-notice")).toContainText(
+    "Successful reaction · Acid-base neutralization",
+  );
+  await expect(page.locator(".successful-reaction-notice")).toBeHidden({ timeout: 3000 });
+  await page.getByRole("button", { name: "中文" }).click();
+  await expect(page.locator(".successful-reaction-notice")).toBeHidden();
+  await expect(page.locator(".game-log__reaction")).toContainText("成功反应 · 酸碱中和");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?scenario=response-window");
+  await page.locator(".response-panel").getByRole("button", {
+    name: "稀 NaOH 可在当前对局中选择",
+  }).click();
+  await expect(page.locator(".successful-reaction-notice")).toBeVisible();
+  await expect(page.locator(".successful-reaction-notice")).toHaveCSS("animation-name", "none");
 });
 
 test("真实 reducer 长日志可滚动且页面无水平溢出", async ({ page, runtimeErrors }) => {
@@ -644,6 +800,19 @@ test("390×844 覆盖 configuring、playing、reaction、About、fatal 与 gameO
   await gameOverSkip.focus();
   await page.keyboard.press("Space");
   const gameOverShow = page.getByRole("button", { name: "重新显示新手引导" });
+  await expect(page.getByText(
+    "当前目标：查看公开日志与结果，再决定是否开始下一局。",
+    { exact: true },
+  )).toBeVisible();
+  await expect(page.getByText("本局结果：玩家 B 获胜", { exact: true })).toBeHidden();
+  await expect(page.getByText(
+    "查看公开日志，并使用页面顶部“按当前阵容重开”或“返回角色选择”。",
+    { exact: true },
+  )).toBeHidden();
+  await expect(page.getByText(
+    "结果已由既有对局结算确定；引导不改变胜负或重开行为。",
+    { exact: true },
+  )).toBeHidden();
   await expect(gameOverShow).toBeFocused();
   expect(await readGuidanceInvariants(page)).toEqual(gameOverGuidanceBaseline);
   await expectNoHorizontalOverflow(page);
