@@ -28,6 +28,13 @@ This is an alpha playtest, not a stable release.
 - Use linked card play and `tableReference`, active DIY actions, character skills, the shared damage pipeline, and the currently implemented part of experiment counterattacks.
 - Trigger three structured successful reaction events: acid-base neutralization, acid-carbonate reaction, and alkaline absorption of SO2. Virtual H2O and CO2 do not create card instances.
 
+## Rulebooks
+
+- [Rulebook I](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
+- [Rulebook II](https://1drv.ms/w/c/c8f765bca077d05c/IQDsTmoal5SMQLobZjRCmYqAASqI_D2UADagxAimsvxbDHU)
+
+These rulebooks describe the intended game rules. The current build may contain unimplemented parts or implementation differences; in case of discrepancy, the behavior of the current game build takes precedence.
+
 ## Current Features
 
 - A 68-card ordinary physical card pool. `event_lab_fire` has zero ordinary `CardInstance` entries at initialization.
