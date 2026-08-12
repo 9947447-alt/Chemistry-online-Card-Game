@@ -9,7 +9,7 @@ English | [简体中文](./README.zh-CN.md)
 - [Rulebook I](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
 - [Rulebook II](https://1drv.ms/w/c/c8f765bca077d05c/IQDsTmoal5SMQLobZjRCmYqAASqI_D2UADagxAimsvxbDHU)
 
-These rulebooks describe the intended game rules. The current build may contain unimplemented parts or implementation differences; in case of discrepancy, the behavior of the current game build takes precedence.
+The full rulebooks and applicable frozen rulings define the intended rules. The current Alpha may still contain unimplemented parts or implementation differences. Use the current UI and game behavior to understand what is presently playable, but implementation differences do not automatically override the authoritative rules; discrepancies should be checked against the rulebooks and applicable frozen rulings.
 
 ## Try the Web Playtest
 
