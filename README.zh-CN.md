@@ -4,6 +4,13 @@
 
 **反应域（REACTION FIELD）** 当前公开版本仍是 Reaction Field Alpha 2 / `0.13.0-alpha.3`；Alpha 4 国际试玩功能已合入 `main`，本候选正在准备 `0.14.0-alpha.1`。规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
+## 规则书
+
+- [规则书（一）](https://1drv.ms/w/c/c8f765bca077d05c/IQCSnB79Sf12Qr23WokLeoXFASUzet25LWZcJu6Lyr1pwZ0)
+- [规则书（二）](https://1drv.ms/w/c/c8f765bca077d05c/IQAmizLdNIPeR64VpWkG0ja5ASq7JOTM1CD2C5KupV6W4Nc)
+
+本规则书描述的是游戏的目标规则；当前游戏版本可能仍有未实现内容或实现差异，请以游戏内实际表现为准。
+
 ## 当前能力
 
 - 7 个正式角色及 49 种有序双人阵容，允许镜像角色；默认预选实验室老师与化工厂 CEO。
