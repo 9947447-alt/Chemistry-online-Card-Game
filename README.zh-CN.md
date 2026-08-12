@@ -18,6 +18,13 @@
 
 Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。没有联网、账号、房间、存档、遥测或远程错误上报；刷新会丢失当前对局并回到默认角色预选。
 
+## 规则书
+
+- [规则书（一）](https://1drv.ms/w/c/c8f765bca077d05c/IQCSnB79Sf12Qr23WokLeoXFASUzet25LWZcJu6Lyr1pwZ0)
+- [规则书（二）](https://1drv.ms/w/c/c8f765bca077d05c/IQAmizLdNIPeR64VpWkG0ja5ASq7JOTM1CD2C5KupV6W4Nc)
+
+本规则书描述的是游戏的目标规则；当前游戏版本可能仍有未实现内容或实现差异，请以游戏内实际表现为准。
+
 ## 公开试玩地址与本轮状态
 
 公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)，GitHub Release 为 [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)。当前公开发布事实为：对外阶段 Reaction Field Alpha 2，技术版本 `0.13.0-alpha.3`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.13.0-alpha.3`，peeled commit `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`。`main` 已包含完整稳定历史；Pages workflow、部署和简略公开页面验收均已成功，但这不等同于广泛跨浏览器兼容性验收。`web-playtest-v0.13.0-alpha.2` 已存在并保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署。`web-playtest-v0.13.0-alpha.1` 与 alpha.2 标签均保持不可变。
