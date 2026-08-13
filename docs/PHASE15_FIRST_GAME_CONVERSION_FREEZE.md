@@ -2,9 +2,9 @@
 
 ## 结论与范围
 
-Phase 15 只调整 Reaction Field `0.14.0-alpha.1` 候选的展示层信息层级、静态玩法示例、成功反应即时提示和 GitHub 公共入口。规则版本继续为 `MVP0-P10`；本阶段不修改游戏规则、引擎、数据、卡池、默认阵容、版本或发布状态。
+Phase 15 只调整展示层信息层级、静态玩法示例、成功反应即时提示和 GitHub 公共入口。该实现已通过 PR #7 合入 `main`；当前分支只准备 Reaction Field Alpha 5 / `0.15.0-alpha.1` 的版本身份、发布文档和精确测试契约。规则版本继续为 `MVP0-P10`；本轮不修改 Phase 15 产品实现、游戏规则、引擎、数据、卡池、默认阵容或发布基础设施。
 
-本实现尚未提交、发布或部署。当前 Web Playtest 的规则权威继续是 `docs/MVP0_RULE_FREEZE.md` 及 Phase 8–13 冻结文档。
+Phase 15 实现已经合并，但 Alpha 5 尚未发布或部署。预定标签 `web-playtest-v0.15.0-alpha.1` 尚未创建，Pages 部署、公开 URL 验收和 GitHub Release 均未发生；在新标签部署前，公开 Pages 继续运行 Reaction Field Alpha 4 / `0.14.0-alpha.1`。当前 Web Playtest 的规则权威继续是 `docs/MVP0_RULE_FREEZE.md` 及 Phase 8–13 冻结文档。
 
 ## 配置页与引导
 
@@ -44,4 +44,4 @@ Phase 15 只调整 Reaction Field `0.14.0-alpha.1` 候选的展示层信息层�
 
 本阶段只使用 HTML/CSS 文本示例，不新增图片、GIF、MP4、WebM、poster 或字幕文件，不增加外部请求，不提高任何 size limit。
 
-本阶段不得修改 `src/game/engine/**`、`src/game/data/**`、`src/game/tests/**`、`ModalDialog.tsx`、Forms endpoint、依赖和锁文件、版本与发布元数据、品牌资源、Vite/Playwright 配置、CI、标签、Release、Pages 或 iOS Firefox 热修复。iOS 27 beta Firefox 的已知问题仍未验证修复。
+Phase 15 产品实现不得修改 `src/game/engine/**`、`src/game/data/**`、`src/game/tests/**`、`ModalDialog.tsx`、Forms endpoint、依赖和锁文件、品牌资源、Vite/Playwright 配置、CI、标签、Release、Pages 或 iOS Firefox 热修复。Alpha 5 候选准备仅更新 `package.json.version`、发布文档及必要的精确版本测试；`releaseMetadata.ts` 继续从 `package.json` 读取版本。iOS 27 beta Firefox 的已知问题仍未验证修复。

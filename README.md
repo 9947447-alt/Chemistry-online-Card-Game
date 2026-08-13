@@ -4,23 +4,22 @@ English | [简体中文](./README.zh-CN.md)
 
 **Reaction Field** is an experimental, same-screen card game for two local players, built with React and TypeScript and currently distributed as a public Web Playtest Alpha.
 
-## Rulebooks
+## Core Rulebook — Extended Tabletop Reference
 
-- [Rulebook I](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
-- [Rulebook II](https://1drv.ms/w/c/c8f765bca077d05c/IQDsTmoal5SMQLobZjRCmYqAASqI_D2UADagxAimsvxbDHU)
+- [Core Rulebook](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
 
-The full rulebooks and applicable frozen rulings define the intended rules. The current Alpha may still contain unimplemented parts or implementation differences. Use the current UI and game behavior to understand what is presently playable, but implementation differences do not automatically override the authoritative rules; discrepancies should be checked against the rulebooks and applicable frozen rulings.
+The external Core Rulebook is an extended tabletop reference, not the authoritative rules for the current Web Playtest. The current Web Playtest follows the applicable rule-freeze documents in this repository, the implemented behavior, and in-game feedback. The linked OneDrive content has not been independently revalidated for this release candidate.
 
 ## Try the Web Playtest
 
 - Play: [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
-- Current public milestone: **Reaction Field Alpha 2**
-- Current published technical version: `0.13.0-alpha.3`
-- Alpha 4 release-candidate version: `0.14.0-alpha.1`
+- Current public milestone: **Reaction Field Alpha 4**
+- Current published technical version: `0.14.0-alpha.1`
+- Current public tag: `web-playtest-v0.14.0-alpha.1`
+- Alpha 5 release-candidate version: `0.15.0-alpha.1`
 - Rules version: `MVP0-P10`
-- GitHub Release: [web-playtest-v0.13.0-alpha.3](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.13.0-alpha.3)
 
-The Alpha 4 international playtest work described below has been merged into `main`. This candidate prepares `0.14.0-alpha.1`; the planned `web-playtest-v0.14.0-alpha.1` tag has not been created or deployed, and no real Pages acceptance check has run for it. Until that deployment completes, the public URL and Release above may still serve Alpha 2 / `0.13.0-alpha.3`.
+The Alpha 4 international playtest is the current public build. Phase 15 has been merged into `main`, and this branch only prepares the Alpha 5 / `0.15.0-alpha.1` release candidate. The planned `web-playtest-v0.15.0-alpha.1` tag does not exist; Alpha 5 has not been deployed, publicly accepted, or published as a GitHub Release. Until a new tag is deployed, the public URL continues to serve Alpha 4 / `0.14.0-alpha.1`.
 
 ## What Is Reaction Field?
 
@@ -41,22 +40,30 @@ This is an alpha playtest, not a stable release.
 - Public hands, deck counts, status, and the complete game log for both players.
 - Accessible in-page confirmation dialogs for restarting or returning to character selection during a match; after `gameOver`, these actions run directly.
 - One shared About & Help view from character selection, play, and `gameOver`, covering version, capabilities, controls, safety, and deferred scope.
+- Character selection, lineup summary, and the start button appear before detailed guidance; the current goal remains visible while detailed guidance can be collapsed, hidden, and restored.
+- A bilingual, display-only three-step first-game example is collapsed by default.
+- Newly appended structured successful reactions can show a non-modal notice for about 2000 ms. It reads only `GameLogEntry.reaction`, reuses the formal public reaction view, and does not replay historical reactions on first mount.
+- About and `gameOver` provide ordinary static links to the public GitHub repository. Microsoft Forms remains a separate user-clicked static link with the same privacy boundary.
 - A fatal-session boundary: an unhandled initialization, restart, or engine error stops the old match and removes its `GameState`; recovery must start a new matching lineup or return to character selection.
 - React ErrorBoundary handling, root-level React callbacks, and browser `error` / `unhandledrejection` fallback handling.
 
 ## Alpha Status
 
-The current public release is Reaction Field Alpha 2, technical version `0.13.0-alpha.3`, rules version `MVP0-P10`, tag `web-playtest-v0.13.0-alpha.3`, peeled commit `0f50b2c8011ee108bc4b6ab3178ad4aa0acbe6cd`. Its Pages workflow, deployment, and limited public-page acceptance check completed successfully; this is not evidence of broad cross-browser compatibility.
+The current public release is Reaction Field Alpha 4, technical version `0.14.0-alpha.1`, rules version `MVP0-P10`, and tag `web-playtest-v0.14.0-alpha.1`. Its public Pages build remains active until a later tag is deployed; this is not evidence of broad cross-browser compatibility.
 
-The earlier `web-playtest-v0.13.0-alpha.2` tag remains unchanged at `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`. Its Pages workflow failed because a production E2E assertion was pinned to an older commit, so alpha.2 was not deployed successfully. The alpha.1 and alpha.2 tags remain immutable. The published alpha.3 release did not add gameplay features or rules.
+The earlier `web-playtest-v0.13.0-alpha.2` tag remains unchanged at `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`. Its Pages workflow failed because a production E2E assertion was pinned to an older commit, so alpha.2 was not deployed successfully. Historical tags remain immutable.
 
-## International Playtest Status
+## Alpha 4 International Playtest Status
 
-Alpha 4 is implemented and merged into `main`. The current release candidate prepares `0.14.0-alpha.1`, but it is not released or deployed. It provides Simplified Chinese and English presentation layers without changing game state or rules.
+Alpha 4 is implemented, merged, and publicly available as `0.14.0-alpha.1`. It provides Simplified Chinese and English presentation layers without changing game state or rules.
 
 - The display language is suggested from browser language preferences and can be switched in the page.
 - The selection is held only for the current React page lifecycle. It is not persisted; after a refresh, the suggestion is evaluated again from the browser language.
 - Ordinary formal game-log messages remain in Simplified Chinese in English mode. Some structured reaction presentation is localized, but the game must not be described as having a fully English game log.
+
+## Alpha 5 / Phase 15 Candidate Status
+
+Phase 15 is implemented and merged into `main`. This branch only prepares its Alpha 5 version identity, release documentation, and exact test contracts. Alpha 5 is not a complete tutorial, a fully English game log, online multiplayer, complete mobile compatibility, or an iOS Firefox fix. The `web-playtest-v0.15.0-alpha.1` tag, Pages deployment, public URL acceptance, and GitHub Release have not occurred.
 
 ## Feedback
 

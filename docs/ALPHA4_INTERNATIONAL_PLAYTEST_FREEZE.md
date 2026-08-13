@@ -2,11 +2,11 @@
 
 本文件仅冻结 Reaction Field Alpha 4 的展示层与反馈入口边界；不修改 MVP0–P10、Phase 8–13 的游戏规则、引擎、数据、卡池或发布身份。
 
-## 发布候选状态
+## 公开发布状态
 
-- Alpha 4 国际试玩功能已经实现并合入 `main`；当前候选准备应用版本 `0.14.0-alpha.1`，规则版本继续为 `MVP0-P10`。
-- 预定标签 `web-playtest-v0.14.0-alpha.1` 尚未创建、尚未部署，也未执行真实 Pages 验收；完成新标签部署前，公开站点仍可能运行 Reaction Field Alpha 2 / `0.13.0-alpha.3`。
-- 本候选不得提前描述为已公开发布，不改变既有 alpha.1、alpha.2、alpha.3 标签。
+- Alpha 4 国际试玩功能已经实现、合入并以应用版本 `0.14.0-alpha.1` 公开，规则版本继续为 `MVP0-P10`。
+- 当前公开标签为 `web-playtest-v0.14.0-alpha.1`；在 Alpha 5 标签部署前，公开 Pages 继续运行 Reaction Field Alpha 4 / `0.14.0-alpha.1`。
+- Alpha 5 / `0.15.0-alpha.1` 仅处于候选准备状态；不得因此移动或改写 Alpha 4 及更早的历史标签。
 
 ## 展示语言
 
