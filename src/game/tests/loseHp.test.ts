@@ -5,6 +5,7 @@ import type { GameState } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
 import { createMvp0TestGame as createInitialGame } from "./createTestGame";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function createState(): GameState {
   return createInitialGame({ shuffle: identityShuffle });
@@ -30,8 +31,9 @@ describe("Phase 8C-1 independent lose-HP batches", () => {
     expect(resolved.players[1]).toMatchObject({ hp: target.hp - 1, eliminated: false });
     expect(resolved.phase).toBe(state.phase);
     expect(resolved.pendingResponse).toBeUndefined();
-    expect(resolved.log.at(-1)?.message).toContain("失去 1 点体力");
-    expect(resolved.log.at(-1)?.message).not.toContain("伤害");
+    const lastMsg = resolved.log.at(-1) ? renderGameLogEntry(resolved.log.at(-1)!) : "";
+    expect(lastMsg).toContain("失去 1 点体力");
+    expect(lastMsg).not.toContain("伤害");
   });
 
   it("does not apply the ordinary DAMAGE minimum or 3-point cap", () => {
@@ -54,7 +56,7 @@ describe("Phase 8C-1 independent lose-HP batches", () => {
     expect(resolved.phase).toBe("gameOver");
     expect(resolved.winnerPlayerId).toBe(survivor.id);
     expect(resolved.isDraw).toBeUndefined();
-    expect(resolved.log.some((entry) => entry.message.includes("失去 10 点体力"))).toBe(true);
+    expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("失去 10 点体力"))).toBe(true);
   });
 
   it("applies all target HP changes before one unified draw determination", () => {
@@ -68,7 +70,7 @@ describe("Phase 8C-1 independent lose-HP batches", () => {
     expect(resolved.phase).toBe("gameOver");
     expect(resolved.winnerPlayerId).toBeUndefined();
     expect(resolved.isDraw).toBe(true);
-    expect(resolved.log.filter((entry) => entry.message.includes("本局平局"))).toHaveLength(1);
+    expect(resolved.log.filter((entry) => renderGameLogEntry(entry).includes("本局平局"))).toHaveLength(1);
   });
 
   it("is independent of target input order, including deterministic logs", () => {

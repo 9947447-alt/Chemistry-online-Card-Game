@@ -24,7 +24,7 @@ function withReaction(
 ): GameState {
   return {
     ...game,
-    log: [...game.log, { id, message: "该中文日志不得成为提示数据源。", reaction }],
+    log: [...game.log, { id, eventKey: "reaction", params: {}, reaction }],
   };
 }
 
@@ -376,8 +376,8 @@ describe("Phase 15 successful reaction notice", () => {
       ...baseline,
       log: [
         ...baseline.log,
-        { id: "log_plain", message: "成功反应：这只是普通中文日志。" },
-        { id: "log_fire", message: "玩家使用 H2O 处理 FIRE。" },
+        { id: "log_plain", eventKey: "cycle_start", params: { cycleNumber: 1 } },
+        { id: "log_fire", eventKey: "status_handled_fire", params: { playerId: "player_1", cardDefinitionId: "substance_h2o" } },
       ],
     };
 

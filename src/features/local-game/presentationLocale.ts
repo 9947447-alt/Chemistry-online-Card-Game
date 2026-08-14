@@ -2,7 +2,9 @@ import type {
   CharacterId,
   CharacterSkillImplementationStatus,
   CharacterSkillType,
+  LogPresentationContext,
   Player,
+  PlayerId,
 } from "../../game/engine/types";
 import type { DisplayLocale } from "../../app/locale";
 
@@ -83,6 +85,11 @@ const statusNames: Readonly<Record<string, LocalizedLabel>> = {
   FIRE: { "zh-CN": "火情", en: "Fire" },
 };
 
+const damageKindNames: Readonly<Record<string, LocalizedLabel>> = {
+  acid: { "zh-CN": "酸性", en: "acid" },
+  base: { "zh-CN": "碱性", en: "alkaline" },
+};
+
 const reactionNames: Readonly<Record<string, LocalizedLabel>> = {
   acid_base_neutralization: { "zh-CN": "酸碱中和", en: "Acid-base neutralization" },
   acid_carbonate_co2: { "zh-CN": "酸与碳酸盐", en: "Acid and carbonate" },
@@ -116,20 +123,72 @@ export function getSkillDisplayName(skillId: string, locale: DisplayLocale): str
   return skillNames[skillId] ? label(skillNames[skillId], locale) : skillId;
 }
 
+export function getStrictSkillDisplayName(skillId: string, locale: DisplayLocale): string {
+  const entry = skillNames[skillId];
+  if (!entry) {
+    throw new Error(`Unknown skillId for log presentation: ${skillId}`);
+  }
+  return label(entry, locale);
+}
+
 export function getCardDisplayName(definitionId: string, fallback: string, locale: DisplayLocale): string {
   return cardNames[definitionId] ? label(cardNames[definitionId], locale) : fallback;
+}
+
+export function getStrictCardDisplayName(definitionId: string, locale: DisplayLocale): string {
+  const entry = cardNames[definitionId];
+  if (!entry) {
+    throw new Error(`Unknown card definitionId for log presentation: ${definitionId}`);
+  }
+  return label(entry, locale);
 }
 
 export function getDiyRecipeDisplayName(recipeId: string, fallback: string, locale: DisplayLocale): string {
   return diyRecipeNames[recipeId] ? label(diyRecipeNames[recipeId], locale) : fallback;
 }
 
+export function getStrictDiyRecipeDisplayName(recipeId: string, locale: DisplayLocale): string {
+  const entry = diyRecipeNames[recipeId];
+  if (!entry) {
+    throw new Error(`Unknown recipeId for log presentation: ${recipeId}`);
+  }
+  return label(entry, locale);
+}
+
 export function getStatusDisplayName(statusId: string, locale: DisplayLocale): string {
   return statusNames[statusId] ? label(statusNames[statusId], locale) : statusId;
 }
 
+export function getStrictStatusDisplayName(statusId: string, locale: DisplayLocale): string {
+  const entry = statusNames[statusId];
+  if (!entry) {
+    throw new Error(`Unknown statusId for log presentation: ${statusId}`);
+  }
+  return label(entry, locale);
+}
+
 export function getReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
   return reactionNames[reactionId] ? label(reactionNames[reactionId], locale) : reactionId;
+}
+
+export function getStrictReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
+  const entry = reactionNames[reactionId];
+  if (!entry) {
+    throw new Error(`Unknown reactionId for log presentation: ${reactionId}`);
+  }
+  return label(entry, locale);
+}
+
+export function getDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
+  return damageKindNames[damageKind] ? label(damageKindNames[damageKind], locale) : damageKind;
+}
+
+export function getStrictDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
+  const entry = damageKindNames[damageKind];
+  if (!entry) {
+    throw new Error(`Unknown damageKind for log presentation: ${damageKind}`);
+  }
+  return label(entry, locale);
 }
 
 export function getSkillTypeDisplayName(type: CharacterSkillType, locale: DisplayLocale): string {
@@ -172,6 +231,46 @@ export function getPlayerDisplayName(player: Player | undefined, locale: Display
   }
 
   return player.name;
+}
+
+const diyVirtualProductNames: Readonly<Record<string, LocalizedLabel>> = {
+  diy_hcl_from_h_cl: { "zh-CN": "稀 HCl", en: "dilute HCl" },
+  diy_h2so4_from_2h_so4: { "zh-CN": "稀 H2SO4", en: "dilute H2SO4" },
+  diy_naoh_from_na_oh: { "zh-CN": "稀 NaOH", en: "dilute NaOH" },
+  diy_koh_from_k_oh: { "zh-CN": "稀 KOH", en: "dilute KOH" },
+  diy_limewater_from_ca_2oh: { "zh-CN": "石灰水 Ca(OH)2", en: "limewater Ca(OH)2" },
+};
+
+export function getDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
+  return diyVirtualProductNames[recipeId]
+    ? label(diyVirtualProductNames[recipeId], locale)
+    : recipeId;
+}
+
+export function getStrictDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
+  const entry = diyVirtualProductNames[recipeId];
+  if (!entry) {
+    throw new Error(`Unknown virtual product recipeId for log presentation: ${recipeId}`);
+  }
+  return label(entry, locale);
+}
+
+export function getPlayerDisplayNameById(
+  playerId: PlayerId,
+  locale: DisplayLocale,
+  context?: LogPresentationContext,
+): string {
+  const customName = context?.players[playerId]?.customName;
+  if (customName !== undefined) {
+    return customName;
+  }
+  if (playerId === "player_1") {
+    return locale === "en" ? "Player A" : "玩家 A";
+  }
+  if (playerId === "player_2") {
+    return locale === "en" ? "Player B" : "玩家 B";
+  }
+  throw new Error(`Unknown playerId for log presentation: ${playerId}`);
 }
 
 const fatalMessages: Readonly<Record<string, LocalizedLabel>> = {

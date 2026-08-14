@@ -12,6 +12,7 @@ import type {
 import type { SuccessfulReactionEvent } from "../engine/reactions";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function createGame(
   characterIds: [CharacterId, CharacterId] = [
@@ -58,7 +59,7 @@ function getReactionEvents(state: GameState): SuccessfulReactionEvent[] {
 }
 
 function getByproductLogs(state: GameState) {
-  return state.log.filter((entry) => entry.message.includes("硫酸盐副产成功结算"));
+  return state.log.filter((entry) => entry.eventKey === "sulfate_byproduct_draw");
 }
 
 function startAttack(
@@ -146,7 +147,7 @@ describe("Phase 10 sulfate byproduct", () => {
     const resolved = respond(responseState, "substance_naoh_dilute_01");
     const reactionLogIndex = resolved.log.findIndex((entry) => entry.reaction);
     const byproductLogIndex = resolved.log.findIndex((entry) =>
-      entry.message.includes("硫酸盐副产成功结算"),
+      entry.eventKey === "sulfate_byproduct_draw",
     );
 
     expect(getReactionEvents(resolved)).toMatchObject([
@@ -413,7 +414,7 @@ describe("Phase 10 sulfate byproduct", () => {
       ownerId: "player_1",
       zone: { type: "hand", playerId: "player_1" },
     });
-    expect(state.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("弃牌堆洗回主牌堆"))).toBe(true);
     expect(getByproductLogs(state)).toHaveLength(1);
     expectCardZonesToBeConsistent(state);
   });

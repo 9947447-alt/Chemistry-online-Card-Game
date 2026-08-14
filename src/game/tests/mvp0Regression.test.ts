@@ -6,6 +6,7 @@ import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function putCardInHand(
   state: GameState,
@@ -151,7 +152,7 @@ describe("MVP 0 engine regression", () => {
     expect(carbonate.players[1].hp).toBe(10);
     expect(carbonate.discardPile.filter((cardId) => cardId === "substance_h2so4_dilute_01")).toHaveLength(1);
     expect(carbonate.discardPile.filter((cardId) => cardId === "substance_na2co3_01")).toHaveLength(1);
-    expect(carbonate.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(true);
+    expect(carbonate.log.some((entry) => entry.eventKey === "reaction")).toBe(true);
     expect(countCardDefinition(carbonate, "substance_co2")).toBe(initialCo2Count);
     expectCardInstanceCount(carbonate);
     expectCardZonesToBeConsistent(carbonate);
@@ -235,7 +236,7 @@ describe("MVP 0 engine regression", () => {
     expect(state.pendingStatusHandling?.statusInstanceId).toBe("status_test_SO2_LEAK_1");
     expect(state.players[0].statuses.map((status) => status.statusId)).toEqual(["SO2_LEAK", "FIRE"]);
     expect(state.discardPile).toEqual(expect.arrayContaining(startingPlayerHand));
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expectCardZonesToBeConsistent(state);
 
     const rejectedPass = passCurrentAction(state);
@@ -323,7 +324,7 @@ describe("MVP 0 engine regression", () => {
       cardInstanceId: "substance_hcl_dilute_01",
     });
     expect(neutralized.cycleNumber).toBe(2);
-    expect(neutralized.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(neutralized.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "substance_naoh_dilute_01")).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
     expectCardZonesToBeConsistent(neutralized);
@@ -349,7 +350,7 @@ describe("MVP 0 engine regression", () => {
       cardInstanceId: "substance_na2co3_01",
     });
     expect(carbonate.cycleNumber).toBe(2);
-    expect(carbonate.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(carbonate.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(carbonate.discardPile.filter((cardId) => cardId === "substance_h2so4_dilute_01")).toHaveLength(1);
     expect(carbonate.discardPile.filter((cardId) => cardId === "substance_na2co3_01")).toHaveLength(1);
     expectCardZonesToBeConsistent(carbonate);
@@ -388,7 +389,7 @@ describe("MVP 0 engine regression", () => {
 
     statuses = passCurrentAction(statuses);
     expect(statuses.cycleNumber).toBe(2);
-    expect(statuses.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(statuses.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(statuses.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(statuses.discardPile.filter((cardId) => cardId === "substance_h2o_01")).toHaveLength(1);
     expectCardInstanceCount(statuses);

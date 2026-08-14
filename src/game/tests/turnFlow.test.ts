@@ -5,6 +5,7 @@ import { engineReducer } from "../engine/reducer";
 import type { GameState, Player } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 const existingReference: NonNullable<GameState["tableReference"]> = {
   cardInstanceId: "element_o_01",
@@ -202,7 +203,7 @@ describe("turn flow", () => {
     expect(state.players[1].hand).toHaveLength(10);
     expect(state.deck).toHaveLength(starterDeckSize - 20);
     expect(state.discardPile).toHaveLength(0);
-    expect(state.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("弃牌堆洗回主牌堆"))).toBe(true);
     expectCardZonesToBeConsistent(state);
   });
 

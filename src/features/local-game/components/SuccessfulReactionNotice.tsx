@@ -58,7 +58,7 @@ export function SuccessfulReactionNotice({ game }: SuccessfulReactionNoticeProps
     ? game.log.find((entry) => entry === activeEntry && entry.reaction)
     : undefined;
   const reaction = currentActiveEntry
-    ? getPublicReactionLogView(game, currentActiveEntry, locale)
+    ? getPublicReactionLogView(game, currentActiveEntry, locale, game.logPresentationContext)
     : undefined;
 
   if (!reaction) {

@@ -18,6 +18,7 @@ import {
   getAvailableDrawCardCount,
   type ShuffleFunction,
 } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 type AttackingCardParticipant = Readonly<{
   kind: "card";
@@ -569,29 +570,13 @@ function isEventResolutionValid(
 
 function appendReactionLog(
   state: GameState,
-  message: string,
   reaction: SuccessfulReactionEvent,
 ): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [
-      ...state.log,
-      {
-        id: `log_${String(nextIndex).padStart(3, "0")}`,
-        message,
-        reaction,
-      },
-    ],
-  };
-}
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
+  return appendEvent(state, {
+    eventKey: "reaction",
+    params: {},
+    reaction,
+  });
 }
 
 function markSulfateByproductUsed(state: GameState, playerId: PlayerId): GameState {
@@ -680,9 +665,12 @@ function consumeSuccessfulReactionEvent(
     }
 
     availableDrawsRemaining -= 1;
-    nextState = appendLog(
+    nextState = appendEvent(
       markSulfateByproductUsed(drawnState, playerId),
-      `${playerAfterDraw.name} 的硫酸盐副产成功结算，摸 1 张牌。`,
+      {
+        eventKey: "sulfate_byproduct_draw",
+        params: { playerId },
+      },
     );
   }
 
@@ -693,7 +681,6 @@ export function recordSuccessfulReaction(input: {
   stateBeforeReaction: GameState;
   resolvedState: GameState;
   event: SuccessfulReactionEvent;
-  message: string;
   shuffle: ShuffleFunction;
 }): GameState {
   if (
@@ -705,7 +692,6 @@ export function recordSuccessfulReaction(input: {
 
   const withReactionLog = appendReactionLog(
     input.resolvedState,
-    input.message,
     input.event,
   );
 

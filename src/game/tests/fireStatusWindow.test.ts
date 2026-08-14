@@ -4,6 +4,7 @@ import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function putCardInHand(
   state: GameState,
@@ -169,7 +170,7 @@ describe("FIRE status window", () => {
     expect(state.players[1].hp).toBe(10);
     expect(state.players[1].statuses).toHaveLength(0);
     expect(state.discardPile.filter((cardId) => cardId === "substance_h2o_01")).toHaveLength(1);
-    expect(state.log.some((entry) => entry.message.includes("处理 FIRE"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("处理火情"))).toBe(true);
     expectCardZonesToBeConsistent(state);
   });
 
@@ -193,7 +194,7 @@ describe("FIRE status window", () => {
     expect(state.discardPile.filter((cardId) => cardId === "substance_co2_01")).toHaveLength(1);
     expect(Object.keys(state.cardInstances)).toHaveLength(initialCardInstanceCount);
     expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
-    expect(state.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("生成 CO2"))).toBe(false);
     expectCardZonesToBeConsistent(state);
   });
 
