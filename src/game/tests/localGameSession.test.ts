@@ -267,7 +267,7 @@ describe("Phase 9 current-lineup restart", () => {
         statusInstanceId: "dirty_fire",
       },
       effectQueue: [{ type: "ADVANCE_TURN" }],
-      log: [...started.game.log, { id: "dirty_log", message: "旧对局日志" }],
+      log: [...started.game.log, { id: "dirty_log", eventKey: "turn_start", params: { playerId: "player_1" } }],
       winnerPlayerId: "player_2",
     };
     const dirtySession: PlayingLocalGameSession = {
@@ -351,7 +351,7 @@ describe("Phase 9 current-lineup restart", () => {
         ? { ...player, hp: 0, eliminated: true }
         : player),
       winnerPlayerId: "player_1",
-      log: [...started.game.log, { id: "finished", message: "旧对局结束" }],
+      log: [...started.game.log, { id: "finished", eventKey: "winner", params: { playerId: "player_1" } }],
     };
     const finishedSession: PlayingLocalGameSession = {
       ...started,

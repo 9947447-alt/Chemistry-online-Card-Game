@@ -68,6 +68,12 @@ test.beforeEach(async ({ page }) => {
       configurable: true,
       get: () => ["zh-CN"],
     });
+
+    let seed = 42;
+    Math.random = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
   });
 });
 
@@ -174,6 +180,27 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await expect(page.getByRole("heading", { exact: true, name: "主行动" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "新手引导：主行动" })).toBeVisible();
     await expect(page.locator(".release-bar .secondary-brand")).toHaveCount(0);
+
+    // Phase 16 GameLog contract verification
+    const gameLog = page.locator(".game-log");
+    await expect(gameLog).toBeVisible();
+    await expect(gameLog.locator("h2")).toHaveText("完整游戏日志");
+    await expect(gameLog.locator("ol li").first()).toContainText("游戏开始，进入第 1 实验周期。");
+    const initialLogCount = await gameLog.locator("ol li").count();
+    expect(initialLogCount).toBeGreaterThanOrEqual(1);
+
+    // In-place locale switch to English
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(gameLog.locator("h2")).toHaveText("Full game log");
+    await expect(gameLog.locator("ol li").first()).toContainText("Game started; entering experiment cycle 1.");
+    expect(await gameLog.locator("ol li").count()).toBe(initialLogCount);
+
+    // In-place locale switch back to Chinese
+    await page.getByRole("button", { name: "中文" }).click();
+    await expect(gameLog.locator("h2")).toHaveText("完整游戏日志");
+    await expect(gameLog.locator("ol li").first()).toContainText("游戏开始，进入第 1 实验周期。");
+    expect(await gameLog.locator("ol li").count()).toBe(initialLogCount);
+
     const debugCard = page.locator(".debug-card").first();
     const cardDetails = debugCard.locator("details");
     const selectedBefore = await debugCard.getAttribute("class");
@@ -181,7 +208,19 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await cardDetails.locator("summary").click();
     await expect(cardDetails).toHaveAttribute("open", "");
     expect(await debugCard.getAttribute("class")).toBe(selectedBefore);
+
+    // Action progression log test
     await page.getByRole("button", { name: "结束本次行动" }).click();
+    const postActionCount = await gameLog.locator("ol li").count();
+    expect(postActionCount).toBeGreaterThan(initialLogCount);
+    await expect(gameLog.locator("ol li").last()).toContainText("轮到 玩家 B 行动。");
+
+    // In-place translation after action
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(gameLog.locator("ol li").last()).toContainText("It is Player B's turn.");
+    expect(await gameLog.locator("ol li").count()).toBe(postActionCount);
+    await page.getByRole("button", { name: "中文" }).click();
+
     await page.getByRole("button", { name: "按当前阵容重开" }).click();
     await page.getByRole("button", { name: "确认重开" }).click();
     await expect(page.getByRole("heading", { exact: true, name: "主行动" })).toBeVisible();
@@ -193,3 +232,176 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     await expectNoHorizontalOverflow(page);
   });
 }
+
+test("正式构建在 / 验证 Phase 16 双语游戏日志、反应日志与 DIY 虚拟攻击展示", async ({ page, externalRequests, networkFailures, runtimeErrors }) => {
+  void externalRequests;
+  void runtimeErrors;
+  void networkFailures;
+
+  await page.goto("/");
+  await page.getByLabel("player_1 角色").selectOption("laboratory_teacher");
+  await page.getByLabel("player_2 角色").selectOption("laboratory_teacher");
+  await page.getByRole("button", { name: "开始游戏" }).click();
+
+  // Helper to select the first 10 cards in preparation panel
+  async function selectFirstTenPreparationCards() {
+    const candidateGrid = page.locator(".preparation-candidate-grid");
+    const cards = candidateGrid.locator(".debug-card button.debug-card__select");
+    await expect(cards).toHaveCount(20);
+
+    for (let index = 0; index < 10; index += 1) {
+      await cards.nth(index).click();
+    }
+
+    await page.getByRole("button", { name: "确认备课选择" }).click();
+  }
+
+  // Player A preparation: keep 10 cards
+  await expect(page.getByText("当前选择玩家：玩家 A")).toBeVisible();
+  await selectFirstTenPreparationCards();
+
+  // Player B preparation: keep 10 cards
+  await expect(page.getByText("当前选择玩家：玩家 B")).toBeVisible();
+  await selectFirstTenPreparationCards();
+
+  await expect(page.getByRole("heading", { exact: true, name: "主行动" })).toBeVisible();
+  const gameLog = page.locator(".game-log");
+  await expect(gameLog).toBeVisible();
+
+  // Debug details in log entry
+  const logDetails = gameLog.locator("details.game-log__details").first();
+  await logDetails.locator("summary").click();
+  await expect(logDetails.locator(".game-log__entry-id")).toContainText("日志编号：log_001");
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(logDetails.locator("summary")).toHaveText("Debug details");
+  await expect(logDetails.locator(".game-log__entry-id")).toContainText("Log ID：log_001");
+  await page.getByRole("button", { name: "中文" }).click();
+  await expect(logDetails.locator("summary")).toHaveText("调试详情");
+
+  // 1. Formal DIY Virtual Attack execution
+  const diyPanel = page.locator(".diy-panel");
+  await expect(diyPanel).toBeVisible();
+
+  const virtualAttackRecipes = [
+    {
+      id: "diy_hcl_from_h_cl",
+      recipeZh: "H+ + Cl- -> 稀 HCl",
+      recipeEn: "H+ + Cl- -> dilute HCl",
+      productZh: "稀 HCl",
+      productEn: "dilute HCl",
+      kindZh: "酸性",
+      kindEn: "acid",
+      amount: 1,
+    },
+    {
+      id: "diy_naoh_from_na_oh",
+      recipeZh: "Na+ + OH- -> 稀 NaOH",
+      recipeEn: "Na+ + OH- -> dilute NaOH",
+      productZh: "稀 NaOH",
+      productEn: "dilute NaOH",
+      kindZh: "碱性",
+      kindEn: "alkaline",
+      amount: 1,
+    },
+    {
+      id: "diy_koh_from_k_oh",
+      recipeZh: "K+ + OH- -> 稀 KOH",
+      recipeEn: "K+ + OH- -> dilute KOH",
+      productZh: "稀 KOH",
+      productEn: "dilute KOH",
+      kindZh: "碱性",
+      kindEn: "alkaline",
+      amount: 1,
+    },
+    {
+      id: "diy_h2so4_from_2h_so4",
+      recipeZh: "2H+ + SO4^2- -> 稀 H2SO4",
+      recipeEn: "2H+ + SO4^2- -> dilute H2SO4",
+      productZh: "稀 H2SO4",
+      productEn: "dilute H2SO4",
+      kindZh: "酸性",
+      kindEn: "acid",
+      amount: 1,
+    },
+    {
+      id: "diy_limewater_from_ca_2oh",
+      recipeZh: "Ca2+ + 2OH- -> 石灰水 Ca(OH)2",
+      recipeEn: "Ca2+ + 2OH- -> limewater Ca(OH)2",
+      productZh: "石灰水 Ca(OH)2",
+      productEn: "limewater Ca(OH)2",
+      kindZh: "碱性",
+      kindEn: "alkaline",
+      amount: 1,
+    },
+  ];
+
+  let selectedRecipeInfo = virtualAttackRecipes[0];
+  const recipeSelect = diyPanel.locator("select").first();
+  const componentSelects = diyPanel.locator(".component-slots select");
+
+  for (const recipeInfo of virtualAttackRecipes) {
+    await recipeSelect.selectOption(recipeInfo.id);
+    const slotCount = await componentSelects.count();
+    let allAvailable = true;
+    for (let i = 0; i < slotCount; i += 1) {
+      const optCount = await componentSelects.nth(i).locator("option").count();
+      if (optCount <= 1) {
+        allAvailable = false;
+        break;
+      }
+    }
+    if (allAvailable) {
+      selectedRecipeInfo = recipeInfo;
+      for (let i = 0; i < slotCount; i += 1) {
+        await componentSelects.nth(i).selectOption({ index: 1 });
+      }
+      break;
+    }
+  }
+
+  await page.getByRole("button", { name: "执行主动 DIY" }).click();
+
+  const logItems = gameLog.locator("ol li");
+  const diyLog = logItems.last();
+  const logCountAfterDiy = await logItems.count();
+
+  // Assert DIY Virtual Attack in Chinese: recipe, virtual product, waiting for response base damage
+  const expectedDiyZh = `玩家 A 主动 DIY 使用 ${selectedRecipeInfo.recipeZh}，生成虚拟产品 ${selectedRecipeInfo.productZh}；对 玩家 B 的${selectedRecipeInfo.kindZh}伤害基础值为 ${selectedRecipeInfo.amount} 点，等待响应；不创建实体卡牌。`;
+  await expect(diyLog).toContainText(expectedDiyZh);
+
+  // In-place locale switch to English for DIY log
+  await page.getByRole("button", { name: "English" }).click();
+  const expectedDiyEn = `Player A used active DIY recipe ${selectedRecipeInfo.recipeEn} to produce the virtual product ${selectedRecipeInfo.productEn}; the base ${selectedRecipeInfo.kindEn} damage value to Player B is ${selectedRecipeInfo.amount}, awaiting response; no entity card is created.`;
+  await expect(diyLog).toContainText(expectedDiyEn);
+  expect(await logItems.count()).toBe(logCountAfterDiy);
+
+  await page.getByRole("button", { name: "中文" }).click();
+
+  // 2. Formal Response execution triggering Reaction
+  const responsePanel = page.locator(".response-panel");
+  await expect(responsePanel).toBeVisible();
+  const responseCards = responsePanel.locator(".debug-card button.debug-card__select");
+  await expect(responseCards.first()).toBeVisible();
+  await responseCards.first().click();
+
+  const reactionItem = gameLog.locator("li:has(.game-log__reaction)").last();
+  await expect(reactionItem).toBeVisible();
+  const reactionLog = reactionItem.locator(".game-log__reaction");
+  const logCountAfterReaction = await logItems.count();
+
+  // Assert Reaction in Chinese: neutralization, trigger, outcome
+  await expect(reactionLog).toContainText("成功反应 · 酸碱中和");
+  await expect(reactionLog).toContainText("入口：单目标伤害响应");
+  await expect(reactionLog).toContainText("伤害已完全抵消；生成虚拟结果 H2O");
+  await expect(reactionItem.locator(".game-log__message")).toContainText("已记录一项成功反应。");
+
+  // In-place locale switch to English for Reaction log
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(reactionLog).toContainText("Successful reaction · Acid-base neutralization");
+  await expect(reactionLog).toContainText("Entry：Single-target damage response");
+  await expect(reactionLog).toContainText("Damage was fully cancelled; virtual result H2O was produced");
+  await expect(reactionItem.locator(".game-log__message")).toContainText("A successful reaction was recorded.");
+  expect(await logItems.count()).toBe(logCountAfterReaction);
+
+  await page.getByRole("button", { name: "中文" }).click();
+});

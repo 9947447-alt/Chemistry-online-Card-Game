@@ -149,7 +149,7 @@ test("Alpha 4 language layer changes only presentation and keeps feedback static
   await expect(page.getByRole("heading", { exact: true, name: "Main action" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "New player guidance: Main action" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Full game log" })).toBeVisible();
-  await expect(page.getByText("The formal game record currently remains in Simplified Chinese.", { exact: false })).toBeVisible();
+  await expect(page.locator(".game-log")).toContainText("entering experiment cycle 1");
 
   const feedback = page.getByRole("link", { name: "Open Microsoft Forms feedback in a new tab" });
   await expect(feedback).toHaveAttribute("href", "https://forms.cloud.microsoft/r/QG8PACUnsa");

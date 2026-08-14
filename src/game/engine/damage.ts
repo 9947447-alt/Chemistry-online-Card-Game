@@ -6,6 +6,7 @@ import type {
   PlayerId,
 } from "./types";
 import { collectDamageModifiers } from "./damageModifiers";
+import { appendEvent } from "./logEvents";
 
 export const normalDamageCap = 3;
 
@@ -187,14 +188,6 @@ export function resolveNormalDamage(
   };
 }
 
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
-
 export function applyDamage(
   state: GameState,
   effect: DamageEffect,
@@ -225,7 +218,10 @@ export function applyDamage(
   return {
     state:
       isEliminated && !target.eliminated
-        ? appendLog(nextState, `${target.name} HP 降至 0，被淘汰。`)
+        ? appendEvent(nextState, {
+            eventKey: "eliminated",
+            params: { playerId: target.id },
+          })
         : nextState,
     resolution,
   };

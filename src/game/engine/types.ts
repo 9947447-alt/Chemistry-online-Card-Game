@@ -299,17 +299,125 @@ export type GamePhase =
   | "cleanup"
   | "gameOver";
 
-export type GameLogEntry =
-  | Readonly<{
-      id: string;
-      message: string;
-      reaction?: never;
-    }>
-  | Readonly<{
-      id: string;
-      message: string;
-      reaction: SuccessfulReactionEvent;
-    }>;
+export type DamageKind = "acid" | "base";
+
+export type GameLogEventKey =
+  | "game_start"
+  | "recycle_discard_into_deck"
+  | "draw_stopped_empty"
+  | "cycle_cleanup_discard_hands"
+  | "cycle_start"
+  | "round_start"
+  | "turn_start"
+  | "laboratory_preparation_confirmed"
+  | "status_window_start"
+  | "status_gained"
+  | "status_refreshed"
+  | "status_handled_fire"
+  | "status_passed_damage"
+  | "card_play_so2"
+  | "card_play_o2"
+  | "card_play_reference"
+  | "card_play_attack"
+  | "response_pass_damage"
+  | "response_pass_so2"
+  | "lose_hp"
+  | "eliminated"
+  | "winner"
+  | "draw_game"
+  | "sulfate_byproduct_draw"
+  | "skill_draw"
+  | "skill_alkali_recovery"
+  | "skill_exhaust_discharge"
+  | "skill_exhaust_leak"
+  | "skill_lab_fire"
+  | "skill_exothermic_accident"
+  | "counterattack_window_open"
+  | "counterattack_recover"
+  | "counterattack_pursuit"
+  | "diy_co2_remove_fire"
+  | "diy_h2o_remove_fire"
+  | "diy_virtual_attack"
+  | "diy_so2_apply_leak"
+  | "reaction";
+
+export type GameLogParamsMap = {
+  game_start: Readonly<{ cycleNumber: number }>;
+  recycle_discard_into_deck: Record<string, never>;
+  draw_stopped_empty: Record<string, never>;
+  cycle_cleanup_discard_hands: Record<string, never>;
+  cycle_start: Readonly<{ cycleNumber: number }>;
+  round_start: Readonly<{ roundInCycle: number }>;
+  turn_start: Readonly<{ playerId: PlayerId }>;
+  laboratory_preparation_confirmed: Readonly<{ playerId: PlayerId; keepCount: number }>;
+  status_window_start: Readonly<{ playerId: PlayerId; statusId: StatusId }>;
+  status_gained: Readonly<{ playerId: PlayerId; statusId: StatusId }>;
+  status_refreshed: Readonly<{ playerId: PlayerId; statusId: StatusId }>;
+  status_handled_fire: Readonly<{ playerId: PlayerId; cardDefinitionId: CardDefinitionId }>;
+  status_passed_damage: Readonly<{ playerId: PlayerId; statusId: StatusId; amount: number }>;
+  card_play_so2: Readonly<{ actorId: PlayerId; targetId: PlayerId }>;
+  card_play_o2: Readonly<{ actorId: PlayerId; amount: number }>;
+  card_play_reference: Readonly<{ actorId: PlayerId; cardDefinitionId: CardDefinitionId }>;
+  card_play_attack: Readonly<{
+    actorId: PlayerId;
+    cardDefinitionId: CardDefinitionId;
+    targetId: PlayerId;
+    damageKind: DamageKind;
+    baseAmount: number;
+  }>;
+  response_pass_damage: Readonly<{ targetId: PlayerId; damageKind: DamageKind; amount: number }>;
+  response_pass_so2: Readonly<{ targetId: PlayerId; amount: number }>;
+  lose_hp: Readonly<{ playerId: PlayerId; amount: number }>;
+  eliminated: Readonly<{ playerId: PlayerId }>;
+  winner: Readonly<{ playerId: PlayerId }>;
+  draw_game: Record<string, never>;
+  sulfate_byproduct_draw: Readonly<{ playerId: PlayerId }>;
+  skill_draw: Readonly<{ playerId: PlayerId; skillId: CharacterSkillId; amount: number }>;
+  skill_alkali_recovery: Readonly<{ playerId: PlayerId; cardDefinitionId: CardDefinitionId; amount: number }>;
+  skill_exhaust_discharge: Readonly<{ actorId: PlayerId; targetId: PlayerId }>;
+  skill_exhaust_leak: Readonly<{ playerId: PlayerId; targetCount: number }>;
+  skill_lab_fire: Readonly<{ playerId: PlayerId }>;
+  skill_exothermic_accident: Readonly<{ playerId: PlayerId; amount: number }>;
+  counterattack_window_open: Readonly<{ responderId: PlayerId; attackerId: PlayerId }>;
+  counterattack_recover: Readonly<{ playerId: PlayerId; amount: number }>;
+  counterattack_pursuit: Readonly<{
+    playerId: PlayerId;
+    cardDefinitionId: CardDefinitionId;
+    targetId: PlayerId;
+    amount: number;
+  }>;
+  diy_co2_remove_fire: Readonly<{ playerId: PlayerId }>;
+  diy_h2o_remove_fire: Readonly<{ playerId: PlayerId }>;
+  diy_virtual_attack: Readonly<{
+    playerId: PlayerId;
+    recipeId: string;
+    targetId: PlayerId;
+    damageKind: DamageKind;
+    amount: number;
+  }>;
+  diy_so2_apply_leak: Readonly<{ actorId: PlayerId; targetId: PlayerId }>;
+  reaction: Record<string, never>;
+};
+
+export type LogPlayerIdentitySnapshot = Readonly<{
+  playerId: PlayerId;
+  customName?: string;
+}>;
+
+export type LogPresentationContext = Readonly<{
+  players: Readonly<Record<PlayerId, LogPlayerIdentitySnapshot>>;
+}>;
+
+export type GameLogEntry = {
+  [E in GameLogEventKey]: Readonly<{
+    id: string;
+    eventKey: E;
+    params: Readonly<GameLogParamsMap[E]>;
+  }> &
+    (E extends "reaction"
+      ? Readonly<{ reaction: Readonly<SuccessfulReactionEvent> }>
+      : Readonly<{ reaction?: never }>);
+}[GameLogEventKey];
 
 export type TableReference = {
   cardInstanceId: CardInstanceId;
@@ -344,6 +452,7 @@ export type GameState = {
   pendingLaboratoryPreparation?: PendingLaboratoryPreparation;
   effectQueue: Effect[];
   log: GameLogEntry[];
+  logPresentationContext: LogPresentationContext;
   winnerPlayerId?: PlayerId;
   isDraw?: boolean;
   settings: GameSettings;

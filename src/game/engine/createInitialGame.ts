@@ -4,6 +4,7 @@ import { fisherYatesShuffle } from "../../shared/random";
 import type { CardInstance, CharacterId, GameState, Player } from "./types";
 import { createEmptyCharacterUsage } from "./characterUsage";
 import { beginActionForPlayer, dealCycleStartHands } from "./turnFlow";
+import { createLogPresentationContext } from "./logEvents";
 
 export type CreateInitialGameOptions = {
   gameId?: string;
@@ -71,6 +72,8 @@ export function createInitialGame(options: CreateInitialGameOptions = {}): GameS
     };
   });
 
+  const logPresentationContext = createLogPresentationContext(options.playerNames);
+
   let state: GameState = {
     id: options.gameId ?? "mvp0_game",
     phase: "cycleStart",
@@ -83,7 +86,8 @@ export function createInitialGame(options: CreateInitialGameOptions = {}): GameS
     deck: shuffle(unshuffledDeck),
     discardPile: [],
     effectQueue: [],
-    log: [{ id: "log_001", message: "游戏开始，进入第 1 实验周期。" }],
+    log: [{ id: "log_001", eventKey: "game_start", params: { cycleNumber: 1 } }],
+    logPresentationContext,
     settings: {
       playersPerGame: 2,
       handSize: 10,

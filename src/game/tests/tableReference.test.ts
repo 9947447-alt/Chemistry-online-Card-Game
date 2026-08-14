@@ -4,6 +4,7 @@ import { identityShuffle } from "../../shared/random";
 import { createMvp0TestGame as createInitialGame } from "./createTestGame";
 import { areCardDefinitionsAssociated } from "../engine/cardAssociation";
 import { engineReducer } from "../engine/reducer";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -353,7 +354,7 @@ describe("tableReference and reference card play", () => {
     expect(resolved.activePlayerId).toBe(nextPlayer.id);
     expect(resolved.cycleNumber).toBe(1);
     expect(resolved.roundInCycle).toBe(1);
-    expect(resolved.log.some((entry) => entry.message.includes("普通出牌") && entry.message.includes("场面基准"))).toBe(true);
+    expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("普通出牌") && renderGameLogEntry(entry).includes("场面基准"))).toBe(true);
     expectTotalCardInstances(resolved);
     expectCardZonesToBeConsistent(resolved);
   });

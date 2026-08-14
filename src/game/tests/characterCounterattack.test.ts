@@ -12,6 +12,7 @@ import {
   isLegalExperimentCounterattackMetalDefinition,
 } from "../engine/experimentCounterattack";
 import { engineReducer } from "../engine/reducer";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 import type {
   CardInstanceId,
   CharacterId,
@@ -398,7 +399,7 @@ describe("Phase 8C-4 chemistry enthusiast experiment counterattack", () => {
     expect(countDiscard(resolved, "substance_hcl_dilute_02")).toBe(1);
     expect(resolved.tableReference).toEqual(tableReference);
     expect(resolved.players[1].usedDIYThisCycle).toBe(false);
-    expect(resolved.log.some((entry) => entry.message.includes("造成 2 点伤害"))).toBe(true);
+    expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("造成 2 点伤害"))).toBe(true);
     expectCardZonesToBeConsistent(resolved);
   });
 

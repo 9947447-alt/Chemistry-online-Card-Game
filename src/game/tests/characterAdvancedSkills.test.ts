@@ -13,6 +13,7 @@ import type {
 } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 type CharacterPair = [CharacterId, CharacterId];
 
@@ -196,7 +197,7 @@ describe("Phase 8C-3 remaining active character skills", () => {
 
       expect(resolved.players[0].hp).toBe(10);
       expect(resolved.players[0].characterUsage.perCycle.caustic_soda_captain_alkali_recovery).toBe(1);
-      expect(resolved.log.some((entry) => entry.message.includes("回复 1 HP"))).toBe(true);
+      expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("回复 1 HP"))).toBe(true);
     });
 
     it.each(["FIRE", "SO2_LEAK"] as const)("atomically rejects recovery while %s blocks healing", (statusId) => {
@@ -312,7 +313,7 @@ describe("Phase 8C-3 remaining active character skills", () => {
       });
 
       expect(resolved.players[1].statuses).toEqual([originalStatus]);
-      expect(resolved.log.some((entry) => entry.message.includes("重复施加"))).toBe(true);
+      expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("重复施加"))).toBe(true);
     });
 
     it.each(["player_1", "player_missing"])("rejects invalid target %s", (targetPlayerId) => {
@@ -387,7 +388,7 @@ describe("Phase 8C-3 remaining active character skills", () => {
 
         expect(resolved.players[1].hp).toBe(10);
         expect(resolved.players[0].hp).toBe(9);
-        expect(resolved.log.some((entry) => entry.message.includes("失去 1 点体力"))).toBe(true);
+        expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("失去 1 点体力"))).toBe(true);
         expect(resolved.discardPile.filter((id) => id === cardInstanceId)).toHaveLength(1);
         expect(resolved.pendingResponse).toBeUndefined();
         expect(resolved.activePlayerId).toBe("player_2");
@@ -404,7 +405,7 @@ describe("Phase 8C-3 remaining active character skills", () => {
 
       expect(resolved.players[1].hp).toBe(8);
       expect(resolved.players[0].hp).toBe(10);
-      expect(resolved.log.some((entry) => entry.message.includes("2 点 SO2 伤害"))).toBe(true);
+      expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("2 点 SO2 伤害"))).toBe(true);
       expect(resolved.players[1].statuses).toEqual([]);
     });
 
@@ -509,7 +510,7 @@ describe("Phase 8C-3 remaining active character skills", () => {
 
       expect(resolved.players[1].hp).toBe(9);
       expect(resolved.pendingResponse).toBeUndefined();
-      expect(resolved.log.some((entry) => entry.message.includes("失去 1 点体力"))).toBe(true);
+      expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("失去 1 点体力"))).toBe(true);
       expect(resolved.tableReference).toEqual(reference);
       expect(resolved.players[0].usedDIYThisCycle).toBe(usedDIY);
     });

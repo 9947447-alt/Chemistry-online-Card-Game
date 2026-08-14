@@ -1,6 +1,7 @@
 import type { GameState } from "../../../game/engine/types";
 import { useLocale } from "../../../app/locale";
 import { getPublicReactionLogView } from "../localGameView";
+import { renderGameLogEntry } from "../gameLogRenderer";
 
 type GameLogProps = {
   game: GameState;
@@ -9,23 +10,19 @@ type GameLogProps = {
 export function GameLog({ game }: GameLogProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const context = game.logPresentationContext;
 
   return (
     <section className="debug-section game-log" aria-labelledby="game-log-title">
       <h2 id="game-log-title">{isEnglish ? "Full game log" : "完整游戏日志"}</h2>
-      {isEnglish ? (
-        <p className="panel-note">
-          The formal game record currently remains in Simplified Chinese. This display layer does not translate log messages.
-        </p>
-      ) : null}
       <ol>
         {game.log.map((entry) => {
-          const reaction = getPublicReactionLogView(game, entry, locale);
+          const reaction = getPublicReactionLogView(game, entry, locale, context);
 
           return (
             <li key={entry.id}>
               <div className="game-log__message">
-                {reaction ? (isEnglish ? "A successful reaction was recorded." : "已记录一项成功反应。") : entry.message}
+                {renderGameLogEntry(entry, locale, context)}
                 <details className="debug-details game-log__details">
                   <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
                   <span className="game-log__entry-id">{isEnglish ? "Log ID" : "日志编号"}：{entry.id}</span>
