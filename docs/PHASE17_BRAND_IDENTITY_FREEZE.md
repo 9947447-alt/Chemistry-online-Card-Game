@@ -11,7 +11,7 @@
 4. 确立应用内静态仓库链接 `src/app/projectRepository.tsx` 及关联测试契约的迁移规范与 post-rename cutover 机制。
 5. 确立 GitHub Pages 目标 URL `https://9947447-alt.github.io/reaction-field/` 与验收标准。
 6. 补齐 GitHub 仓库公开元数据（Description、Topics）；社区规范指引文件与更广泛的仓库社区健康建设明确延期至未来独立阶段，不作为 Phase 17 完成准则（Community guidance files and broader repository community-health work are deferred to a later independently scoped phase and are not Phase 17 completion criteria）。
-7. 明确外部授权边界、改名实施顺序、Post-rename 代码链接切换、实测验证项与安全回滚策略。
+7. 明确外部授权边界、改名实施顺序、Post-rename 代码链接切换、Release 版本准备、实测验证项与安全回滚策略。
 
 ### 1.2 明确非目标（边界红线）
 1. **零游戏规则变化**：严格保持 `MVP0-P10` 规则版本、68 张普通实体卡池、7 位角色定义、统一伤害管线、主动 DIY 虚拟攻击与结构化反应事件，不新增、不改写任何游戏机制。
@@ -45,7 +45,7 @@
 | **一句话英文定位** | `An open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy.` | GitHub Repo Description、README 英文副标题 / Introduction（Phase 17C 对齐） |
 | **一句话中文定位** | `一款基于化学主题的开源本地同屏双人策略卡牌游戏。` | README.zh-CN 中文副标题 / 介绍（Phase 17C 对齐） |
 | **Release 标题模板** | `Reaction Field Alpha <N> — v<version>` | 例如：`Reaction Field Alpha 6 — v0.16.0-alpha.1` |
-| **Release Tag 契约** | `web-playtest-v<version>` | 例如：`web-playtest-v0.16.0-alpha.1`（严格保持不变） |
+| **Release Tag 契约** | `web-playtest-v<version>` | 例如：`web-playtest-v0.16.0-alpha.1`（严格保持不变，部署 Tag 必须与 `package.json.version` 一致） |
 | **Pages 浏览器标题** | `反应域 · REACTION FIELD · Web Playtest Alpha · <version> · <rulesVersion>` | 由 Vite 构建插件自动注入 HTML `<title>` |
 
 ---
@@ -58,7 +58,7 @@
 - `package.json`：修改 `"name": "reaction-field"`（包名与目标 slug 内部对齐）。
 - `README.md` & `README.zh-CN.md`：
   1. 对齐冻结的中英文 positioning 副标题（见第 2 节品牌规范表）；
-  2. 修正已过时的 Alpha 6 预发布状态描述，对齐已在 GitHub 发布的真实事实；
+  2. 修正已过时的 Alpha 6 预发布描述，对齐已在 GitHub 发布的真实事实；
   3. 进行必要品牌名称对齐，不做过度营销重写；
   4. **严格保护**：必须继续保留当前 live 仓库链接 `https://github.com/9947447-alt/Chemistry-online-Card-Game` 与 live Pages 链接 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`。
 - `docs/MVP_PLAN.md`：更新 Phase 17 路线图进度与目标仓库/Pages URL 规划记录，保留当前公开事实。
@@ -73,8 +73,12 @@
 - `README.md` & `README.zh-CN.md`：更新仓库外链为实际生效的新仓库 URL；公开 Pages 试玩入口严格保持当前真实可用地址 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`，直至新 Pages 部署与公网验收完成。
 - `docs/MVP_PLAN.md`：更新仓库 URL 状态为已生效。
 
-#### C. Post-deployment Acceptance 阶段（Pages 部署与验收后公开入口收口阶段）
-- `README.md` & `README.zh-CN.md`：在 Phase 17D 仓库改名完成 + Pages 部署成功 + Phase 17E 公网验收通过后，正式将公开试玩入口切换至生效的新 Pages URL。
+#### C. Release Preparation 阶段（新版本部署前版本准备阶段）活动文件
+- `package.json`：在获得独立发布授权后递增 `"version"` 字段，确保与后续部署 Tag 严格对齐。
+- 关联精确版本测试断言文件（如涉及版本号断言的单元测试）。
+
+#### D. Post-deployment Acceptance 阶段（Pages 部署与验收后公开入口收口阶段）
+- `README.md` & `README.zh-CN.md`：在 Phase 17D 仓库改名完成 + Release 版本准备合并 + Pages 部署成功 + Phase 17E 公网验收通过后，正式将公开试玩入口切换至生效的新 Pages URL。
 - `docs/MVP_PLAN.md`：更新公开试玩入口记录为新 Pages URL。
 
 ### 3.2 历史冻结与踩坑文件（Historical / Frozen Files —— 严格禁止修改）
@@ -95,7 +99,7 @@
 ## 4. Phase 17 实施拆分子阶段与时序模型
 
 整体实施时序必须严格遵循：
-`Phase 17C (Pre-rename 内部身份与安全文档准备)` → `Phase 17D (GitHub 仓库改名)` → `Post-rename (代码库链接正式切换 Cutover)` → `验证 / Commit / Push / CI / Merge` → `新版本 Tag / Pages 部署` → `Phase 17E (真实公网验收与公开入口收口)`
+`Phase 17C (Pre-rename 内部身份与安全文档准备)` → `Phase 17D (GitHub 仓库改名)` → `Post-rename (代码库链接正式切换 Cutover)` → `Release Preparation (版本准备与 Tag 对齐)` → `新版本 Tag / Pages 部署` → `Phase 17E (真实公网验收与公开入口收口)`
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -109,7 +113,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 17D: GitHub 仓库改名 (独立外部授权边界)                │
 │ - gh repo rename reaction-field (或 fallback)               │
-│ - 确认 active slug -> 执行对应分支 metadata 与 remote 更新  │
+│ - 平台查询确认 active slug -> 执行对应分支 metadata/remote  │
 └──────────────────────────────┬──────────────────────────────┘
                                │ rename confirmed
                                ▼
@@ -122,8 +126,14 @@
                                │ cutover merged
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
+│ Release Preparation: 版本准备与 Tag 契约对齐                │
+│ - 确定新版本号 -> package.json version 递增 -> 验证 -> 合并 │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ version merged
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
 │ Pages 重新部署与发布 (新不可变 Tag / Release)                │
-│ - 部署产物必须包含 post-rename cutover commit                │
+│ - 部署产物必须包含 cutover 与版本匹配 commit                │
 └──────────────────────────────┬──────────────────────────────┘
                                │ deployment success
                                ▼
@@ -135,13 +145,18 @@
 ```
 
 ### 4.1 Phase 17C：代码库内 Pre-rename 内部身份与安全文档准备
-- **前置集成分支只读发现**：
-  在开始 Phase 17C 之前，必须先只读确认当前活动集成分支与 baseline：
+- **前置本地基线与集成分支只读核验**：
+  在开始 Phase 17C 之前，必须执行本地工作区与远端集成分支的双重只读检查（与 `AGENTS.md` 规则一致）：
   ```bash
+  pwd
+  git rev-parse --show-toplevel
+  git branch --show-current
+  git rev-parse HEAD
+  git status --short
   git ls-remote origin refs/heads/release/phase15-alpha5-web-playtest-alpha1 refs/heads/main
   git rev-parse origin/release/phase15-alpha5-web-playtest-alpha1
   ```
-  若活动集成分支发生变化，必须停止并向用户报告，严禁擅自改用 `main`。
+  确认处于正确的仓库根目录、正确的集成分支、HEAD 匹配且工作区干净。若活动集成分支发生变化，必须停止并向用户报告，严禁擅自改用 `main` 或在 dirty 工作区直接修改。
 - **执行范围**：
   1. 修改 `package.json` 中的 `"name"` 为 `"reaction-field"`。
   2. 修改 `README.md` 和 `README.zh-CN.md`：
@@ -191,12 +206,12 @@
   1. Phase 17C 代码变更必须先合并到当时明确指定的活动发布集成分支（当前冻结时为 `release/phase15-alpha5-web-playtest-alpha1`）。
   2. 在执行 Phase 17D 前，必须通过 `git ls-remote origin refs/heads/release/phase15-alpha5-web-playtest-alpha1` 重新只读确认集成分支状态。若后续正式切换到新的集成分支，必须在执行 Phase 17D 前重新只读确认并取得授权。不得预设 `main` 分支已包含当前 Alpha 6 发布基线。
 - **改名与参数化 Post-rename 指令序列**：
-  1. **执行仓库重命名**：
+  1. **执行仓库重命名（首选 Slug）**：
      ```bash
      gh repo rename reaction-field -R 9947447-alt/Chemistry-online-Card-Game --yes
      ```
-  2. **核实生效的 active slug**：
-     通过只读命令（如 `gh repo view` 或 `git remote -v`）确认当前实际生效的远端仓库 slug（`reaction-field` 或 `reaction-field-card-game`）。
+  2. **通过 GitHub 平台查询核实生效的 active slug**：
+     在重命名完成后，由于本地 `origin` 尚未配置，**必须通过平台查询**（如 `gh repo view --json name -q .name`）确认当前实际生效的远端仓库 slug（`reaction-field` 或 `reaction-field-card-game`），严禁依赖尚未更新的本地 `git remote -v`。
   3. **执行对应分支的 Description / Topics / Remote 更新**：
      - **Primary branch（若 active slug 为 `reaction-field`）**：
        ```bash
@@ -208,7 +223,7 @@
        gh repo edit 9947447-alt/reaction-field-card-game --description "An open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy." --add-topic card-game --add-topic chemistry --add-topic react --add-topic typescript --add-topic board-game --add-topic playtest
        git remote set-url origin git@github.com:9947447-alt/reaction-field-card-game.git
        ```
-     *(严禁同时执行两套指令；必须先验证 active slug 后选择唯一定向分支)*
+     *(严禁同时执行两套指令；必须先验证 active slug 后选择唯一定向分支。更新后可通过 `git remote -v` 验证本地 remote)*
 - **停止条件与备用 Slug 回退流程（Fallback Procedure）**：
   若在执行 `gh repo rename reaction-field ...` 时发生名称冲突（422 / Already exists），必须严格按以下完整流程回退，严禁直接在远端改用备用 slug 而导致本地代码与远端 slug 产生 package/repository/Pages slug 不一致：
 
@@ -221,7 +236,11 @@
     3. `docs/MVP_PLAN.md` 中的相关身份与目标 URL 记录
     4. *重要*：在 fallback 仓库实际改名成功前，**live 仓库链接与 live Pages 链接仍继续保持 `Chemistry-online-Card-Game`**，不得提前切换。
   - **Step 5（重新完成本地验证与双重授权合并边界）**：重新完成本地全量验证（阶段 A 构建、测试、diff 核对）→ 获取 Commit 授权 → 本地 commit → 阶段 B clean 验证 → 获取 Push 授权 → push → CI 门禁通过 → PR review & merge 到集成分支。
-  - **Step 6（重新进入 Phase 17D 远端改名）**：只有在备用 slug 的内部身份同步已全部合并至集成分支后，才重新进入 Phase 17D，经授权后使用备用 slug `reaction-field-card-game` 执行仓库改名及后续配置。
+  - **Step 6（重新进入 Phase 17D 执行备用 Slug 远端改名）**：只有在备用 slug 的内部身份同步已全部合并至集成分支后，才重新进入 Phase 17D，经授权后使用显式备用 slug 执行重命名指令：
+    ```bash
+    gh repo rename reaction-field-card-game -R 9947447-alt/Chemistry-online-Card-Game --yes
+    ```
+    随后通过平台查询确认 active slug 为 `reaction-field-card-game`，并执行对应的 Fallback branch 配置更新。
 
   完整闭环流程：`primary slug collision` → **STOP** → **report** → **explicit fallback approval** → **return to repository identity sync** → **update all slug-derived values** → **validate** → **commit auth** → **commit** → **clean** → **push auth** → **push** → **CI** → **merge** → **re-enter Phase 17D** → **rename repository using fallback slug**。严格防止产生 `package name != repository slug`、`repository slug != Pages slug` 或 `app link != repository slug` 的身份分裂。
 
@@ -239,12 +258,19 @@
   必须经过标准工作流：只读基线核对 → 白名单文件修改 → 本地全量验证（阶段 A 构建、测试、E2E、diff 核对）→ 获取 Commit 授权 → 本地 commit → 阶段 B clean 验证 → 获取 Push 授权 → push → CI 门禁通过 → PR review & merge 到集成分支。
 - **部署前置要求**：新的 Pages 部署产物**必须**来自已经合并了 post-rename link cutover 的 commit，严禁在 cutover 合并前提前触发 Pages 部署，否则线上产物仍将携带旧仓库链接。
 
-### 4.4 Phase 17E：Pages 部署触发与真实公网验收
+### 4.4 Release Preparation 与 Phase 17E 真实公网验收
+
+#### A. Release Preparation（发布与版本准备阶段）
+- **契约约束**：`.github/workflows/phase12-web-playtest-pages.yml` 中的 `check:web-playtest-tag` 门禁强制要求 Tag 必须精确等于 `web-playtest-v${package.json.version}`。鉴于 `web-playtest-v0.16.0-alpha.1` 已随 Alpha 6 发布并作为不可变历史资产保护，若迁移后需创建新 Tag 部署 Pages，**必须先完成版本准备并合并**：
+  1. **版本号确定与授权**：在独立发布授权边界下确定新的递增版本号（具体版本由发布边界决定，本冻结文档不预设具体值）；
+  2. **代码库版本递增**：修改 `package.json` 中的 `"version"` 字段及关联的精确版本测试断言；
+  3. **本地验证**：执行全量构建与测试验证；
+  4. **双重授权合并**：获取 Commit 授权 ➔ Commit ➔ 阶段 B clean 验证 ➔ 获取 Push 授权 ➔ Push ➔ CI 通过 ➔ PR 合并至集成分支。
+
+#### B. Phase 17E：Pages 部署触发与真实公网验收
 - **Pages 重新部署与触发授权**：
-  - 确认 post-rename repository-link cutover 已完全合并到集成分支。
-  - 当前已观察到的 Pages 发布工作流由 `web-playtest-v*` 标签触发；仓库改名本身不等于已经完成新 Pages 部署。
-  - 若需要创建新标签触发部署，必须使用新的递增版本和新的不可变标签，严禁移动、覆盖、复用或重新推送 `web-playtest-v0.16.0-alpha.1` 等历史标签。
-  - 新版本号、Tag 和 Release 是独立发布授权边界，不得由 Phase 17B 文档擅自决定。
+  - 确认 post-rename repository-link cutover 与 Release Preparation 代码均已完全合并到集成分支；
+  - 只有在集成分支中的 `package.json.version` 与新 Tag 精确匹配后，才在独立发布授权下创建并推送新的不可变递增 Tag（`web-playtest-v<version>`），严禁移动、覆盖、复用或重新推送 `web-playtest-v0.16.0-alpha.1` 等历史标签；
   - 只有在 GitHub Actions 部署成功且 Phase 17E 公网页面实测通过后，才能宣称 Pages 迁移完成。
 - **公开入口正式切换条件**：
   必须同时满足以下三项条件后，才允许在后续发布/收口阶段正式将公开试玩入口切换至新 Pages URL：
@@ -285,8 +311,8 @@
 - **仓库改名回滚（Repository Rename Rollback）**：
   若仓库改名后出现不可逆异常需要回滚，必须按以下**严格顺序**执行，严禁猜测或硬编码 primary slug：
 
-  1. **Step 1（核实当前实际生效的 active slug）**：
-     在执行回滚前，必须先通过只读命令（如 `gh repo view` 或 `git remote -v`）确认当前实际生效的远端仓库 slug，只能是 `reaction-field` 或 `reaction-field-card-game` 之一。
+  1. **Step 1（通过平台查询核实当前实际生效的 active slug）**：
+     在执行回滚前，必须先通过平台只读命令（如 `gh repo view --json name -q .name`）确认当前实际生效的远端仓库 slug，只能是 `reaction-field` 或 `reaction-field-card-game` 之一。
   2. **Step 2（执行授权改名回滚指令）**：
      - 若当前 active slug 为 `reaction-field`：
        ```bash
@@ -310,11 +336,11 @@
 - **代码与链接回滚（Code & Identity Rollback）**：
   - 仓库改名回滚不会自动撤销代码与文档变更。
   - **完整回滚集合发现**：回滚前必须先通过实际 Phase 17 merge diff 与 commit 历史发现完整变更集合，不得仅依赖手工枚举；
-  - **完整恢复范围**：若此前已合并了 post-rename link cutover 或 Phase 17C 代码，必须通过独立代码回滚边界（`git revert` 或经审阅的回滚 commit）完整恢复所有已切换的代码、测试、README、规划文档及公开 URL 元数据：
+  - **完整恢复范围**：若此前已合并了 post-rename link cutover、Release Preparation 或 Phase 17C 代码，必须通过独立代码回滚边界（`git revert` 或经审阅的回滚 commit）完整恢复所有已切换的代码、测试、README、规划文档及公开 URL 元数据：
     1. `src/app/projectRepository.tsx` 中的仓库链接
     2. `src/app/projectRepository.test.tsx` 单元测试断言
     3. `e2e/production/reaction-field.spec.ts` 与 `e2e/tests/debug-alpha.spec.ts` 中的 E2E 仓库链接断言
-    4. `package.json` 中的包名
+    4. `package.json` 中的包名与版本号
     5. `README.md` 与 `README.zh-CN.md` 中的仓库外链与 Pages 入口（严禁出现仓库已退回旧名但文档仍指向新 slug 的半回滚状态）
     6. `docs/MVP_PLAN.md` 中的仓库 URL 与 Pages URL 记录
     7. 经 merge diff 发现的其他所有 slug 派生活动值
