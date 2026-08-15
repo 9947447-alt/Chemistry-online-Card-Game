@@ -2,7 +2,7 @@ English | [简体中文](./README.zh-CN.md)
 
 # Reaction Field / 反应域
 
-**Reaction Field** is an experimental, same-screen card game for two local players, built with React and TypeScript and currently distributed as a public Web Playtest Alpha.
+**Reaction Field** is an open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy, built with React and TypeScript and currently distributed as a public Web Playtest Alpha.
 
 ## Core Rulebook — Extended Tabletop Reference
 
@@ -13,13 +13,15 @@ The external Core Rulebook is an extended tabletop reference, not the authoritat
 ## Try the Web Playtest
 
 - Play: [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
-- Current public milestone: **Reaction Field Alpha 5**
-- Current published technical version: `0.15.0-alpha.1`
-- Current public tag: `web-playtest-v0.15.0-alpha.1`
-- Alpha 6 release-candidate version: `0.16.0-alpha.1`
+- Current public milestone: **Reaction Field Alpha 6**
+- Current published technical version: `0.16.0-alpha.1`
+- Current public tag: `web-playtest-v0.16.0-alpha.1`
 - Rules version: `MVP0-P10`
+- GitHub Release: [Reaction Field Alpha 6](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.16.0-alpha.1)
+- Planned migration target repository: `https://github.com/9947447-alt/reaction-field`
+- Planned migration target Pages URL: `https://9947447-alt.github.io/reaction-field/`
 
-The Alpha 5 playtest is the current public build. Phase 16 has been merged into `main`, and this branch only prepares the Alpha 6 / `0.16.0-alpha.1` release candidate. The planned `web-playtest-v0.16.0-alpha.1` tag does not exist; Alpha 6 has not been deployed, publicly accepted, or published as a GitHub Release. Until a new tag is deployed, the public URL continues to serve Alpha 5 / `0.15.0-alpha.1`.
+The current public release is Reaction Field Alpha 6 (`0.16.0-alpha.1`) with rules version `MVP0-P10` and public tag `web-playtest-v0.16.0-alpha.1`. The live playtest URL continues to be served from `https://9947447-alt.github.io/Chemistry-online-Card-Game/` until repository rename and new deployment cutover are completed.
 
 ## What Is Reaction Field?
 
@@ -49,7 +51,7 @@ This is an alpha playtest, not a stable release.
 
 ## Alpha Status
 
-The current public release is Reaction Field Alpha 5, technical version `0.15.0-alpha.1`, rules version `MVP0-P10`, and tag `web-playtest-v0.15.0-alpha.1`. Its public Pages build remains active until a later tag is deployed; this is not evidence of broad cross-browser compatibility.
+The current public release is Reaction Field Alpha 6, technical version `0.16.0-alpha.1`, rules version `MVP0-P10`, and tag `web-playtest-v0.16.0-alpha.1`. Its public Pages build is served from the live URL; this is not evidence of broad cross-browser compatibility.
 
 The earlier `web-playtest-v0.13.0-alpha.2` tag remains unchanged at `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`. Its Pages workflow failed because a production E2E assertion was pinned to an older commit, so alpha.2 was not deployed successfully. Historical tags remain immutable.
 
@@ -65,9 +67,9 @@ The international presentation layer provides Simplified Chinese and English mod
 - Production Reaction and DIY UI paths have formal E2E coverage.
 - The production JavaScript bundle was reduced to pass the frozen Node 24 size gate with reliable headroom.
 
-## Alpha 6 / Phase 16 Candidate Status
+## Alpha 6 / Phase 16 Release Status
 
-Phase 16 is implemented and merged into `main`. This branch only prepares its Alpha 6 version identity, release documentation, and exact test contracts. Alpha 6 is not a complete tutorial, online multiplayer, complete mobile compatibility, or an iOS Firefox fix. The `web-playtest-v0.16.0-alpha.1` tag, Pages deployment, public URL acceptance, and GitHub Release have not occurred.
+Phase 16 full bilingual game log is implemented and published as Reaction Field Alpha 6 (`0.16.0-alpha.1`) under tag `web-playtest-v0.16.0-alpha.1`. Alpha 6 provides bilingual structured logs, localized damage and status rendering, and production test coverage. Alpha 6 is an alpha playtest; it does not include online multiplayer, accounts, persistence, complete mobile compatibility, or an iOS Firefox fix.
 
 ## Feedback
 
