@@ -5,15 +5,12 @@ import type {
   GameState,
   Player,
 } from "../../../game/engine/types";
-import {
-  getPublicCharacterSkills,
-} from "../characterPresentation";
+import { CharacterSkillList } from "./CharacterSelectionPanel";
+import { formatSkillDebugText } from "../characterPresentation";
 import { CardDebugCard } from "./CardDebugCard";
 import {
   getCharacterDisplayName,
-  getImplementationStatusDisplayName,
   getPlayerDisplayName,
-  getSkillTypeDisplayName,
 } from "../presentationLocale";
 
 type PlayerPanelProps = {
@@ -52,28 +49,15 @@ export function PlayerPanel({
         ) : null}
       </div>
       <dl className="player-stats">
-        <div>
-          <dt>{isEnglish ? "HP" : "生命值"}</dt>
-          <dd>
-            {player.hp} / {player.maxHp}
-          </dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Eliminated" : "淘汰"}</dt>
-          <dd>{player.eliminated ? (isEnglish ? "Yes" : "是") : (isEnglish ? "No" : "否")}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Pending status" : "待处理状态"}</dt>
-          <dd>{player.statuses.length > 0 ? (isEnglish ? "Yes" : "有") : (isEnglish ? "No" : "无")}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "DIY this cycle" : "本周期 DIY"}</dt>
-          <dd>{player.usedDIYThisCycle ? (isEnglish ? "Used" : "已用") : (isEnglish ? "Unused" : "未用")}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Hand" : "手牌"}</dt>
-          <dd>{player.hand.length}</dd>
-        </div>
+        {([
+          [isEnglish ? "HP" : "生命值", `${player.hp} / ${player.maxHp}`],
+          [isEnglish ? "Eliminated" : "淘汰", player.eliminated ? (isEnglish ? "Yes" : "是") : (isEnglish ? "No" : "否")],
+          [isEnglish ? "Pending status" : "待处理状态", player.statuses.length > 0 ? (isEnglish ? "Yes" : "有") : (isEnglish ? "No" : "无")],
+          [isEnglish ? "DIY this cycle" : "本周期 DIY", player.usedDIYThisCycle ? (isEnglish ? "Used" : "已用") : (isEnglish ? "Unused" : "未用")],
+          [isEnglish ? "Hand" : "手牌", player.hand.length],
+        ] as const).map(([label, value]) => (
+          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+        ))}
       </dl>
       <p className="status-line">{isEnglish ? "Current status" : "当前状态"}：{player.statuses.length > 0 ? (isEnglish ? "Pending status" : "有待处理状态") : (isEnglish ? "Normal" : "正常")}</p>
       <details className="debug-details">
@@ -86,22 +70,11 @@ export function PlayerPanel({
           <h3>{isEnglish ? "Character skills" : "角色技能"}</h3>
           <span>{getCharacterDisplayName(character.id, locale)}</span>
         </div>
-        <ul className="character-skill-list">
-          {getPublicCharacterSkills(character, locale).map((skill) => (
-            <li key={skill.name}>
-              <div className="character-skill-list__heading">
-                <strong>{skill.name}</strong>
-                <span>
-                  {skill.type} · {skill.availability}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <CharacterSkillList character={character} locale={locale} />
         <details className="debug-details">
           <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
           {character.skills.map((skill) => (
-            <p key={skill.id}>{skill.id} · {getSkillTypeDisplayName(skill.type, locale)} · {getImplementationStatusDisplayName(skill.implementationStatus, locale)} · {skill.rulesText}{skill.implementationNote ? ` · ${skill.implementationNote}` : ""}</p>
+            <p key={skill.id}>{formatSkillDebugText(skill, locale)}</p>
           ))}
         </details>
       </div>

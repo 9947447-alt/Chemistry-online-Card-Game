@@ -2,6 +2,7 @@ import { characterDefinitions, getCharacterDefinition } from "../../../game/data
 import { useLocale } from "../../../app/locale";
 import type { CharacterId } from "../../../game/engine/types";
 import {
+  formatSkillDebugText,
   getPublicCharacterSkills,
 } from "../characterPresentation";
 import {
@@ -10,11 +11,7 @@ import {
   type LocalGameSessionCommand,
 } from "../localGameSession";
 import { NewPlayerGuidance } from "./NewPlayerGuidance";
-import {
-  getCharacterDisplayName,
-  getImplementationStatusDisplayName,
-  getSkillTypeDisplayName,
-} from "../presentationLocale";
+import { getCharacterDisplayName } from "../presentationLocale";
 import { FirstGameExample } from "./FirstGameExample";
 
 type CharacterSelectionPanelProps = {
@@ -25,6 +22,29 @@ type CharacterSelectionPanelProps = {
   onGuidanceVisibleChange: (visible: boolean) => void;
   onGuidanceCollapsedChange: (collapsed: boolean) => void;
 };
+
+export function CharacterSkillList({
+  character,
+  locale,
+}: {
+  character: ReturnType<typeof getCharacterDefinition>;
+  locale: ReturnType<typeof useLocale>["locale"];
+}) {
+  return (
+    <ul className="character-skill-list">
+      {getPublicCharacterSkills(character, locale).map((skill) => (
+        <li key={skill.name}>
+          <div className="character-skill-list__heading">
+            <strong>{skill.name}</strong>
+            <span>
+              {skill.type} · {skill.availability}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function CharacterSelectionPanel({
   session,
@@ -140,22 +160,11 @@ export function CharacterSelectionPanel({
                 </div>
                 <span className="active-pill">{character.maxHp} HP</span>
               </div>
-              <ul className="character-skill-list">
-              {getPublicCharacterSkills(character, locale).map((skill) => (
-                  <li key={skill.name}>
-                    <div className="character-skill-list__heading">
-                      <strong>{skill.name}</strong>
-                      <span>
-                        {skill.type} · {skill.availability}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <CharacterSkillList character={character} locale={locale} />
               <details className="debug-details">
                 <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
                 {character.skills.map((skill) => (
-                  <p key={skill.id}>{skill.id} · {getSkillTypeDisplayName(skill.type, locale)} · {getImplementationStatusDisplayName(skill.implementationStatus, locale)} · {skill.rulesText}{"implementationNote" in skill && skill.implementationNote ? ` · ${skill.implementationNote}` : ""}</p>
+                  <p key={skill.id}>{formatSkillDebugText(skill, locale)}</p>
                 ))}
               </details>
             </article>

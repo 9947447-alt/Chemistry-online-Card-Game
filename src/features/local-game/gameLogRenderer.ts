@@ -15,281 +15,160 @@ import {
   getStrictStatusDisplayName,
 } from "./presentationLocale";
 
+type LogRenderer<E extends GameLogEventKey> = (
+  params: GameLogParamsMap[E],
+  locale: DisplayLocale,
+  context: LogPresentationContext,
+  entry: Extract<GameLogEntry, { eventKey: E }>,
+) => string;
+
 type LogRendererMap = {
-  [E in GameLogEventKey]: (
-    params: GameLogParamsMap[E],
-    locale: DisplayLocale,
-    context: LogPresentationContext,
-    entry: Extract<GameLogEntry, { eventKey: E }>,
-  ) => string;
+  [E in GameLogEventKey]: LogRenderer<E>;
 };
+
+function fmt(
+  locale: DisplayLocale,
+  zh: string,
+  en: string,
+  ...args: (string | number)[]
+): string {
+  return (locale === "en" ? en : zh).replace(
+    /\$(\d)/g,
+    (_, index: string) => String(args[+index]),
+  );
+}
+
+function staticRenderer<E extends GameLogEventKey>(
+  zh: string,
+  en: string,
+): LogRenderer<E> {
+  return (_, locale) => fmt(locale, zh, en);
+}
 
 export const logRenderers: LogRendererMap = {
   game_start: (params, locale) =>
-    locale === "en"
-      ? `Game started; entering experiment cycle ${params.cycleNumber}.`
-      : `游戏开始，进入第 ${params.cycleNumber} 实验周期。`,
+    fmt(locale, "游戏开始，进入第 $0 实验周期。", "Game started; entering experiment cycle $0.", params.cycleNumber),
 
-  recycle_discard_into_deck: (_, locale) =>
-    locale === "en"
-      ? "The main deck was insufficient; the discard pile was shuffled back into the deck."
-      : "主牌堆不足，弃牌堆洗回主牌堆。",
+  recycle_discard_into_deck: staticRenderer<"recycle_discard_into_deck">(
+    "主牌堆不足，弃牌堆洗回主牌堆。",
+    "The main deck was insufficient; the discard pile was shuffled back into the deck.",
+  ),
 
-  draw_stopped_empty: (_, locale) =>
-    locale === "en"
-      ? "Both the main deck and discard pile were empty; drawing stopped."
-      : "主牌堆与弃牌堆均为空，摸牌停止。",
+  draw_stopped_empty: staticRenderer<"draw_stopped_empty">(
+    "主牌堆与弃牌堆均为空，摸牌停止。",
+    "Both the main deck and discard pile were empty; drawing stopped.",
+  ),
 
-  cycle_cleanup_discard_hands: (_, locale) =>
-    locale === "en"
-      ? "The experiment cycle ended; all remaining hands were discarded."
-      : "实验周期结束，所有剩余手牌进入弃牌堆。",
+  cycle_cleanup_discard_hands: staticRenderer<"cycle_cleanup_discard_hands">(
+    "实验周期结束，所有剩余手牌进入弃牌堆。",
+    "The experiment cycle ended; all remaining hands were discarded.",
+  ),
 
   cycle_start: (params, locale) =>
-    locale === "en"
-      ? `Entering experiment cycle ${params.cycleNumber}.`
-      : `进入第 ${params.cycleNumber} 实验周期。`,
+    fmt(locale, "进入第 $0 实验周期。", "Entering experiment cycle $0.", params.cycleNumber),
 
   round_start: (params, locale) =>
-    locale === "en"
-      ? `Entering experiment round ${params.roundInCycle}.`
-      : `进入第 ${params.roundInCycle} 实验轮次。`,
+    fmt(locale, "进入第 $0 实验轮次。", "Entering experiment round $0.", params.roundInCycle),
 
-  turn_start: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en" ? `It is ${player}'s turn.` : `轮到 ${player} 行动。`;
-  },
+  turn_start: (params, locale, context) =>
+    fmt(locale, "轮到 $0 行动。", "It is $0's turn.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  laboratory_preparation_confirmed: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} completed lesson preparation, keeping ${params.keepCount} cards.`
-      : `${player} 完成备课，保留 ${params.keepCount} 张牌。`;
-  },
+  laboratory_preparation_confirmed: (params, locale, context) =>
+    fmt(locale, "$0 完成备课，保留 $1 张牌。", "$0 completed lesson preparation, keeping $1 cards.", getPlayerDisplayNameById(params.playerId, locale, context), params.keepCount),
 
-  status_window_start: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const status = getStrictStatusDisplayName(params.statusId, locale);
-    return locale === "en"
-      ? `${player} begins handling ${status}.`
-      : `${player} 开始处理 ${status}。`;
-  },
+  status_window_start: (params, locale, context) =>
+    fmt(locale, "$0 开始处理 $1。", "$0 begins handling $1.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictStatusDisplayName(params.statusId, locale)),
 
-  status_gained: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const status = getStrictStatusDisplayName(params.statusId, locale);
-    return locale === "en"
-      ? `${player} gained ${status}.`
-      : `${player} 获得 ${status}。`;
-  },
+  status_gained: (params, locale, context) =>
+    fmt(locale, "$0 获得 $1。", "$0 gained $1.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictStatusDisplayName(params.statusId, locale)),
 
-  status_refreshed: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const status = getStrictStatusDisplayName(params.statusId, locale);
-    return locale === "en"
-      ? `${player}'s ${status} was refreshed / re-applied.`
-      : `${player} 的 ${status} 已刷新/重复施加。`;
-  },
+  status_refreshed: (params, locale, context) =>
+    fmt(locale, "$0 的 $1 已刷新/重复施加。", "$0's $1 was refreshed / re-applied.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictStatusDisplayName(params.statusId, locale)),
 
-  status_handled_fire: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const card = getStrictCardDisplayName(params.cardDefinitionId, locale);
-    return locale === "en"
-      ? `${player} used ${card} to handle Fire.`
-      : `${player} 使用 ${card} 处理火情。`;
-  },
+  status_handled_fire: (params, locale, context) =>
+    fmt(locale, "$0 使用 $1 处理火情。", "$0 used $1 to handle Fire.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale)),
 
-  status_passed_damage: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const status = getStrictStatusDisplayName(params.statusId, locale);
-    return locale === "en"
-      ? `${player} did not handle ${status}, taking ${params.amount} status damage; ${status} persists.`
-      : `${player} 未处理 ${status}，受到 ${params.amount} 点状态伤害；${status} 保留。`;
-  },
+  status_passed_damage: (params, locale, context) =>
+    fmt(locale, "$0 未处理 $1，受到 $2 点状态伤害；$1 保留。", "$0 did not handle $1, taking $2 status damage; $1 persists.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictStatusDisplayName(params.statusId, locale), params.amount),
 
-  card_play_so2: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    return locale === "en"
-      ? `${player} played SO2, giving ${target} SO2 leak; no immediate damage.`
-      : `${player} 打出 SO2，使 ${target} 获得 SO2 泄漏；不造成即时伤害。`;
-  },
+  card_play_so2: (params, locale, context) =>
+    fmt(locale, "$0 打出 SO2，使 $1 获得 SO2 泄漏；不造成即时伤害。", "$0 played SO2, giving $1 SO2 leak; no immediate damage.", getPlayerDisplayNameById(params.actorId, locale, context), getPlayerDisplayNameById(params.targetId, locale, context)),
 
-  card_play_o2: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    return locale === "en"
-      ? `${player} used O2 and recovered ${params.amount} HP.`
-      : `${player} 使用 O2，回复 ${params.amount} HP。`;
-  },
+  card_play_o2: (params, locale, context) =>
+    fmt(locale, "$0 使用 O2，回复 $1 HP。", "$0 used O2 and recovered $1 HP.", getPlayerDisplayNameById(params.actorId, locale, context), params.amount),
 
-  card_play_reference: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    const card = getStrictCardDisplayName(params.cardDefinitionId, locale);
-    return locale === "en"
-      ? `${player} played ${card} as the table reference; its original effect does not trigger.`
-      : `${player} 普通出牌 ${card}，作为场面基准；不触发原有效果。`;
-  },
+  card_play_reference: (params, locale, context) =>
+    fmt(locale, "$0 普通出牌 $1，作为场面基准；不触发原有效果。", "$0 played $1 as the table reference; its original effect does not trigger.", getPlayerDisplayNameById(params.actorId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale)),
 
-  card_play_attack: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    const card = getStrictCardDisplayName(params.cardDefinitionId, locale);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    const kindText = getStrictDamageKindDisplayName(params.damageKind, locale);
-    return locale === "en"
-      ? `${player} played ${card}; the base ${kindText} damage value to ${target} is ${params.baseAmount}, awaiting response.`
-      : `${player} 打出 ${card}，对 ${target} 的${kindText}伤害基础值为 ${params.baseAmount} 点，等待响应。`;
-  },
+  card_play_attack: (params, locale, context) =>
+    fmt(locale, "$0 打出 $1，对 $2 的$3伤害基础值为 $4 点，等待响应。", "$0 played $1; the base $3 damage value to $2 is $4, awaiting response.", getPlayerDisplayNameById(params.actorId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale), getPlayerDisplayNameById(params.targetId, locale, context), getStrictDamageKindDisplayName(params.damageKind, locale), params.baseAmount),
 
-  response_pass_damage: (params, locale, context) => {
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    const kindText = getStrictDamageKindDisplayName(params.damageKind, locale);
-    return locale === "en"
-      ? `${target} declined to respond and took ${params.amount} ${kindText} damage.`
-      : `${target} 放弃响应，受到 ${params.amount} 点${kindText}伤害。`;
-  },
+  response_pass_damage: (params, locale, context) =>
+    fmt(locale, "$0 放弃响应，受到 $1 点$2伤害。", "$0 declined to respond and took $1 $2 damage.", getPlayerDisplayNameById(params.targetId, locale, context), params.amount, getStrictDamageKindDisplayName(params.damageKind, locale)),
 
-  response_pass_so2: (params, locale, context) => {
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    return locale === "en"
-      ? `${target} declined alkaline absorption and took ${params.amount} SO2 damage.`
-      : `${target} 放弃碱性吸收，受到 ${params.amount} 点 SO2 伤害。`;
-  },
+  response_pass_so2: (params, locale, context) =>
+    fmt(locale, "$0 放弃碱性吸收，受到 $1 点 SO2 伤害。", "$0 declined alkaline absorption and took $1 SO2 damage.", getPlayerDisplayNameById(params.targetId, locale, context), params.amount),
 
-  lose_hp: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} lost ${params.amount} HP.`
-      : `${player} 失去 ${params.amount} 点体力。`;
-  },
+  lose_hp: (params, locale, context) =>
+    fmt(locale, "$0 失去 $1 点体力。", "$0 lost $1 HP.", getPlayerDisplayNameById(params.playerId, locale, context), params.amount),
 
-  eliminated: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player}'s HP dropped to 0 and was eliminated.`
-      : `${player} HP 降至 0，被淘汰。`;
-  },
+  eliminated: (params, locale, context) =>
+    fmt(locale, "$0 HP 降至 0，被淘汰。", "$0's HP dropped to 0 and was eliminated.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  winner: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en" ? `${player} wins.` : `${player} 获胜。`;
-  },
+  winner: (params, locale, context) =>
+    fmt(locale, "$0 获胜。", "$0 wins.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  draw_game: (_, locale) =>
-    locale === "en"
-      ? "All players were eliminated; the game is a draw."
-      : "所有玩家均被淘汰，本局平局。",
+  draw_game: staticRenderer<"draw_game">(
+    "所有玩家均被淘汰，本局平局。",
+    "All players were eliminated; the game is a draw.",
+  ),
 
-  sulfate_byproduct_draw: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player}'s sulfate byproduct settled successfully and drew 1 card.`
-      : `${player} 的硫酸盐副产成功结算，摸 1 张牌。`;
-  },
+  sulfate_byproduct_draw: (params, locale, context) =>
+    fmt(locale, "$0 的硫酸盐副产成功结算，摸 1 张牌。", "$0's sulfate byproduct settled successfully and drew 1 card.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  skill_draw: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const skill = getStrictSkillDisplayName(params.skillId, locale);
-    return locale === "en"
-      ? `${player} activated ${skill} and drew ${params.amount} cards; this action ends.`
-      : `${player} 发动${skill}，实际摸 ${params.amount} 张牌，本行动结束。`;
-  },
+  skill_draw: (params, locale, context) =>
+    fmt(locale, "$0 发动$1，实际摸 $2 张牌，本行动结束。", "$0 activated $1 and drew $2 cards; this action ends.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictSkillDisplayName(params.skillId, locale), params.amount),
 
-  skill_alkali_recovery: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const card = getStrictCardDisplayName(params.cardDefinitionId, locale);
-    return locale === "en"
-      ? `${player} activated Alkali Recovery, discarded ${card}, and recovered ${params.amount} HP; this action ends.`
-      : `${player} 发动碱液回收，弃置 ${card}，回复 ${params.amount} HP，本行动结束。`;
-  },
+  skill_alkali_recovery: (params, locale, context) =>
+    fmt(locale, "$0 发动碱液回收，弃置 $1，回复 $2 HP，本行动结束。", "$0 activated Alkali Recovery, discarded $1, and recovered $2 HP; this action ends.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale), params.amount),
 
-  skill_exhaust_discharge: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    return locale === "en"
-      ? `${player} activated Exhaust Discharge, giving ${target} SO2 leak; no immediate damage; this action ends.`
-      : `${player} 发动排放尾气，使 ${target} 获得 SO2 泄漏；不造成即时伤害，本行动结束。`;
-  },
+  skill_exhaust_discharge: (params, locale, context) =>
+    fmt(locale, "$0 发动排放尾气，使 $1 获得 SO2 泄漏；不造成即时伤害，本行动结束。", "$0 activated Exhaust Discharge, giving $1 SO2 leak; no immediate damage; this action ends.", getPlayerDisplayNameById(params.actorId, locale, context), getPlayerDisplayNameById(params.targetId, locale, context)),
 
-  skill_exhaust_leak: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} activated Exhaust Leak; awaiting alkaline absorption responses from ${params.targetCount} targets in stable order.`
-      : `${player} 发动尾气泄漏，按稳定顺序等待 ${params.targetCount} 名目标分别进行碱性吸收响应。`;
-  },
+  skill_exhaust_leak: (params, locale, context) =>
+    fmt(locale, "$0 发动尾气泄漏，按稳定顺序等待 $1 名目标分别进行碱性吸收响应。", "$0 activated Exhaust Leak; awaiting alkaline absorption responses from $1 targets in stable order.", getPlayerDisplayNameById(params.playerId, locale, context), params.targetCount),
 
-  skill_lab_fire: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} activated Laboratory Bench Fire, applying Fire to all other surviving players via a virtual character-skill effect; this action ends.`
-      : `${player} 发动实验台起火，以虚拟角色技能效果向所有其他存活玩家施加火情；本行动结束。`;
-  },
+  skill_lab_fire: (params, locale, context) =>
+    fmt(locale, "$0 发动实验台起火，以虚拟角色技能效果向所有其他存活玩家施加火情；本行动结束。", "$0 activated Laboratory Bench Fire, applying Fire to all other surviving players via a virtual character-skill effect; this action ends.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  skill_exothermic_accident: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} activated Exothermic Accident; all other surviving players lose ${params.amount} HP.`
-      : `${player} 发动强放热事故，所有其他存活玩家失去 ${params.amount} 点体力。`;
-  },
+  skill_exothermic_accident: (params, locale, context) =>
+    fmt(locale, "$0 发动强放热事故，所有其他存活玩家失去 $1 点体力。", "$0 activated Exothermic Accident; all other surviving players lose $1 HP.", getPlayerDisplayNameById(params.playerId, locale, context), params.amount),
 
-  counterattack_window_open: (params, locale, context) => {
-    const responder = getPlayerDisplayNameById(params.responderId, locale, context);
-    const attacker = getPlayerDisplayNameById(params.attackerId, locale, context);
-    return locale === "en"
-      ? `${responder} fully cancelled ${attacker}'s attack and entered the experiment counterattack selection window.`
-      : `${responder} 成功完全抵消来自 ${attacker} 的攻击，进入实验反击选择窗口。`;
-  },
+  counterattack_window_open: (params, locale, context) =>
+    fmt(locale, "$0 成功完全抵消来自 $1 的攻击，进入实验反击选择窗口。", "$0 fully cancelled $1's attack and entered the experiment counterattack selection window.", getPlayerDisplayNameById(params.responderId, locale, context), getPlayerDisplayNameById(params.attackerId, locale, context)),
 
-  counterattack_recover: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} activated the experiment counterattack and recovered ${params.amount} HP.`
-      : `${player} 发动实验反击，回复 ${params.amount} HP。`;
-  },
+  counterattack_recover: (params, locale, context) =>
+    fmt(locale, "$0 发动实验反击，回复 $1 HP。", "$0 activated the experiment counterattack and recovered $1 HP.", getPlayerDisplayNameById(params.playerId, locale, context), params.amount),
 
-  counterattack_pursuit: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const card = getStrictCardDisplayName(params.cardDefinitionId, locale);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    return locale === "en"
-      ? `${player} activated the experiment counterattack, used ${card} to pursue ${target}, and dealt ${params.amount} damage.`
-      : `${player} 发动实验反击，使用 ${card} 追击 ${target}，造成 ${params.amount} 点伤害。`;
-  },
+  counterattack_pursuit: (params, locale, context) =>
+    fmt(locale, "$0 发动实验反击，使用 $1 追击 $2，造成 $3 点伤害。", "$0 activated the experiment counterattack, used $1 to pursue $2, and dealt $3 damage.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale), getPlayerDisplayNameById(params.targetId, locale, context), params.amount),
 
-  diy_co2_remove_fire: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} used active DIY to produce CO2 and remove Fire; no CO2 card is created.`
-      : `${player} 主动 DIY 生成 CO2 并移除火情；不创建 CO2 卡牌。`;
-  },
+  diy_co2_remove_fire: (params, locale, context) =>
+    fmt(locale, "$0 主动 DIY 生成 CO2 并移除火情；不创建 CO2 卡牌。", "$0 used active DIY to produce CO2 and remove Fire; no CO2 card is created.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  diy_h2o_remove_fire: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    return locale === "en"
-      ? `${player} used active DIY to produce H2O and remove Fire; no H2O card is created.`
-      : `${player} 主动 DIY 生成 H2O 并移除火情；不创建 H2O 卡牌。`;
-  },
+  diy_h2o_remove_fire: (params, locale, context) =>
+    fmt(locale, "$0 主动 DIY 生成 H2O 并移除火情；不创建 H2O 卡牌。", "$0 used active DIY to produce H2O and remove Fire; no H2O card is created.", getPlayerDisplayNameById(params.playerId, locale, context)),
 
-  diy_virtual_attack: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.playerId, locale, context);
-    const recipe = getStrictDiyRecipeDisplayName(params.recipeId, locale);
-    const product = getStrictDiyVirtualProductDisplayName(params.recipeId, locale);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    const kindText = getStrictDamageKindDisplayName(params.damageKind, locale);
-    return locale === "en"
-      ? `${player} used active DIY recipe ${recipe} to produce the virtual product ${product}; the base ${kindText} damage value to ${target} is ${params.amount}, awaiting response; no entity card is created.`
-      : `${player} 主动 DIY 使用 ${recipe}，生成虚拟产品 ${product}；对 ${target} 的${kindText}伤害基础值为 ${params.amount} 点，等待响应；不创建实体卡牌。`;
-  },
+  diy_virtual_attack: (params, locale, context) =>
+    fmt(locale, "$0 主动 DIY 使用 $1，生成虚拟产品 $2；对 $3 的$4伤害基础值为 $5 点，等待响应；不创建实体卡牌。", "$0 used active DIY recipe $1 to produce the virtual product $2; the base $4 damage value to $3 is $5, awaiting response; no entity card is created.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictDiyRecipeDisplayName(params.recipeId, locale), getStrictDiyVirtualProductDisplayName(params.recipeId, locale), getPlayerDisplayNameById(params.targetId, locale, context), getStrictDamageKindDisplayName(params.damageKind, locale), params.amount),
 
-  diy_so2_apply_leak: (params, locale, context) => {
-    const player = getPlayerDisplayNameById(params.actorId, locale, context);
-    const target = getPlayerDisplayNameById(params.targetId, locale, context);
-    return locale === "en"
-      ? `${player} used active DIY to produce SO2, giving ${target} SO2 leak; no SO2 card is created.`
-      : `${player} 主动 DIY 生成 SO2，使 ${target} 获得 SO2 泄漏；不创建 SO2 卡牌。`;
-  },
+  diy_so2_apply_leak: (params, locale, context) =>
+    fmt(locale, "$0 主动 DIY 生成 SO2，使 $1 获得 SO2 泄漏；不创建 SO2 卡牌。", "$0 used active DIY to produce SO2, giving $1 SO2 leak; no SO2 card is created.", getPlayerDisplayNameById(params.actorId, locale, context), getPlayerDisplayNameById(params.targetId, locale, context)),
 
-  reaction: (_, locale) =>
-    locale === "en" ? "A successful reaction was recorded." : "已记录一项成功反应。",
+  reaction: staticRenderer<"reaction">(
+    "已记录一项成功反应。",
+    "A successful reaction was recorded.",
+  ),
 };
 
 export function renderGameLogEntry(
@@ -297,86 +176,15 @@ export function renderGameLogEntry(
   locale: DisplayLocale = "zh-CN",
   context: LogPresentationContext = { players: {} },
 ): string {
-  switch (entry.eventKey) {
-    case "game_start":
-      return logRenderers.game_start(entry.params, locale, context, entry);
-    case "recycle_discard_into_deck":
-      return logRenderers.recycle_discard_into_deck(entry.params, locale, context, entry);
-    case "draw_stopped_empty":
-      return logRenderers.draw_stopped_empty(entry.params, locale, context, entry);
-    case "cycle_cleanup_discard_hands":
-      return logRenderers.cycle_cleanup_discard_hands(entry.params, locale, context, entry);
-    case "cycle_start":
-      return logRenderers.cycle_start(entry.params, locale, context, entry);
-    case "round_start":
-      return logRenderers.round_start(entry.params, locale, context, entry);
-    case "turn_start":
-      return logRenderers.turn_start(entry.params, locale, context, entry);
-    case "laboratory_preparation_confirmed":
-      return logRenderers.laboratory_preparation_confirmed(entry.params, locale, context, entry);
-    case "status_window_start":
-      return logRenderers.status_window_start(entry.params, locale, context, entry);
-    case "status_gained":
-      return logRenderers.status_gained(entry.params, locale, context, entry);
-    case "status_refreshed":
-      return logRenderers.status_refreshed(entry.params, locale, context, entry);
-    case "status_handled_fire":
-      return logRenderers.status_handled_fire(entry.params, locale, context, entry);
-    case "status_passed_damage":
-      return logRenderers.status_passed_damage(entry.params, locale, context, entry);
-    case "card_play_so2":
-      return logRenderers.card_play_so2(entry.params, locale, context, entry);
-    case "card_play_o2":
-      return logRenderers.card_play_o2(entry.params, locale, context, entry);
-    case "card_play_reference":
-      return logRenderers.card_play_reference(entry.params, locale, context, entry);
-    case "card_play_attack":
-      return logRenderers.card_play_attack(entry.params, locale, context, entry);
-    case "response_pass_damage":
-      return logRenderers.response_pass_damage(entry.params, locale, context, entry);
-    case "response_pass_so2":
-      return logRenderers.response_pass_so2(entry.params, locale, context, entry);
-    case "lose_hp":
-      return logRenderers.lose_hp(entry.params, locale, context, entry);
-    case "eliminated":
-      return logRenderers.eliminated(entry.params, locale, context, entry);
-    case "winner":
-      return logRenderers.winner(entry.params, locale, context, entry);
-    case "draw_game":
-      return logRenderers.draw_game(entry.params, locale, context, entry);
-    case "sulfate_byproduct_draw":
-      return logRenderers.sulfate_byproduct_draw(entry.params, locale, context, entry);
-    case "skill_draw":
-      return logRenderers.skill_draw(entry.params, locale, context, entry);
-    case "skill_alkali_recovery":
-      return logRenderers.skill_alkali_recovery(entry.params, locale, context, entry);
-    case "skill_exhaust_discharge":
-      return logRenderers.skill_exhaust_discharge(entry.params, locale, context, entry);
-    case "skill_exhaust_leak":
-      return logRenderers.skill_exhaust_leak(entry.params, locale, context, entry);
-    case "skill_lab_fire":
-      return logRenderers.skill_lab_fire(entry.params, locale, context, entry);
-    case "skill_exothermic_accident":
-      return logRenderers.skill_exothermic_accident(entry.params, locale, context, entry);
-    case "counterattack_window_open":
-      return logRenderers.counterattack_window_open(entry.params, locale, context, entry);
-    case "counterattack_recover":
-      return logRenderers.counterattack_recover(entry.params, locale, context, entry);
-    case "counterattack_pursuit":
-      return logRenderers.counterattack_pursuit(entry.params, locale, context, entry);
-    case "diy_co2_remove_fire":
-      return logRenderers.diy_co2_remove_fire(entry.params, locale, context, entry);
-    case "diy_h2o_remove_fire":
-      return logRenderers.diy_h2o_remove_fire(entry.params, locale, context, entry);
-    case "diy_virtual_attack":
-      return logRenderers.diy_virtual_attack(entry.params, locale, context, entry);
-    case "diy_so2_apply_leak":
-      return logRenderers.diy_so2_apply_leak(entry.params, locale, context, entry);
-    case "reaction":
-      return logRenderers.reaction(entry.params, locale, context, entry);
-    default: {
-      const _exhaustive: never = entry;
-      return _exhaustive;
-    }
-  }
+  return renderEvent(entry.eventKey, entry.params, locale, context, entry);
+}
+
+function renderEvent<E extends GameLogEventKey>(
+  eventKey: E,
+  params: GameLogParamsMap[E],
+  locale: DisplayLocale,
+  context: LogPresentationContext,
+  entry: Extract<GameLogEntry, { eventKey: E }>,
+): string {
+  return logRenderers[eventKey](params, locale, context, entry);
 }

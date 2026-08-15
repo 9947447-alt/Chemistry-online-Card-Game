@@ -15,6 +15,7 @@ import {
 import {
   getCardDisplayName,
   getDiyRecipeDisplayName,
+  getOptionalCardDisplayName,
   getPlayerDisplayName,
 } from "../presentationLocale";
 
@@ -117,16 +118,11 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
                 value={componentIds[slot.slotId] ?? ""}
               >
                 <option value="">{isEnglish ? "Select" : "选择"} {definitionName}</option>
-                {options.map((cardInstanceId) => {
-                  const cardDefinition = getCardDefinition(game, cardInstanceId);
-                  return (
-                    <option key={cardInstanceId} value={cardInstanceId}>
-                      {cardDefinition
-                        ? getCardDisplayName(cardDefinition.id, cardDefinition.name, locale)
-                        : (isEnglish ? "Unknown card" : "未知卡牌")}
-                    </option>
-                  );
-                })}
+                {options.map((cardInstanceId) => (
+                  <option key={cardInstanceId} value={cardInstanceId}>
+                    {getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
+                  </option>
+                ))}
               </select>
             </label>
           );

@@ -28,86 +28,104 @@ function getPlayerName(
   return getPlayerDisplayName(game.players.find((player) => player.id === playerId), locale);
 }
 
-const phaseCopy: Readonly<Record<Exclude<NewPlayerGuidancePhase, "configuring">, Omit<
-  NewPlayerGuidanceView,
-  "actor" | "phase"
->>> = {
-  preparationSelection: {
-    title: "备课",
-    goal: "按现有备课面板选择并确认本次保留的手牌。",
-    entry: "使用下方“实验室老师 · 备课”面板中的卡牌与“确认备课选择”。",
-    concept: "备课选择的数量和可选范围由现有面板显示；引导不重复判定。",
-  },
-  mainAction: {
-    title: "主行动",
-    goal: "由当前行动玩家完成一次主行动，或结束本次行动。",
-    entry: "使用下方“主行动”“主动 DIY”与角色技能入口，或“结束本次行动”。",
-    concept: "场面基准只说明当前场面的参考；是否可关联以现有操作面板的提示为准。",
-  },
-  responseWindow: {
-    title: "响应",
-    goal: "由当前响应者决定使用现有响应入口，或放弃响应。",
-    entry: "使用下方“响应窗口”内显示的选项，或“放弃响应”。",
-    concept: "响应 DIY 在 MVP0-P10 中关闭；引导不判断任何具体卡牌是否合法。",
-  },
-  statusWindow: {
-    title: "状态处理",
-    goal: "由当前处理者处理正在等待的状态，或接受现有继续入口。",
-    entry: "使用下方“状态处理窗口”内显示的选项，或“放弃处理”。",
-    concept: "可用处理牌由现有状态面板决定；引导不创建或判断处理选项。",
-  },
-  experimentCounterattackWindow: {
-    title: "实验反击",
-    goal: "由当前反击者在已实现的选项中完成本次实验反击。",
-    entry: "使用下方“实验反击选择”面板中当前显示的选项。",
-    concept: "真实金属选项仍延期；此处不会补充不存在的卡牌或选项。",
-  },
-  gameOver: {
-    title: "对局结束",
-    goal: "查看公开日志与结果，再决定是否开始下一局。",
-    entry: "查看公开日志，并使用页面顶部“按当前阵容重开”或“返回角色选择”。",
-    concept: "结果已由既有对局结算确定；引导不改变胜负或重开行为。",
-  },
+type PhaseContent = readonly [title: string, goal: string, entry: string, concept: string];
+
+const phaseData: Readonly<
+  Record<Exclude<NewPlayerGuidancePhase, "configuring">, readonly [PhaseContent, PhaseContent]>
+> = {
+  preparationSelection: [
+    [
+      "备课",
+      "按现有备课面板选择并确认本次保留的手牌。",
+      "使用下方“实验室老师 · 备课”面板中的卡牌与“确认备课选择”。",
+      "备课选择的数量和可选范围由现有面板显示；引导不重复判定。",
+    ],
+    [
+      "Preparation",
+      "Use the existing preparation panel to choose and confirm this hand's kept cards.",
+      "Use the cards and Confirm preparation selection in the Laboratory Teacher · Preparation panel below.",
+      "The existing panel determines the keep count and eligible cards; guidance does not make a second decision.",
+    ],
+  ],
+  mainAction: [
+    [
+      "主行动",
+      "由当前行动玩家完成一次主行动，或结束本次行动。",
+      "使用下方“主行动”“主动 DIY”与角色技能入口，或“结束本次行动”。",
+      "场面基准只说明当前场面的参考；是否可关联以现有操作面板的提示为准。",
+    ],
+    [
+      "Main action",
+      "The active player completes one main action or ends this action.",
+      "Use Main action, Active DIY, character-skill entries, or End this action below.",
+      "The table reference only describes the current reference; use the existing action-panel notice to determine association.",
+    ],
+  ],
+  responseWindow: [
+    [
+      "响应",
+      "由当前响应者决定使用现有响应入口，或放弃响应。",
+      "使用下方“响应窗口”内显示的选项，或“放弃响应”。",
+      "响应 DIY 在 MVP0-P10 中关闭；引导不判断任何具体卡牌是否合法。",
+    ],
+    [
+      "Response",
+      "The current responder uses an existing response entry or passes.",
+      "Use the options in Response window below, or Pass response.",
+      "Response DIY is disabled in MVP0-P10; guidance does not judge whether any card is legal.",
+    ],
+  ],
+  statusWindow: [
+    [
+      "状态处理",
+      "由当前处理者处理正在等待的状态，或接受现有继续入口。",
+      "使用下方“状态处理窗口”内显示的选项，或“放弃处理”。",
+      "可用处理牌由现有状态面板决定；引导不创建或判断处理选项。",
+    ],
+    [
+      "Status handling",
+      "The current handler handles the pending status or uses the existing continue entry.",
+      "Use the options in Status handling window below, or Pass handling.",
+      "The existing status panel determines usable cards; guidance does not create or judge handling options.",
+    ],
+  ],
+  experimentCounterattackWindow: [
+    [
+      "实验反击",
+      "由当前反击者在已实现的选项中完成本次实验反击。",
+      "使用下方“实验反击选择”面板中当前显示的选项。",
+      "真实金属选项仍延期；此处不会补充不存在的卡牌或选项。",
+    ],
+    [
+      "Experiment Counterattack",
+      "The current counterattacker completes this Experiment Counterattack with an implemented option.",
+      "Use the currently displayed options in Experiment Counterattack selection below.",
+      "The real metal option remains deferred; no missing card or option is added here.",
+    ],
+  ],
+  gameOver: [
+    [
+      "对局结束",
+      "查看公开日志与结果，再决定是否开始下一局。",
+      "查看公开日志，并使用页面顶部“按当前阵容重开”或“返回角色选择”。",
+      "结果已由既有对局结算确定；引导不改变胜负或重开行为。",
+    ],
+    [
+      "Game over",
+      "Review the public log and result, then decide whether to start the next game.",
+      "Review the public log and use Restart with current lineup or Return to character selection in the header.",
+      "Existing resolution determined the outcome; guidance does not change the outcome or restart behavior.",
+    ],
+  ],
 };
 
-const englishPhaseCopy: typeof phaseCopy = {
-  preparationSelection: {
-    title: "Preparation",
-    goal: "Use the existing preparation panel to choose and confirm this hand's kept cards.",
-    entry: "Use the cards and Confirm preparation selection in the Laboratory Teacher · Preparation panel below.",
-    concept: "The existing panel determines the keep count and eligible cards; guidance does not make a second decision.",
-  },
-  mainAction: {
-    title: "Main action",
-    goal: "The active player completes one main action or ends this action.",
-    entry: "Use Main action, Active DIY, character-skill entries, or End this action below.",
-    concept: "The table reference only describes the current reference; use the existing action-panel notice to determine association.",
-  },
-  responseWindow: {
-    title: "Response",
-    goal: "The current responder uses an existing response entry or passes.",
-    entry: "Use the options in Response window below, or Pass response.",
-    concept: "Response DIY is disabled in MVP0-P10; guidance does not judge whether any card is legal.",
-  },
-  statusWindow: {
-    title: "Status handling",
-    goal: "The current handler handles the pending status or uses the existing continue entry.",
-    entry: "Use the options in Status handling window below, or Pass handling.",
-    concept: "The existing status panel determines usable cards; guidance does not create or judge handling options.",
-  },
-  experimentCounterattackWindow: {
-    title: "Experiment Counterattack",
-    goal: "The current counterattacker completes this Experiment Counterattack with an implemented option.",
-    entry: "Use the currently displayed options in Experiment Counterattack selection below.",
-    concept: "The real metal option remains deferred; no missing card or option is added here.",
-  },
-  gameOver: {
-    title: "Game over",
-    goal: "Review the public log and result, then decide whether to start the next game.",
-    entry: "Review the public log and use Restart with current lineup or Return to character selection in the header.",
-    concept: "Existing resolution determined the outcome; guidance does not change the outcome or restart behavior.",
-  },
-};
+function getPhaseFields(
+  phase: Exclude<NewPlayerGuidancePhase, "configuring">,
+  locale: DisplayLocale,
+) {
+  const [title, goal, entry, concept] = phaseData[phase][locale === "en" ? 1 : 0];
+  return { title, goal, entry, concept };
+}
 
 export function getConfiguringGuidance(locale: DisplayLocale = "zh-CN"): NewPlayerGuidanceView {
   if (locale === "en") {
@@ -136,65 +154,66 @@ export function getPlayingGuidance(
   locale: DisplayLocale = "zh-CN",
 ): NewPlayerGuidanceView | undefined {
   const phase: GamePhase = game.phase;
-  const copy = locale === "en" ? englishPhaseCopy : phaseCopy;
+  const isEn = locale === "en";
 
   switch (phase) {
-    case "preparationSelection":
+    case "preparationSelection": {
+      const p = getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale);
       return {
-        ...copy.preparationSelection,
+        ...getPhaseFields(phase, locale),
         phase,
-        actor: locale === "en"
-          ? `Current selector: ${getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale)}`
-          : `当前选择者：${getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale)}`,
+        actor: isEn ? `Current selector: ${p}` : `当前选择者：${p}`,
       };
-    case "mainAction":
+    }
+    case "mainAction": {
+      const p = getPlayerName(game, game.activePlayerId, locale);
       return {
-        ...copy.mainAction,
+        ...getPhaseFields(phase, locale),
         phase,
-        actor: locale === "en"
-          ? `Active player: ${getPlayerName(game, game.activePlayerId, locale)}`
-          : `当前行动者：${getPlayerName(game, game.activePlayerId, locale)}`,
+        actor: isEn ? `Active player: ${p}` : `当前行动者：${p}`,
       };
-    case "responseWindow":
+    }
+    case "responseWindow": {
+      const p = getPlayerName(game, game.pendingResponse?.responderId, locale);
       return {
-        ...copy.responseWindow,
+        ...getPhaseFields(phase, locale),
         phase,
-        actor: locale === "en"
-          ? `Current responder: ${getPlayerName(game, game.pendingResponse?.responderId, locale)}`
-          : `当前响应者：${getPlayerName(game, game.pendingResponse?.responderId, locale)}`,
+        actor: isEn ? `Current responder: ${p}` : `当前响应者：${p}`,
       };
-    case "statusWindow":
+    }
+    case "statusWindow": {
+      const p = getPlayerName(game, game.pendingStatusHandling?.playerId, locale);
       return {
-        ...copy.statusWindow,
+        ...getPhaseFields(phase, locale),
         phase,
-        actor: locale === "en"
-          ? `Current handler: ${getPlayerName(game, game.pendingStatusHandling?.playerId, locale)}`
-          : `当前处理者：${getPlayerName(game, game.pendingStatusHandling?.playerId, locale)}`,
+        actor: isEn ? `Current handler: ${p}` : `当前处理者：${p}`,
       };
-    case "experimentCounterattackWindow":
+    }
+    case "experimentCounterattackWindow": {
+      const p = getPlayerName(
+        game,
+        game.pendingExperimentCounterattack?.responderPlayerId,
+        locale,
+      );
       return {
-        ...copy.experimentCounterattackWindow,
+        ...getPhaseFields(phase, locale),
         phase,
-        actor: locale === "en" ? `Current counterattacker: ${getPlayerName(
-          game,
-          game.pendingExperimentCounterattack?.responderPlayerId,
-          locale,
-        )}` : `当前反击者：${getPlayerName(
-          game,
-          game.pendingExperimentCounterattack?.responderPlayerId,
-          locale,
-        )}`,
+        actor: isEn ? `Current counterattacker: ${p}` : `当前反击者：${p}`,
       };
-    case "gameOver":
+    }
+    case "gameOver": {
       return {
-        ...copy.gameOver,
+        ...getPhaseFields(phase, locale),
         phase,
         actor: game.isDraw
-          ? (locale === "en" ? "Game result: Draw" : "本局结果：平局")
-          : locale === "en"
+          ? isEn
+            ? "Game result: Draw"
+            : "本局结果：平局"
+          : isEn
             ? `Game result: ${getPlayerName(game, game.winnerPlayerId, locale)} wins`
             : `本局结果：${getPlayerName(game, game.winnerPlayerId, locale)} 获胜`,
       };
+    }
     case "setup":
     case "cycleStart":
     case "actionStart":

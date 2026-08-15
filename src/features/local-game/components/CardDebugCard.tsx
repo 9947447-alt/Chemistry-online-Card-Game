@@ -2,7 +2,7 @@ import type { CardInstanceId } from "../../../game/engine/types";
 import { useLocale } from "../../../app/locale";
 import { formatList, getCardDefinition } from "../localGameView";
 import type { GameState } from "../../../game/engine/types";
-import { getCardDisplayName } from "../presentationLocale";
+import { getCardDisplayName, getOptionalCardDisplayName } from "../presentationLocale";
 
 type CardDebugCardProps = {
   cardInstanceId: CardInstanceId;
@@ -27,7 +27,7 @@ export function CardDebugCard({
     return (
       <article className="debug-card is-missing">
         <button className="debug-card__select" disabled type="button">
-          {isEnglish ? "Unknown card" : "未知卡牌"} {cardInstanceId}
+          {getOptionalCardDisplayName(undefined, locale)} {cardInstanceId}
         </button>
       </article>
     );

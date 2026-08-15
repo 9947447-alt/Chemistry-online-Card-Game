@@ -27,6 +27,13 @@ type ActiveSkillSpec = Readonly<{
   usageKey: CharacterUsageKey;
 }>;
 
+function createSecretarySkillSpec(): ActiveSkillSpec {
+  return {
+    characterId: "clumsy_party_secretary",
+    usageKey: "clumsy_party_secretary_shared_active",
+  };
+}
+
 const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
   extra_lesson: {
     characterId: "laboratory_teacher",
@@ -36,18 +43,9 @@ const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
     characterId: "chemical_factory_ceo",
     usageKey: "chemical_factory_ceo_emergency_supply",
   },
-  exhaust_leak: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
-  lab_fire: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
-  exothermic_accident: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
+  exhaust_leak: createSecretarySkillSpec(),
+  lab_fire: createSecretarySkillSpec(),
+  exothermic_accident: createSecretarySkillSpec(),
   alkali_recovery: {
     characterId: "caustic_soda_captain",
     usageKey: "caustic_soda_captain_alkali_recovery",

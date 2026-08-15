@@ -49,3 +49,7 @@ export function getPublicCharacterSkills(
     availability: getSkillAvailabilityDisplayName(skill.implementationStatus, locale),
   }));
 }
+
+export function formatSkillDebugText(skill: CharacterDefinition["skills"][number], locale: DisplayLocale): string {
+  return `${skill.id} · ${getSkillTypeDisplayName(skill.type, locale)} · ${getImplementationStatusDisplayName(skill.implementationStatus, locale)} · ${skill.rulesText}${"implementationNote" in skill && skill.implementationNote ? ` · ${skill.implementationNote}` : ""}`;
+}

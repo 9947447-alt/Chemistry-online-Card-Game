@@ -39,51 +39,51 @@ export function GameSummary({
         <h1 id="summary-title">{isEnglish ? "Local public two-player game" : "本地双人公开对局"}</h1>
       </div>
       <dl className="summary-grid">
-        <div>
-          <dt>{isEnglish ? "Experiment cycle" : "实验周期"}</dt>
-          <dd>{game.cycleNumber}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Round in cycle" : "本周期轮次"}</dt>
-          <dd>{game.roundInCycle}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Current phase" : "当前阶段"}</dt>
-          <dd>{game.phase === "mainAction" ? (isEnglish ? "Main action" : "主行动") : game.phase === "gameOver" ? (isEnglish ? "Game over" : "对局结束") : (isEnglish ? "Waiting for handling" : "等待处理")}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Active player" : "当前行动玩家"}</dt>
-          <dd>{getPlayerDisplayName(game.players.find((player) => player.id === game.activePlayerId), locale)}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Deck" : "牌堆"}</dt>
-          <dd>{game.deck.length}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Discard pile" : "弃牌堆"}</dt>
-          <dd>{game.discardPile.length}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Public game" : "公开对局"}</dt>
-          <dd>{isEnglish ? "Both hands visible" : "双方手牌可见"}</dd>
-        </div>
-        <div>
-          <dt>{isEnglish ? "Outcome" : "胜负"}</dt>
-          <dd>{winnerText}</dd>
-        </div>
+        {([
+          [isEnglish ? "Experiment cycle" : "实验周期", game.cycleNumber],
+          [isEnglish ? "Round in cycle" : "本周期轮次", game.roundInCycle],
+          [
+            isEnglish ? "Current phase" : "当前阶段",
+            game.phase === "mainAction"
+              ? isEnglish ? "Main action" : "主行动"
+              : game.phase === "gameOver"
+                ? isEnglish ? "Game over" : "对局结束"
+                : isEnglish ? "Waiting for handling" : "等待处理",
+          ],
+          [
+            isEnglish ? "Active player" : "当前行动玩家",
+            getPlayerDisplayName(game.players.find((player) => player.id === game.activePlayerId), locale),
+          ],
+          [isEnglish ? "Deck" : "牌堆", game.deck.length],
+          [isEnglish ? "Discard pile" : "弃牌堆", game.discardPile.length],
+          [isEnglish ? "Public game" : "公开对局", isEnglish ? "Both hands visible" : "双方手牌可见"],
+          [isEnglish ? "Outcome" : "胜负", winnerText],
+        ] as const).map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
       </dl>
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
         <dl className="debug-detail-list">
-          <div><dt>{isEnglish ? "Release channel" : "发布渠道"}</dt><dd>{releaseMetadata.channel}</dd></div>
-          <div><dt>{isEnglish ? "App version" : "应用版本"}</dt><dd>{releaseMetadata.version}</dd></div>
-          <div><dt>{isEnglish ? "Rules version" : "规则版本"}</dt><dd>{releaseMetadata.rulesVersion}</dd></div>
-          <div><dt>Commit</dt><dd>{releaseMetadata.commit}</dd></div>
-          <div><dt>phase</dt><dd>{game.phase}</dd></div>
-          <div><dt>CardInstance</dt><dd>{getTotalCardCount(game)}</dd></div>
-          <div><dt>PendingResponse</dt><dd>{describePendingResponse(game)}</dd></div>
-          <div><dt>pendingStatusHandling</dt><dd>{describePendingStatusHandling(game)}</dd></div>
-          <div><dt>tableReference</dt><dd>{describeTableReference(game)}</dd></div>
+          {([
+            [isEnglish ? "Release channel" : "发布渠道", releaseMetadata.channel],
+            [isEnglish ? "App version" : "应用版本", releaseMetadata.version],
+            [isEnglish ? "Rules version" : "规则版本", releaseMetadata.rulesVersion],
+            ["Commit", releaseMetadata.commit],
+            ["phase", game.phase],
+            ["CardInstance", getTotalCardCount(game)],
+            ["PendingResponse", describePendingResponse(game)],
+            ["pendingStatusHandling", describePendingStatusHandling(game)],
+            ["tableReference", describeTableReference(game)],
+          ] as const).map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
         </dl>
       </details>
       <div className="summary-actions">
