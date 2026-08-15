@@ -15,21 +15,20 @@ export function FirstGameExample() {
       <details className="first-game-example__details">
         <summary>{isEnglish ? "Open the three-step example" : "展开三步玩法示例"}</summary>
         <ol>
-          <li>
-            {isEnglish
-              ? "Play a card: The active player chooses a card through the available action controls."
-              : "出牌：当前玩家选择一张符合现有操作条件的牌。"}
-          </li>
-          <li>
-            {isEnglish
-              ? "Respond: The other player may use the available response controls."
-              : "响应：另一位玩家可使用现有响应入口。"}
-          </li>
-          <li>
-            {isEnglish
-              ? "Resolve and record: If an implemented successful reaction occurs, its result is shown and recorded in the public log."
-              : "反应与记录：若形成已实现的成功反应，结果显示并写入公开日志。"}
-          </li>
+          {(isEnglish
+            ? [
+                "Play a card: The active player chooses a card through the available action controls.",
+                "Respond: The other player may use the available response controls.",
+                "Resolve and record: If an implemented successful reaction occurs, its result is shown and recorded in the public log.",
+              ]
+            : [
+                "出牌：当前玩家选择一张符合现有操作条件的牌。",
+                "响应：另一位玩家可使用现有响应入口。",
+                "反应与记录：若形成已实现的成功反应，结果显示并写入公开日志。",
+              ]
+          ).map((item) => (
+            <li key={item}>{item}</li>
+          ))}
         </ol>
         <p className="panel-note">
           {isEnglish

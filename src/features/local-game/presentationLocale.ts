@@ -1,5 +1,6 @@
 import type {
   CharacterId,
+  CharacterSkillId,
   CharacterSkillImplementationStatus,
   CharacterSkillType,
   LogPresentationContext,
@@ -7,199 +8,243 @@ import type {
   PlayerId,
 } from "../../game/engine/types";
 import type { DisplayLocale } from "../../app/locale";
+import { cardDefinitions } from "../../game/data/cardDefinitions";
+import { characterDefinitions, getCharacterDefinition } from "../../game/data/characterDefinitions";
+import { diyRecipes } from "../../game/data/diyRecipes";
+import type { FatalErrorCode } from "./localGameSession";
 
-type LocalizedLabel = Readonly<Record<DisplayLocale, string>>;
+type LocalizedLabel = readonly [zh: string, en: string];
 
-function label(value: LocalizedLabel, locale: DisplayLocale): string {
-  return value[locale];
+function lookup(
+  table: Record<string, LocalizedLabel>,
+  key: string,
+  locale: DisplayLocale,
+  name?: string,
+  fallback = key,
+): string {
+  const entry = table[key];
+  if (entry) {
+    return entry[locale === "en" ? 1 : 0];
+  }
+  if (name) {
+    throw new Error(`Unknown ${name} for log presentation: ${key}`);
+  }
+  return fallback;
 }
 
-const characterNames: Readonly<Record<CharacterId, LocalizedLabel>> = {
-  laboratory_teacher: { "zh-CN": "实验室老师", en: "Laboratory Teacher" },
-  chemical_factory_ceo: { "zh-CN": "化工厂 CEO", en: "Chemical Factory CEO" },
-  clumsy_party_secretary: { "zh-CN": "手残党党委书记", en: "Clumsy Party Secretary" },
-  caustic_soda_captain: { "zh-CN": "烧碱大队队长", en: "Caustic Soda Captain" },
-  acid_king: { "zh-CN": "酸王", en: "Acid King" },
-  chemistry_enthusiast: { "zh-CN": "化学爱好者", en: "Chemistry Enthusiast" },
-  sulfuric_acid_factory_director: { "zh-CN": "硫酸厂厂长", en: "Sulfuric Acid Factory Director" },
+const characterEnglishNames: Readonly<Record<CharacterId, string>> = {
+  laboratory_teacher: "Laboratory Teacher",
+  chemical_factory_ceo: "Chemical Factory CEO",
+  clumsy_party_secretary: "Clumsy Party Secretary",
+  caustic_soda_captain: "Caustic Soda Captain",
+  acid_king: "Acid King",
+  chemistry_enthusiast: "Chemistry Enthusiast",
+  sulfuric_acid_factory_director: "Sulfuric Acid Factory Director",
 };
 
-const skillNames: Readonly<Record<string, LocalizedLabel>> = {
-  lesson_preparation: { "zh-CN": "备课", en: "Lesson Preparation" },
-  extra_lesson: { "zh-CN": "补课", en: "Extra Lesson" },
-  capital_reserve: { "zh-CN": "资金储备", en: "Capital Reserve" },
-  emergency_supply: { "zh-CN": "紧急调货", en: "Emergency Supply" },
-  exhaust_leak: { "zh-CN": "尾气泄漏", en: "Exhaust Leak" },
-  lab_fire: { "zh-CN": "实验台起火", en: "Laboratory Bench Fire" },
-  exothermic_accident: { "zh-CN": "强放热事故", en: "Exothermic Accident" },
-  strong_alkali_protection: { "zh-CN": "强碱防护", en: "Strong Alkali Protection" },
-  alkali_recovery: { "zh-CN": "碱液回收", en: "Alkali Recovery" },
-  strong_alkali_mastery: { "zh-CN": "强碱专精", en: "Strong Alkali Mastery" },
-  acid_corrosion: { "zh-CN": "酸性侵蚀", en: "Acid Corrosion" },
-  acid_resistant_layer: { "zh-CN": "耐酸层", en: "Acid-resistant Layer" },
-  diy_experiment: { "zh-CN": "DIY 实验", en: "DIY Experiment" },
-  experiment_counterattack: { "zh-CN": "实验反击", en: "Experiment Counterattack" },
-  exhaust_discharge: { "zh-CN": "排放尾气", en: "Exhaust Discharge" },
-  sulfuric_acid_process: { "zh-CN": "硫酸工艺", en: "Sulfuric Acid Process" },
-  sulfate_byproduct: { "zh-CN": "硫酸盐副产", en: "Sulfate Byproduct" },
+const skillEnglishNames: Readonly<
+  Record<string, string> & Record<CharacterSkillId, string>
+> = {
+  lesson_preparation: "Lesson Preparation",
+  extra_lesson: "Extra Lesson",
+  capital_reserve: "Capital Reserve",
+  emergency_supply: "Emergency Supply",
+  exhaust_leak: "Exhaust Leak",
+  lab_fire: "Laboratory Bench Fire",
+  exothermic_accident: "Exothermic Accident",
+  strong_alkali_protection: "Strong Alkali Protection",
+  alkali_recovery: "Alkali Recovery",
+  strong_alkali_mastery: "Strong Alkali Mastery",
+  acid_corrosion: "Acid Corrosion",
+  acid_resistant_layer: "Acid-resistant Layer",
+  diy_experiment: "DIY Experiment",
+  experiment_counterattack: "Experiment Counterattack",
+  exhaust_discharge: "Exhaust Discharge",
+  sulfuric_acid_process: "Sulfuric Acid Process",
+  sulfate_byproduct: "Sulfate Byproduct",
 };
 
-const cardNames: Readonly<Record<string, LocalizedLabel>> = {
-  element_o: { "zh-CN": "O", en: "O" },
-  element_c: { "zh-CN": "C", en: "C" },
-  element_s: { "zh-CN": "S", en: "S" },
-  ion_h: { "zh-CN": "H+", en: "H+" },
-  ion_oh: { "zh-CN": "OH-", en: "OH-" },
-  ion_co3: { "zh-CN": "CO3^2-", en: "CO3^2-" },
-  ion_cl: { "zh-CN": "Cl-", en: "Cl-" },
-  ion_so4: { "zh-CN": "SO4^2-", en: "SO4^2-" },
-  ion_na: { "zh-CN": "Na+", en: "Na+" },
-  ion_k: { "zh-CN": "K+", en: "K+" },
-  ion_ca: { "zh-CN": "Ca2+", en: "Ca2+" },
-  substance_h2o: { "zh-CN": "H2O", en: "H2O" },
-  substance_co2: { "zh-CN": "CO2", en: "CO2" },
-  substance_o2: { "zh-CN": "O2", en: "O2" },
-  substance_so2: { "zh-CN": "SO2", en: "SO2" },
-  substance_hcl_dilute: { "zh-CN": "稀 HCl", en: "Dilute HCl" },
-  substance_h2so4_dilute: { "zh-CN": "稀 H2SO4", en: "Dilute H2SO4" },
-  substance_naoh_dilute: { "zh-CN": "稀 NaOH", en: "Dilute NaOH" },
-  substance_koh_dilute: { "zh-CN": "稀 KOH", en: "Dilute KOH" },
-  substance_caoh2_limewater: { "zh-CN": "石灰水 Ca(OH)2", en: "Limewater Ca(OH)2" },
-  substance_na2co3: { "zh-CN": "Na2CO3", en: "Na2CO3" },
-  event_lab_fire: { "zh-CN": "实验台起火", en: "Laboratory Bench Fire" },
+function getCanonicalSkillName(skillId: string): string | undefined {
+  for (const character of characterDefinitions) {
+    const skill = character.skills.find((candidate) => candidate.id === skillId);
+    if (skill !== undefined) {
+      return skill.name;
+    }
+  }
+  return undefined;
+}
+
+function getKnownCardDisplayName(definitionId: string, locale: DisplayLocale): string | undefined {
+  const canonical = cardDefinitions.find((definition) => definition.id === definitionId)?.name;
+  if (canonical !== undefined) {
+    return locale === "en" ? (cardEnglishNames[definitionId] ?? canonical) : canonical;
+  }
+}
+
+function getKnownDiyRecipeDisplayName(recipeId: string, locale: DisplayLocale): string | undefined {
+  const canonical = diyRecipes.find((recipe) => recipe.id === recipeId)?.name;
+  if (canonical !== undefined) {
+    return locale === "en" ? (diyRecipeEnglishNames[recipeId] ?? canonical) : canonical;
+  }
+}
+
+const zh_hcl = "稀 HCl";
+const zh_h2so4 = "稀 H2SO4";
+const zh_naoh = "稀 NaOH";
+const zh_koh = "稀 KOH";
+const zh_lime = "石灰水 Ca(OH)2";
+
+const diyVirtualProductNames: Readonly<Record<string, readonly [string, string]>> = {
+  diy_hcl_from_h_cl: [zh_hcl, "dilute HCl"],
+  diy_h2so4_from_2h_so4: [zh_h2so4, "dilute H2SO4"],
+  diy_naoh_from_na_oh: [zh_naoh, "dilute NaOH"],
+  diy_koh_from_k_oh: [zh_koh, "dilute KOH"],
+  diy_limewater_from_ca_2oh: [zh_lime, "limewater Ca(OH)2"],
 };
 
-const diyRecipeNames: Readonly<Record<string, LocalizedLabel>> = {
-  diy_co2_from_c_o_o: { "zh-CN": "C + O + O -> CO2", en: "C + O + O -> CO2" },
-  diy_h2o_from_h_oh: { "zh-CN": "H+ + OH- -> H2O", en: "H+ + OH- -> H2O" },
-  diy_hcl_from_h_cl: { "zh-CN": "H+ + Cl- -> 稀 HCl", en: "H+ + Cl- -> dilute HCl" },
-  diy_h2so4_from_2h_so4: { "zh-CN": "2H+ + SO4^2- -> 稀 H2SO4", en: "2H+ + SO4^2- -> dilute H2SO4" },
-  diy_naoh_from_na_oh: { "zh-CN": "Na+ + OH- -> 稀 NaOH", en: "Na+ + OH- -> dilute NaOH" },
-  diy_koh_from_k_oh: { "zh-CN": "K+ + OH- -> 稀 KOH", en: "K+ + OH- -> dilute KOH" },
-  diy_limewater_from_ca_2oh: { "zh-CN": "Ca2+ + 2OH- -> 石灰水 Ca(OH)2", en: "Ca2+ + 2OH- -> limewater Ca(OH)2" },
-  diy_so2_from_s_o_o: { "zh-CN": "S + O + O -> SO2", en: "S + O + O -> SO2" },
+const cardEnglishNames: Readonly<Record<string, string>> = {
+  substance_hcl_dilute: "Dilute HCl",
+  substance_h2so4_dilute: "Dilute H2SO4",
+  substance_naoh_dilute: "Dilute NaOH",
+  substance_koh_dilute: "Dilute KOH",
+  substance_caoh2_limewater: "Limewater Ca(OH)2",
+  event_lab_fire: "Laboratory Bench Fire",
+};
+
+const diyRecipeEnglishNames: Readonly<Record<string, string>> = {
+  diy_hcl_from_h_cl: "H+ + Cl- -> dilute HCl",
+  diy_h2so4_from_2h_so4: "2H+ + SO4^2- -> dilute H2SO4",
+  diy_naoh_from_na_oh: "Na+ + OH- -> dilute NaOH",
+  diy_koh_from_k_oh: "K+ + OH- -> dilute KOH",
+  diy_limewater_from_ca_2oh: "Ca2+ + 2OH- -> limewater Ca(OH)2",
 };
 
 const statusNames: Readonly<Record<string, LocalizedLabel>> = {
-  SO2_LEAK: { "zh-CN": "SO2 泄漏", en: "SO2 leak" },
-  FIRE: { "zh-CN": "火情", en: "Fire" },
+  SO2_LEAK: ["SO2 泄漏", "SO2 leak"],
+  FIRE: ["火情", "Fire"],
 };
 
 const damageKindNames: Readonly<Record<string, LocalizedLabel>> = {
-  acid: { "zh-CN": "酸性", en: "acid" },
-  base: { "zh-CN": "碱性", en: "alkaline" },
+  acid: ["酸性", "acid"],
+  base: ["碱性", "alkaline"],
 };
 
 const reactionNames: Readonly<Record<string, LocalizedLabel>> = {
-  acid_base_neutralization: { "zh-CN": "酸碱中和", en: "Acid-base neutralization" },
-  acid_carbonate_co2: { "zh-CN": "酸与碳酸盐", en: "Acid and carbonate" },
-  so2_alkaline_absorption: { "zh-CN": "SO2 碱性吸收", en: "SO2 alkaline absorption" },
+  acid_base_neutralization: ["酸碱中和", "Acid-base neutralization"],
+  acid_carbonate_co2: ["酸与碳酸盐", "Acid and carbonate"],
+  so2_alkaline_absorption: ["SO2 碱性吸收", "SO2 alkaline absorption"],
 };
 
 const skillTypeNames: Readonly<Record<CharacterSkillType, LocalizedLabel>> = {
-  active: { "zh-CN": "主动", en: "Active" },
-  passive: { "zh-CN": "被动", en: "Passive" },
-  response: { "zh-CN": "响应", en: "Response" },
+  active: ["主动", "Active"],
+  passive: ["被动", "Passive"],
+  response: ["响应", "Response"],
 };
 
+const impl = (c: string): [string, string] => [`${c} 已实现`, `${c} implemented`];
+const plan = (c: string): [string, string] => [`${c} 计划实现`, `${c} planned`];
+
 const implementationStatusNames: Readonly<Record<CharacterSkillImplementationStatus, LocalizedLabel>> = {
-  "display-only-8a": { "zh-CN": "8A 仅展示", en: "8A display only" },
-  "implemented-8b-1": { "zh-CN": "8B-1 已实现", en: "8B-1 implemented" },
-  "implemented-8b-2": { "zh-CN": "8B-2 已实现", en: "8B-2 implemented" },
-  "implemented-8c-2": { "zh-CN": "8C-2 已实现", en: "8C-2 implemented" },
-  "implemented-8c-3": { "zh-CN": "8C-3 已实现", en: "8C-3 implemented" },
-  "implemented-8c-4-partial": { "zh-CN": "8C-4 部分实现", en: "8C-4 partially implemented" },
-  "implemented-phase10": { "zh-CN": "Phase 10 已实现", en: "Phase 10 implemented" },
-  "planned-8b": { "zh-CN": "8B 计划实现", en: "8B planned" },
-  "planned-8c": { "zh-CN": "8C 计划实现", en: "8C planned" },
-  deferred: { "zh-CN": "延期", en: "Deferred" },
+  "display-only-8a": ["8A 仅展示", "8A display only"],
+  "implemented-8b-1": impl("8B-1"),
+  "implemented-8b-2": impl("8B-2"),
+  "implemented-8c-2": impl("8C-2"),
+  "implemented-8c-3": impl("8C-3"),
+  "implemented-8c-4-partial": ["8C-4 部分实现", "8C-4 partially implemented"],
+  "implemented-phase10": impl("Phase 10"),
+  "planned-8b": plan("8B"),
+  "planned-8c": plan("8C"),
+  deferred: ["延期", "Deferred"],
 };
 
 export function getCharacterDisplayName(characterId: CharacterId, locale: DisplayLocale): string {
-  return label(characterNames[characterId], locale);
+  return locale === "en"
+    ? characterEnglishNames[characterId]
+    : getCharacterDefinition(characterId).name;
 }
 
 export function getSkillDisplayName(skillId: string, locale: DisplayLocale): string {
-  return skillNames[skillId] ? label(skillNames[skillId], locale) : skillId;
+  const canonical = getCanonicalSkillName(skillId);
+  if (canonical === undefined) {
+    return skillId;
+  }
+  return locale === "en" ? skillEnglishNames[skillId] : canonical;
 }
 
 export function getStrictSkillDisplayName(skillId: string, locale: DisplayLocale): string {
-  const entry = skillNames[skillId];
-  if (!entry) {
+  const canonical = getCanonicalSkillName(skillId);
+  if (canonical === undefined) {
     throw new Error(`Unknown skillId for log presentation: ${skillId}`);
   }
-  return label(entry, locale);
+  return locale === "en" ? skillEnglishNames[skillId] : canonical;
 }
 
 export function getCardDisplayName(definitionId: string, fallback: string, locale: DisplayLocale): string {
-  return cardNames[definitionId] ? label(cardNames[definitionId], locale) : fallback;
+  return getKnownCardDisplayName(definitionId, locale) ?? fallback;
+}
+
+export function getOptionalCardDisplayName(
+  definition: { id: string; name: string } | undefined,
+  locale: DisplayLocale,
+): string {
+  return definition
+    ? getCardDisplayName(definition.id, definition.name, locale)
+    : (locale === "en" ? "Unknown card" : "未知卡牌");
 }
 
 export function getStrictCardDisplayName(definitionId: string, locale: DisplayLocale): string {
-  const entry = cardNames[definitionId];
-  if (!entry) {
+  const name = getKnownCardDisplayName(definitionId, locale);
+  if (name === undefined) {
     throw new Error(`Unknown card definitionId for log presentation: ${definitionId}`);
   }
-  return label(entry, locale);
+  return name;
 }
 
 export function getDiyRecipeDisplayName(recipeId: string, fallback: string, locale: DisplayLocale): string {
-  return diyRecipeNames[recipeId] ? label(diyRecipeNames[recipeId], locale) : fallback;
+  return getKnownDiyRecipeDisplayName(recipeId, locale) ?? fallback;
 }
 
 export function getStrictDiyRecipeDisplayName(recipeId: string, locale: DisplayLocale): string {
-  const entry = diyRecipeNames[recipeId];
-  if (!entry) {
+  const name = getKnownDiyRecipeDisplayName(recipeId, locale);
+  if (name === undefined) {
     throw new Error(`Unknown recipeId for log presentation: ${recipeId}`);
   }
-  return label(entry, locale);
+  return name;
 }
 
 export function getStatusDisplayName(statusId: string, locale: DisplayLocale): string {
-  return statusNames[statusId] ? label(statusNames[statusId], locale) : statusId;
+  return lookup(statusNames, statusId, locale);
 }
 
 export function getStrictStatusDisplayName(statusId: string, locale: DisplayLocale): string {
-  const entry = statusNames[statusId];
-  if (!entry) {
-    throw new Error(`Unknown statusId for log presentation: ${statusId}`);
-  }
-  return label(entry, locale);
+  return lookup(statusNames, statusId, locale, "statusId");
 }
 
 export function getReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
-  return reactionNames[reactionId] ? label(reactionNames[reactionId], locale) : reactionId;
+  return lookup(reactionNames, reactionId, locale);
 }
 
 export function getStrictReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
-  const entry = reactionNames[reactionId];
-  if (!entry) {
-    throw new Error(`Unknown reactionId for log presentation: ${reactionId}`);
-  }
-  return label(entry, locale);
+  return lookup(reactionNames, reactionId, locale, "reactionId");
 }
 
 export function getDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
-  return damageKindNames[damageKind] ? label(damageKindNames[damageKind], locale) : damageKind;
+  return lookup(damageKindNames, damageKind, locale);
 }
 
 export function getStrictDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
-  const entry = damageKindNames[damageKind];
-  if (!entry) {
-    throw new Error(`Unknown damageKind for log presentation: ${damageKind}`);
-  }
-  return label(entry, locale);
+  return lookup(damageKindNames, damageKind, locale, "damageKind");
 }
 
 export function getSkillTypeDisplayName(type: CharacterSkillType, locale: DisplayLocale): string {
-  return label(skillTypeNames[type], locale);
+  return skillTypeNames[type][locale === "en" ? 1 : 0];
 }
 
 export function getImplementationStatusDisplayName(
   status: CharacterSkillImplementationStatus,
   locale: DisplayLocale,
 ): string {
-  return label(implementationStatusNames[status], locale);
+  return implementationStatusNames[status][locale === "en" ? 1 : 0];
 }
 
 export function getSkillAvailabilityDisplayName(
@@ -233,26 +278,13 @@ export function getPlayerDisplayName(player: Player | undefined, locale: Display
   return player.name;
 }
 
-const diyVirtualProductNames: Readonly<Record<string, LocalizedLabel>> = {
-  diy_hcl_from_h_cl: { "zh-CN": "稀 HCl", en: "dilute HCl" },
-  diy_h2so4_from_2h_so4: { "zh-CN": "稀 H2SO4", en: "dilute H2SO4" },
-  diy_naoh_from_na_oh: { "zh-CN": "稀 NaOH", en: "dilute NaOH" },
-  diy_koh_from_k_oh: { "zh-CN": "稀 KOH", en: "dilute KOH" },
-  diy_limewater_from_ca_2oh: { "zh-CN": "石灰水 Ca(OH)2", en: "limewater Ca(OH)2" },
-};
 
 export function getDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
-  return diyVirtualProductNames[recipeId]
-    ? label(diyVirtualProductNames[recipeId], locale)
-    : recipeId;
+  return lookup(diyVirtualProductNames, recipeId, locale);
 }
 
 export function getStrictDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
-  const entry = diyVirtualProductNames[recipeId];
-  if (!entry) {
-    throw new Error(`Unknown virtual product recipeId for log presentation: ${recipeId}`);
-  }
-  return label(entry, locale);
+  return lookup(diyVirtualProductNames, recipeId, locale, "virtual product recipeId");
 }
 
 export function getPlayerDisplayNameById(
@@ -273,31 +305,33 @@ export function getPlayerDisplayNameById(
   throw new Error(`Unknown playerId for log presentation: ${playerId}`);
 }
 
-const fatalMessages: Readonly<Record<string, LocalizedLabel>> = {
-  SESSION_INITIALIZATION_FAILED: {
-    "zh-CN": "本地会话初始化失败。旧状态已被隔离，请重新开始。",
-    en: "Local session initialization failed. The old state was isolated; please start again.",
-  },
-  GAME_START_FAILED: {
-    "zh-CN": "无法创建本地对局。未保留不完整的游戏状态。",
-    en: "A local game could not be created. No incomplete game state was kept.",
-  },
-  GAME_RESTART_FAILED: {
-    "zh-CN": "无法重建本地对局。旧对局已被隔离。",
-    en: "The local game could not be rebuilt. The old game was isolated.",
-  },
-  GAME_ACTION_FAILED: {
-    "zh-CN": "处理本次操作时发生致命错误。旧对局已停止运行。",
-    en: "A fatal error occurred while handling this action. The old game stopped running.",
-  },
-  GAME_RECOVERY_FAILED: {
-    "zh-CN": "恢复操作未能创建全新对局。你可以重试或返回角色选择。",
-    en: "Recovery could not create a new game. You may retry or return to character selection.",
-  },
-  GAME_STATE_VALIDATION_FAILED: {
-    "zh-CN": "新建状态未通过会话边界校验，已阻止继续运行。",
-    en: "The new state did not pass session-boundary validation, so continued operation was blocked.",
-  },
+const fatalMessages: Readonly<
+  Record<string, LocalizedLabel> & Record<FatalErrorCode, LocalizedLabel>
+> = {
+  SESSION_INITIALIZATION_FAILED: [
+    "本地会话初始化失败。旧状态已被隔离，请重新开始。",
+    "Local session initialization failed. The old state was isolated; please start again.",
+  ],
+  GAME_START_FAILED: [
+    "无法创建本地对局。未保留不完整的游戏状态。",
+    "A local game could not be created. No incomplete game state was kept.",
+  ],
+  GAME_RESTART_FAILED: [
+    "无法重建本地对局。旧对局已被隔离。",
+    "The local game could not be rebuilt. The old game was isolated.",
+  ],
+  GAME_ACTION_FAILED: [
+    "处理本次操作时发生致命错误。旧对局已停止运行。",
+    "A fatal error occurred while handling this action. The old game stopped running.",
+  ],
+  GAME_RECOVERY_FAILED: [
+    "恢复操作未能创建全新对局。你可以重试或返回角色选择。",
+    "Recovery could not create a new game. You may retry or return to character selection.",
+  ],
+  GAME_STATE_VALIDATION_FAILED: [
+    "新建状态未通过会话边界校验，已阻止继续运行。",
+    "The new state did not pass session-boundary validation, so continued operation was blocked.",
+  ],
 };
 
 export function getFatalMessageDisplayName(
@@ -305,5 +339,5 @@ export function getFatalMessageDisplayName(
   fallback: string,
   locale: DisplayLocale,
 ): string {
-  return fatalMessages[code] ? label(fatalMessages[code], locale) : fallback;
+  return lookup(fatalMessages, code, locale, undefined, fallback);
 }

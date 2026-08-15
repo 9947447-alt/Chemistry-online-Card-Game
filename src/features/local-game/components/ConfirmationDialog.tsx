@@ -10,34 +10,33 @@ type ConfirmationDialogProps = Readonly<{
   onConfirm: () => void;
 }>;
 
-const confirmationCopy: Readonly<Record<SessionConfirmationKind, Readonly<{
-  title: string;
-  description: string;
-  confirmLabel: string;
-}>>> = {
-  restart: {
-    title: "确认按当前阵容重开？",
-    description: "当前对局、双方手牌、状态和日志将被丢弃，并按当前阵容创建一局全新的游戏。",
-    confirmLabel: "确认重开",
-  },
-  return: {
-    title: "确认返回角色选择？",
-    description: "当前对局、双方手牌、状态和日志将被丢弃；当前阵容会保留供你继续调整。",
-    confirmLabel: "确认返回",
-  },
-};
+type CopyTuple = readonly [title: string, description: string, confirmLabel: string];
 
-const englishConfirmationCopy: typeof confirmationCopy = {
-  restart: {
-    title: "Restart with the current lineup?",
-    description: "The current game, both hands, statuses, and log will be discarded. A completely new game will be created with the current lineup.",
-    confirmLabel: "Confirm restart",
-  },
-  return: {
-    title: "Return to character selection?",
-    description: "The current game, both hands, statuses, and log will be discarded. The current lineup remains available for adjustment.",
-    confirmLabel: "Confirm return",
-  },
+const copyData: Readonly<Record<SessionConfirmationKind, readonly [CopyTuple, CopyTuple]>> = {
+  restart: [
+    [
+      "确认按当前阵容重开？",
+      "当前对局、双方手牌、状态和日志将被丢弃，并按当前阵容创建一局全新的游戏。",
+      "确认重开",
+    ],
+    [
+      "Restart with the current lineup?",
+      "The current game, both hands, statuses, and log will be discarded. A completely new game will be created with the current lineup.",
+      "Confirm restart",
+    ],
+  ],
+  return: [
+    [
+      "确认返回角色选择？",
+      "当前对局、双方手牌、状态和日志将被丢弃；当前阵容会保留供你继续调整。",
+      "确认返回",
+    ],
+    [
+      "Return to character selection?",
+      "The current game, both hands, statuses, and log will be discarded. The current lineup remains available for adjustment.",
+      "Confirm return",
+    ],
+  ],
 };
 
 export function ConfirmationDialog({
@@ -47,7 +46,7 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const { locale } = useLocale();
-  const copy = (locale === "en" ? englishConfirmationCopy : confirmationCopy)[kind];
+  const [title, description, confirmLabel] = copyData[kind][locale === "en" ? 1 : 0];
 
   return (
     <ModalDialog
@@ -58,8 +57,8 @@ export function ConfirmationDialog({
       onRequestClose={onCancel}
       role="alertdialog"
     >
-        <h2 id="session-confirmation-title">{copy.title}</h2>
-        <p id="session-confirmation-description">{copy.description}</p>
+        <h2 id="session-confirmation-title">{title}</h2>
+        <p id="session-confirmation-description">{description}</p>
         <div className="modal-actions">
           <button
             className="secondary-button"
@@ -70,7 +69,7 @@ export function ConfirmationDialog({
             {locale === "en" ? "Cancel" : "取消"}
           </button>
           <button className="danger-button" onClick={onConfirm} type="button">
-            {copy.confirmLabel}
+            {confirmLabel}
           </button>
         </div>
     </ModalDialog>

@@ -21,19 +21,10 @@ export type EventInput<E extends GameLogEventKey> = E extends "reaction"
       reaction?: never;
     }>;
 
-function createLogEntry<E extends GameLogEventKey>(
+function createLogEntry(
   id: string,
-  input: EventInput<E>,
+  input: EventInput<GameLogEventKey>,
 ): GameLogEntry {
-  if (input.eventKey === "reaction") {
-    return {
-      id,
-      eventKey: "reaction",
-      params: input.params,
-      reaction: input.reaction,
-    };
-  }
-
   return {
     id,
     ...input,
@@ -57,8 +48,7 @@ export function appendEvent<E extends GameLogEventKey>(
 export function createLogPresentationContext(
   playerNames?: readonly [string, string],
 ): LogPresentationContext {
-  const p1Custom = playerNames !== undefined ? playerNames[0] : undefined;
-  const p2Custom = playerNames !== undefined ? playerNames[1] : undefined;
+  const [p1Custom, p2Custom] = playerNames ?? [];
 
   const players: Record<PlayerId, LogPlayerIdentitySnapshot> = {
     player_1: {

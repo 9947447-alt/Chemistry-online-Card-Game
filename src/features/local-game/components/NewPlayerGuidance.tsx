@@ -103,8 +103,12 @@ export function NewPlayerGuidance({
         <div className="new-player-guidance__content" id={contentId}>
           <p className="new-player-guidance__actor">{guidance.actor}</p>
           <dl className="new-player-guidance__facts">
-            <div><dt>{isEnglish ? "Action entry" : "操作入口"}</dt><dd>{guidance.entry}</dd></div>
-            <div><dt>{isEnglish ? "Concept" : "相关概念"}</dt><dd>{guidance.concept}</dd></div>
+            {([
+              [isEnglish ? "Action entry" : "操作入口", guidance.entry],
+              [isEnglish ? "Concept" : "相关概念", guidance.concept],
+            ] as const).map(([label, value]) => (
+              <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+            ))}
           </dl>
           <p className="panel-note">{isEnglish ? "For complete rules guidance, use About & help in the header." : "需要完整规则说明时，请使用页面顶部“关于与帮助”。"}</p>
           <button
