@@ -10,7 +10,7 @@
 3. 同步 `package.json` 中的 `"name": "reaction-field"`，保持包名与仓库 slug 100% 同构。
 4. 同步应用内静态仓库链接 `src/app/projectRepository.tsx` 及关联测试契约。
 5. 确立 GitHub Pages 目标 URL `https://9947447-alt.github.io/reaction-field/` 与验收标准。
-6. 补齐 GitHub 仓库公开元数据（Description、Topics、基础社区规范指引）。
+6. 补齐 GitHub 仓库公开元数据（Description、Topics）；社区规范指引文件与更广泛的仓库社区健康建设明确延期至未来独立阶段，不作为 Phase 17 完成准则（Community guidance files and broader repository community-health work are deferred to a later independently scoped phase and are not Phase 17 completion criteria）。
 7. 明确外部授权边界、改名实施顺序、实测验证项与安全回滚策略。
 
 ### 1.2 明确非目标（边界红线）
@@ -20,6 +20,7 @@
 4. **禁止修改历史冻结文档**：`docs/MVP0_RULE_FREEZE.md` 及 Phase 8 至 Phase 16 既有冻结文档保持不可变。
 5. **禁止重写 Git 历史或既有 Release**：所有既有 Git Tags（如 `web-playtest-v0.12.0-alpha.1` ~ `web-playtest-v0.16.0-alpha.1`）与既有 GitHub Releases 保持不可变，严禁移动、删除或覆盖。
 6. **README 聚焦必要修正**：Phase 17 README 仅做必要链接与基础结构对齐，不做过度营销重写。
+7. **禁止新增社区规范文件**：不创建 CONTRIBUTING、SECURITY、CODE_OF_CONDUCT、SUPPORT 等社区文件，不修改 GitHub Community Profile 配置，社区健康建设延期至后续独立阶段。
 
 ---
 
@@ -33,9 +34,10 @@
 | **首次双语并列** | `Reaction Field / 反应域` (英为主)<br>`反应域（REACTION FIELD）` (中为主) | README 标题、版权声明（NOTICE）、对外公告首句 |
 | **英文大小写规则** | 正文使用 `Reaction Field`；装饰使用 `REACTION FIELD` | 禁止使用 `Reaction field` 或小写（除包名/slug 外） |
 | **GitHub 仓库 Slug** | `reaction-field` | 唯一首选 GitHub 仓库名（小写 kebab-case） |
-| **有效备用 Slug** | `reaction-field-card-game` | 仅当首选 slug 在授权实施时发生冲突时启用 |
+| **有效备用 Slug** | `reaction-field-card-game` | 仅当首选 slug 在授权实施时发生冲突，经用户明确批准并完成内部身份同步回退流程后启用 |
 | **npm Package Name** | `reaction-field` | `package.json` 中的 `"name"` 字段 |
-| **目标 Pages URL** | `https://9947447-alt.github.io/reaction-field/` | 生产 Web 试玩唯一目标地址 |
+| **当前公开 Pages URL** | `https://9947447-alt.github.io/Chemistry-online-Card-Game/` | 当前真实可用的线上试玩入口（在 Phase 17D/17E 验收完成前保持不变） |
+| **目标 Pages URL** | `https://9947447-alt.github.io/reaction-field/` | 规划目标地址（target / planned URL，切流前非当前公开入口） |
 | **一句话英文定位** | `An open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy.` | GitHub Repo Description、README 副标题 |
 | **一句话中文定位** | `一款基于化学主题的开源本地同屏双人策略卡牌游戏。` | README.zh-CN 副标题、中文介绍 |
 | **Release 标题模板** | `Reaction Field Alpha <N> — v<version>` | 例如：`Reaction Field Alpha 6 — v0.16.0-alpha.1` |
@@ -52,8 +54,8 @@
 - `src/app/projectRepository.test.tsx`：更新测试断言中预期的仓库 URL。
 - `e2e/production/reaction-field.spec.ts`：更新 E2E 生产测试中的仓库链接断言。
 - `e2e/tests/debug-alpha.spec.ts`：更新 E2E 测试中的仓库链接断言。
-- `README.md` & `README.zh-CN.md`：更新公开试玩 Pages URL 与仓库链接，精简首屏结构。
-- `docs/MVP_PLAN.md`：更新公开试玩地址记录与 Phase 17 路线图进度。
+- `README.md` & `README.zh-CN.md`：精简首屏结构与文档叙述；更新仓库链接为 `https://github.com/9947447-alt/reaction-field`；**公开 Pages 试玩入口严格保持当前真实可用地址 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`**，可将 `https://9947447-alt.github.io/reaction-field/` 记录为规划目标地址（planned / target URL），严禁提前将公开入口切换为尚未部署的目标 URL。
+- `docs/MVP_PLAN.md`：更新 Phase 17 路线图进度与目标 Pages URL 规划记录，保留当前公开试玩事实。
 - `docs/CODEX_CAPABILITIES.md`：增补 Phase 17 审计快照与最新能力，保留历史记录。
 
 ### 3.2 历史冻结与踩坑文件（Historical / Frozen Files —— 严格禁止修改）
@@ -78,10 +80,17 @@
   1. 修改 `package.json` 中的 `"name"` 为 `"reaction-field"`。
   2. 修改 `src/app/projectRepository.tsx` 中的 `projectRepositoryUrl` 为 `"https://github.com/9947447-alt/reaction-field"`。
   3. 修改 `src/app/projectRepository.test.tsx`、`e2e/production/reaction-field.spec.ts`、`e2e/tests/debug-alpha.spec.ts` 对应断言。
-  4. 修改 `README.md` 和 `README.zh-CN.md` 中的 Pages 链接与仓库链接。
-  5. 修改 `docs/MVP_PLAN.md` 中对应的试玩 URL 记录。
-- **禁止范围**：禁止修改游戏规则、引擎逻辑、组件结构；禁止修改历史冻结文档；禁止执行 GitHub 远端写操作。
+  4. 修改 `README.md` 和 `README.zh-CN.md` 中的仓库链接；**公开 Pages 试玩入口严格保留当前真实可用地址 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`**。可在规划或说明文字中将 `https://9947447-alt.github.io/reaction-field/` 标记为 target / planned URL，严禁在 Phase 17C 提前宣称新 Pages URL 可用或提前切换正式公开入口。
+  5. 修改 `docs/MVP_PLAN.md` 中对应的目标 Pages URL 规划与 Phase 17 路线图记录。
+- **公开入口正式切换条件**：
+  必须同时满足以下三项条件后，才允许在后续发布/收口阶段正式将公开试玩入口切换至新 Pages URL：
+  1. Phase 17D repository migration completed（GitHub 仓库重命名与设置完成）
+  2. Pages deployment completed successfully（新 Pages 工作流部署成功）
+  3. Phase 17E public acceptance passed（公网真实 URL 访问与验收通过）
+- **禁止范围**：禁止修改游戏规则、引擎逻辑、组件结构；禁止修改历史冻结文档；禁止执行 GitHub 远端写操作；禁止创建社区规范文件；禁止提前将生产/公开 Pages 入口切换至尚未部署可用的目标 URL。
 - **本地完整验证门禁**：
+
+  **阶段 A：修改完成、Commit 之前（Pre-commit 内容与格式验证）**
   ```bash
   pnpm run build
   pnpm run test:run
@@ -91,8 +100,14 @@
   pnpm run check:production
   pnpm run check:size
   git diff --check
+  ```
+  执行变更文件白名单核对、保护/规则文件零 diff 核对及人工 diff review。此阶段工作区存在本轮修改，**不得**执行 `pnpm run check:tracked-clean`，严禁为了让 clean 检查通过而 stash、reset、checkout 或隐藏本轮修改。
+
+  **阶段 B：Commit 完成之后（Post-commit 工作区干净度验证）**
+  ```bash
   pnpm run check:tracked-clean
   ```
+  在本地 commit 完成后执行，确认 tracked working tree 处于干净状态，方可进入 push authorization boundary。
 
 ### 4.2 Phase 17D：GitHub 仓库设置与 Pages 迁移（独立外部授权边界）
 > [!IMPORTANT]
@@ -106,7 +121,7 @@
      ```bash
      gh repo rename reaction-field -R 9947447-alt/Chemistry-online-Card-Game --yes
      ```
-  2. 更新仓库 Description 与 Topics：
+  2. 更新仓库 Description 与 Topics（社区规范指引文件已延期，不作为 Phase 17 操作项）：
      ```bash
      gh repo edit 9947447-alt/reaction-field --description "An open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy." --add-topic card-game --add-topic chemistry --add-topic react --add-topic typescript --add-topic board-game --add-topic playtest
      ```
@@ -121,17 +136,36 @@
      - 新版本号、Tag 和 Release 是独立发布授权边界，不得由 Phase 17B 文档擅自决定。
      - 若届时工作流支持人工 `workflow_dispatch`，也必须在确认工作流契约后单独授权。
      - 只有在 GitHub Actions 部署成功且 Phase 17E 公网页面实测通过后，才能宣称 Pages 迁移完成。
-- **停止条件**：
-  - 若 `gh repo rename` 报错名称冲突（422 / Already exists），立即停止并向用户申请使用备用 slug `reaction-field-card-game`。
+- **停止条件与备用 Slug 回退流程（Fallback Procedure）**：
+  若在执行 `gh repo rename reaction-field ...` 时发生名称冲突（422 / Already exists），必须严格按以下完整流程回退，严禁直接在远端改用备用 slug 而导致本地代码与远端 slug 产生 package/repository/Pages slug 不一致：
+
+  - **Step 1（立即停止）**：Phase 17D 立即停止，不得继续执行后续 GitHub 设置、Pages 或 remote 修改。
+  - **Step 2（报告冲突）**：向用户明确报告首选 slug `reaction-field` 存在冲突。
+  - **Step 3（获得明确授权）**：必须获得用户明确批准将 `reaction-field-card-game` 作为正式备用 slug。
+  - **Step 4（返回内部身份同步阶段）**：获得批准后**不得**直接继续 Phase 17D，必须返回代码库内部身份同步阶段，重新同步所有由 slug 派生的活动身份，包括但不限于：
+    1. `package.json` 中的 `"name": "reaction-field-card-game"`
+    2. `src/app/projectRepository.tsx` 中的 `https://github.com/9947447-alt/reaction-field-card-game`
+    3. `src/app/projectRepository.test.tsx` 单元测试断言
+    4. `e2e/production/reaction-field.spec.ts` 与 `e2e/tests/debug-alpha.spec.ts` 中的 E2E 仓库链接断言
+    5. `README.md` 与 `README.zh-CN.md` 中的仓库外链
+    6. 目标 Pages URL 规划值（`https://9947447-alt.github.io/reaction-field-card-game/`）
+    7. `docs/MVP_PLAN.md` 中的相关身份与目标 URL 记录
+    8. Phase 17E 仓库 URL 验收目标与 Pages URL 验收目标
+    9. 其他通过只读搜索发现的活动 slug 派生项
+  - **Step 5（重新完成本地验证与合并边界）**：重新完成本地全量验证（阶段 A 构建、测试、diff 核对）→ 本地 commit → 取得 push 授权 → push → CI 门禁通过 → PR review & merge 到集成分支。
+  - **Step 6（重新进入 Phase 17D 远端改名）**：只有在备用 slug 的内部身份同步已全部合并至集成分支后，才重新进入 Phase 17D，经授权后使用备用 slug `reaction-field-card-game` 执行仓库改名及后续配置。
+
+  完整闭环流程：`primary slug collision` → **STOP** → **report** → **explicit fallback approval** → **return to repository identity sync** → **update all slug-derived values** → **validate** → **commit** → **push** → **CI** → **merge** → **re-enter Phase 17D** → **rename repository using fallback slug**。严格防止产生 `package name != repository slug`、`repository slug != Pages slug` 或 `app link != repository slug` 的身份分裂。
+
   - 若 Pages Actions 构建失败，立即停止，分析日志，禁止强行覆盖。
 
 ### 4.3 Phase 17E：公开 URL、静态资源与真实网页验收
 - **验收清单**：
-  1. **新 Pages 试玩 URL**：访问 `https://9947447-alt.github.io/reaction-field/`，确认 HTTP 200，页面正常渲染。
+  1. **新 Pages 试玩 URL**：访问目标 Pages URL（`https://9947447-alt.github.io/reaction-field/`，若启用备用 slug 则为对应 fallback URL），确认 HTTP 200，页面正常渲染。
   2. **旧 Pages URL 实测**：访问 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`，记录实际状态（不预设 100% 必然失效，真实记录是 404 还是被重定向）。
   3. **静态资源相对路径**：确认 CSS、JS、SVG 图标（`reaction-field-game-icon.svg`）正常加载，无 `/assets/` 根绝对路径 404。
   4. **HTML Title**：确认浏览器标签页标题精确为 `反应域 · REACTION FIELD · Web Playtest Alpha · <version> · MVP0-P10`。
-  5. **仓库外链**：在 About 弹窗与结算页点击 GitHub 链接，确认直接打开 `https://github.com/9947447-alt/reaction-field`。
+  5. **仓库外链**：在 About 弹窗与结算页点击 GitHub 链接，确认直接打开目标仓库 URL（`https://github.com/9947447-alt/reaction-field` 或 fallback URL）。
   6. **反馈入口**：点击 Microsoft Forms 链接，确认正常打开且无自动私密数据泄露。
   7. **双人对局 Smoke Test**：在真实浏览器中完成一次角色选择与开局出牌流程，确认功能完整。
 
