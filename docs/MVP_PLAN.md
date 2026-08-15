@@ -17,10 +17,11 @@
 - `docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`：Phase 12 反应域静态 Web 试玩发布边界、标签、回滚与停止公开说明；不是规则冻结文档。
 - `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`：Phase 13 新玩家首局引导的展示、可访问性、测试与发布边界；不改写现有规则冻结。
 - `docs/PHASE15_FIRST_GAME_CONVERSION_FREEZE.md`：Phase 15 配置页信息层级、静态示例、非模态成功反应提示和 GitHub 入口边界；不改写现有规则冻结。
+- `docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md`：Phase 16 双语结构化游戏日志冻结合同；不改写现有规则冻结。
 
-## Phase 15 首局转化与玩法可理解性（实现已合并；Alpha 5 未发布候选）
+## Phase 16 完整双语游戏日志（实现已合并；Alpha 6 未发布候选）
 
-Phase 15 只调整配置页信息层级、默认折叠的双语三步示例、消费既有 `GameLogEntry.reaction` 的约两秒非模态成功反应提示，以及 About / `gameOver` 的静态 GitHub 仓库链接。实现已通过 PR #7 合入 `main`。规则版本保持 `MVP0-P10`，默认实验室老师 / 化工厂 CEO 阵容不变，不新增媒体或外部请求，也不修改 engine、data、game tests、reaction definitions、Forms 或 size gate。当前分支只准备 Alpha 5 / `0.15.0-alpha.1` 的版本身份、发布文档和精确测试契约，不改变 Phase 15 产品实现。
+Phase 16 将普通引擎正式日志从内嵌中文字符串升级为基于强类型结构化事件与单一权威载荷的双语渲染，支持简体中文与英文。实现已通过 PR #9 合入 `main`。规则版本保持 `MVP0-P10`，默认实验室老师 / 化工厂 CEO 阵容不变，不新增媒体或外部请求，不修改 engine 核心规则、data、game tests、reaction definitions、Forms 或 size gate。当前分支只准备 Alpha 6 / `0.16.0-alpha.1` 的版本身份、发布文档和精确测试契约，不改变 Phase 16 产品实现。
 
 ## Phase 12 发布边界
 
@@ -32,7 +33,7 @@ Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`�
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前候选应用版本为 `0.15.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 4 / `0.14.0-alpha.1`，公开标签为 `web-playtest-v0.14.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前候选应用版本为 `0.16.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 5 / `0.15.0-alpha.1`，公开标签为 `web-playtest-v0.15.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
 
 ## 0.13.0-alpha.3 已公开发布（Reaction Field Alpha 2）
 
@@ -40,13 +41,17 @@ alpha.2 的品牌资产更新包含 01-B 游戏图标、favicon、Apple Touch Ic
 
 ## 0.14.0-alpha.1 已公开发布（Reaction Field Alpha 4）
 
-Alpha 4 的简体中文与 English 展示层、页面内语言切换和 Microsoft Forms 普通外链反馈入口已经实现、合入并公开；普通 engine 正式日志在英文模式下仍为简体中文。当前公开版本为 `0.14.0-alpha.1`，标签为 `web-playtest-v0.14.0-alpha.1`；新标签部署完成前，公开站点继续运行该版本。游戏不会自动向 Forms 发送 `GameState`、手牌、日志、诊断或浏览器数据；iOS 27 beta Firefox 的 modal / `ROOT_RUNTIME_FAILED` 风险仍未解决。
+Alpha 4 的简体中文与 English 展示层、页面内语言切换和 Microsoft Forms 普通外链反馈入口已经实现、合入并公开；当前公开版本已升级为 Alpha 5。游戏不会自动向 Forms 发送 `GameState`、手牌、日志、诊断或浏览器数据；iOS 27 beta Firefox 的 modal / `ROOT_RUNTIME_FAILED` 风险仍未解决。
 
-## 0.15.0-alpha.1 发布候选（Reaction Field Alpha 5）
+## 0.15.0-alpha.1 已公开发布（Reaction Field Alpha 5）
 
-Phase 15 已实现并合入 `main`。当前分支仅准备 Alpha 5 的版本身份、发布文档和精确测试契约；预定标签 `web-playtest-v0.15.0-alpha.1` 尚未创建，Alpha 5 尚未部署、尚未执行公开 URL 验收，也未创建 GitHub Release。配置页提前角色选择、阵容摘要与开始按钮；当前目标保持可见，详细引导可折叠、隐藏和恢复；双语三步示例默认折叠且纯展示；新产生的结构化成功反应可显示约 2000ms 的非模态提示，仅读取 `GameLogEntry.reaction` 并复用正式展示入口，首次挂载不重播历史 reaction；About 与 `gameOver` 提供静态 GitHub 仓库链接。普通正式日志仍为简体中文，Forms 数据边界不变。
+Phase 15 调整配置页信息层级、默认折叠的双语三步示例、消费既有 `GameLogEntry.reaction` 的约两秒非模态成功反应提示，以及 About / `gameOver` 的静态 GitHub 仓库链接。已公开发布为 Reaction Field Alpha 5，技术版本 `0.15.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.15.0-alpha.1`。
 
-已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 5 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+## 0.16.0-alpha.1 发布候选（Reaction Field Alpha 6）
+
+Phase 16 已实现并合入 `main`。当前分支仅准备 Alpha 6 的版本身份、发布文档和精确测试契约；预定标签 `web-playtest-v0.16.0-alpha.1` 尚未创建，Alpha 6 尚未部署、尚未执行公开 URL 验收，也未创建 GitHub Release。普通引擎正式游戏日志现已支持简体中文与英文，使用强类型结构化事件与单一权威载荷；出牌、响应、反应、DIY 虚拟攻击、状态处理、提示与角色相关流程支持本地化渲染；英文模式下碱性伤害展示为 `alkaline`（内部规则标识保持 `base`）；生产 Reaction 与 DIY UI 路径建立正式 E2E 覆盖；生产 JS bundle 经压缩优化以充裕余量通过 Node 24 体积门限。
+
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 6 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 ## MVP 0 定案范围
 

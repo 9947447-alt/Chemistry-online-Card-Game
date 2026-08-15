@@ -288,7 +288,7 @@ test("默认配置、正式元数据与 configuring 帮助界面", async ({ page
   })).toBeVisible();
   await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
   await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
-  await expect(page.getByText("Web Playtest Alpha · v0.15.0-alpha.1 · MVP0-P10", {
+  await expect(page.getByText("Web Playtest Alpha · v0.16.0-alpha.1 · MVP0-P10", {
     exact: false,
   })).toBeVisible();
 
