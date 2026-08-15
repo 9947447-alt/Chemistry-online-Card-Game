@@ -98,7 +98,9 @@
 > [!IMPORTANT]
 > Phase 17D 涉及 GitHub 平台层面的全局修改，**必须作为单独授权边界**，未经用户显式授权不得执行。
 
-- **前置依赖**：Phase 17C 代码变更已通过 PR 合并至 `main` 分支。
+- **前置依赖**：
+  1. Phase 17C 代码变更必须先合并到当时明确指定的活动发布集成分支（当前冻结时为 `release/phase15-alpha5-web-playtest-alpha1`）。
+  2. 若后续正式切换到新的集成分支，必须在执行 Phase 17D 前重新只读确认并取得授权。不得预设 `main` 分支已包含当前 Alpha 6 发布基线。
 - **授权操作指令序列**：
   1. 重命名 GitHub 仓库：
      ```bash
@@ -112,7 +114,13 @@
      ```bash
      git remote set-url origin git@github.com:9947447-alt/reaction-field.git
      ```
-  4. 触发新 Release Tag 构建或由 `main` 自动触发 GitHub Pages 重新部署。
+  4. Pages 重新部署与触发：
+     - 当前已观察到的 Pages 发布工作流由 `web-playtest-v*` 标签触发；仓库改名本身不等于已经完成新 Pages 部署。
+     - Phase 17D 必须在改名前检查当时的工作流触发条件。
+     - 若需要创建新标签触发部署，必须使用新的递增版本和新的不可变标签，严禁移动、覆盖或重新推送 `web-playtest-v0.16.0-alpha.1`。
+     - 新版本号、Tag 和 Release 是独立发布授权边界，不得由 Phase 17B 文档擅自决定。
+     - 若届时工作流支持人工 `workflow_dispatch`，也必须在确认工作流契约后单独授权。
+     - 只有在 GitHub Actions 部署成功且 Phase 17E 公网页面实测通过后，才能宣称 Pages 迁移完成。
 - **停止条件**：
   - 若 `gh repo rename` 报错名称冲突（422 / Already exists），立即停止并向用户申请使用备用 slug `reaction-field-card-game`。
   - 若 Pages Actions 构建失败，立即停止，分析日志，禁止强行覆盖。
@@ -138,10 +146,10 @@
 2. **合理推断（Logical Inferences）**：
    - GitHub 对重命名后的仓库 Web 页面（`github.com/...`）提供自动 301 重定向。
    - 统一 package name 与 repo slug 能彻底消除新贡献者与外部构建工具的认知混淆。
-3. **待实测事项（Empirical Verification in Phase 17E）**：
-   - GitHub Pages 改名后，旧子路径的具体表现（由实测网络请求确定）。
-   - Social Preview 当前由 GitHub 动态生成，自定义预览大图的设计与接入需在 Phase 17E 验收后单独规划。
-   - CI Secrets / Variables 当前在代码库中未配置自定义项，若未来引入需另行评估。
+3. **待实测与平台配置确认事项（Empirical Verification & Platform Checks）**：
+   - GitHub Pages 改名后，旧子路径的具体表现（由实测网络请求确定，不预设 100% 必然失效）。
+   - 当前是否配置了自定义 GitHub Social Preview，无法仅凭仓库源码和普通只读仓库 API 完全证明；Phase 17D 前必须在 GitHub Settings 中人工或通过可靠接口确认。
+   - 仓库源码不能证明 GitHub Actions Secrets/Variables 的完整平台配置状态。Secrets 的值不得读取、输出或记录；Phase 17D 只需确认相关 Secret/Variable 名称及工作流引用是否会受到仓库改名影响。不得把源码状态等同于平台状态。
 
 ---
 
