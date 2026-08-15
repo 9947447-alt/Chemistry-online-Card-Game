@@ -75,7 +75,12 @@
 
 #### C. Release Preparation 阶段（新版本部署前版本准备阶段）活动文件
 - `package.json`：在获得独立发布授权后递增 `"version"` 字段，确保与后续部署 Tag 严格对齐。
-- 关联精确版本测试断言文件（如涉及版本号断言的单元测试）。
+- 精确版本测试断言文件清单（必须随版本号同步更新）：
+  1. `e2e/production/reaction-field.spec.ts`（About 弹窗与生产页面版本号断言）
+  2. `e2e/tests/debug-alpha.spec.ts`（状态条版本文本断言）
+  3. `scripts/check-production.test.mjs`（构建产物 HTML `<title>` 预期版本断言）
+  4. `scripts/check-web-playtest-tag.test.mjs`（Tag 校验逻辑与预期版本断言）
+  5. `src/app/releaseMetadata.test.tsx`（应用内 package metadata 版本断言）
 
 #### D. Post-deployment Acceptance 阶段（Pages 部署与验收后公开入口收口阶段）
 - `README.md` & `README.zh-CN.md`：在 Phase 17D 仓库改名完成 + Release 版本准备合并 + Pages 部署成功 + Phase 17E 公网验收通过后，正式将公开试玩入口切换至生效的新 Pages URL。
@@ -98,50 +103,73 @@
 
 ## 4. Phase 17 实施拆分子阶段与时序模型
 
-整体实施时序必须严格遵循：
-`Phase 17C (Pre-rename 内部身份与安全文档准备)` → `Phase 17D (GitHub 仓库改名)` → `Post-rename (代码库链接正式切换 Cutover)` → `Release Preparation (版本准备与 Tag 对齐)` → `新版本 Tag / Pages 部署` → `Phase 17E (真实公网验收与公开入口收口)`
+整体实施时序必须严格遵循 9 阶段确定性发布状态机：
+`Phase 17C (Pre-rename 内部身份与安全文档准备)` → `Phase 17D (GitHub 仓库改名与设置)` → `Post-rename (代码库链接正式切换 Cutover)` → `Release Preparation (版本准备与测试断言同步)` → `Release-Source 严格校验与本地 Annotated Tag 创建` → `不可变 Tag 推送与 GitHub Actions Pages 部署工作流` → `Phase 17E (真实公网验收与烟测)` → `GitHub Release 独立创建与发布` → `README 公开试玩入口切流与收口`
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Phase 17C: Pre-rename 内部身份与安全文档准备                │
-│ - package.json name -> reaction-field                       │
-│ - README 中英文 subtitle 对齐与 Alpha 6 状态事实修正         │
-│ - live 仓库链接与 live Pages 链接保持 Chemistry-online-Card-Game │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ merge to integration branch
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Phase 17D: GitHub 仓库改名 (独立外部授权边界)                │
-│ - gh repo rename reaction-field (或 fallback)               │
-│ - 平台查询确认 active slug -> 执行对应分支 metadata/remote  │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ rename confirmed
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Post-rename: 代码库仓库链接正式切换 (Link Cutover)           │
-│ - src/app/projectRepository.tsx -> 生效新仓库 URL            │
-│ - 单元测试 / E2E / README 仓库链接对齐                       │
-│ - 独立 commit 授权 -> 独立 push 授权 -> CI -> merge          │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ cutover merged
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Release Preparation: 版本准备与 Tag 契约对齐                │
-│ - 确定新版本号 -> package.json version 递增 -> 验证 -> 合并 │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ version merged
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Pages 重新部署与发布 (新不可变 Tag / Release)                │
-│ - 部署产物必须包含 cutover 与版本匹配 commit                │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ deployment success
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Phase 17E: 真实公网验收与公开入口收口                       │
-│ - 验证新 Pages URL 渲染与 About/结算页生效仓库外链            │
-│ - 三要素齐全后正式切换 README 公开试玩入口至新 Pages URL    │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. Phase 17C: Pre-rename 内部身份与安全文档准备                         │
+│ - package.json name -> reaction-field                                  │
+│ - README 中英文 subtitle 对齐与 Alpha 6 状态事实修正                    │
+│ - live 仓库链接与 live Pages 链接保持 Chemistry-online-Card-Game            │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ merge to integration branch
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 2. Phase 17D: GitHub 仓库改名与设置 (独立外部授权边界)                 │
+│ - gh repo rename reaction-field (冲突时进入闭环 Fallback 回退流程)     │
+│ - 平台查询确认 active slug -> 执行对应分支 description / topics / remote│
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ rename confirmed
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 3. Post-rename: 代码库仓库链接正式切换 (Link Cutover)                  │
+│ - src/app/projectRepository.tsx -> 生效新仓库 URL                       │
+│ - 单元测试 / E2E / README 仓库链接对齐                                 │
+│ - 独立 commit 授权 -> 独立 push 授权 -> CI -> merge                     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ cutover merged
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 4. Release Preparation: 版本准备与测试断言同步                         │
+│ - 确定新版本号 -> package.json version 递增 -> 5 个版本测试断言文件同步 │
+│ - 本地验证 -> 双重授权 -> CI -> merge 到集成分支                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ version bump merged
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 5. Release-Source 严格校验与本地 Annotated Tag 创建                    │
+│ - git fetch origin <integration-branch>                                │
+│ - 校验 cutover 与 bump commit 为集成分支 HEAD 祖先提交                 │
+│ - 校验远端快照 package.json.version 与新 Tag 精确匹配                   │
+│ - 显式绑定 target commit SHA 创建 annotated tag & 校验 peeled SHA      │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ verified & push authorized
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 6. 不可变 Tag 推送与 GitHub Actions Pages 部署工作流                   │
+│ - git push origin web-playtest-v<version> (不可变资产，严禁覆盖/删除)   │
+│ - Actions 自动触发 check:web-playtest-tag 门禁、构建与 Pages 部署      │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ pages deploy success
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 7. Phase 17E: 真实公网访问与烟测验收                                   │
+│ - 真实浏览器访问目标 Pages URL / 资源路径 / Title / 外链 / 烟测对局    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ acceptance passed
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 8. GitHub Release 独立创建与发布 (独立外部授权边界)                    │
+│ - gh release create web-playtest-v<version> (标题模板严格对齐规范)     │
+│ - 声明：Pages workflow 仅部署站点不建 Release，需独立授权操作           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ release published
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 9. 公开入口切流收口 (Public Entrypoint Switch)                         │
+│ - 四要素齐全后，提交 PR 将 README 公开试玩入口切至新 Pages URL          │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 4.1 Phase 17C：代码库内 Pre-rename 内部身份与安全文档准备
@@ -258,26 +286,72 @@
   必须经过标准工作流：只读基线核对 → 白名单文件修改 → 本地全量验证（阶段 A 构建、测试、E2E、diff 核对）→ 获取 Commit 授权 → 本地 commit → 阶段 B clean 验证 → 获取 Push 授权 → push → CI 门禁通过 → PR review & merge 到集成分支。
 - **部署前置要求**：新的 Pages 部署产物**必须**来自已经合并了 post-rename link cutover 的 commit，严禁在 cutover 合并前提前触发 Pages 部署，否则线上产物仍将携带旧仓库链接。
 
-### 4.4 Release Preparation 与 Phase 17E 真实公网验收
+### 4.4 Release Preparation、Tag 创建、Pages 部署、Phase 17E 验收与 GitHub Release
 
-#### A. Release Preparation（发布与版本准备阶段）
+#### 4.4.1 Release Preparation（发布与版本准备阶段）
 - **契约约束**：`.github/workflows/phase12-web-playtest-pages.yml` 中的 `check:web-playtest-tag` 门禁强制要求 Tag 必须精确等于 `web-playtest-v${package.json.version}`。鉴于 `web-playtest-v0.16.0-alpha.1` 已随 Alpha 6 发布并作为不可变历史资产保护，若迁移后需创建新 Tag 部署 Pages，**必须先完成版本准备并合并**：
-  1. **版本号确定与授权**：在独立发布授权边界下确定新的递增版本号（具体版本由发布边界决定，本冻结文档不预设具体值）；
-  2. **代码库版本递增**：修改 `package.json` 中的 `"version"` 字段及关联的精确版本测试断言；
-  3. **本地验证**：执行全量构建与测试验证；
-  4. **双重授权合并**：获取 Commit 授权 ➔ Commit ➔ 阶段 B clean 验证 ➔ 获取 Push 授权 ➔ Push ➔ CI 通过 ➔ PR 合并至集成分支。
+  1. **版本号确定与授权**：在独立发布授权边界下确定新的单调递增版本号（具体版本由发布边界决定，本冻结文档不预设具体值）；
+  2. **代码库版本与测试断言同步**：修改 `package.json` 中的 `"version"` 字段，并同步更新 5 个关联的精确版本测试断言文件：
+     - `e2e/production/reaction-field.spec.ts`
+     - `e2e/tests/debug-alpha.spec.ts`
+     - `scripts/check-production.test.mjs`
+     - `scripts/check-web-playtest-tag.test.mjs`
+     - `src/app/releaseMetadata.test.tsx`
+  3. **本地验证**：执行全量构建与测试验证（`pnpm run build`、`pnpm run test:run`、`pnpm run test:e2e` 等）；
+  4. **双重授权合并**：获取 Commit 授权 ➔ Commit ➔ 阶段 B clean 验证 ➔ 获取 Push 授权 ➔ Push ➔ CI 通过 ➔ PR 合并至活动集成分支（当前为 `release/phase15-alpha5-web-playtest-alpha1`）。
 
-#### B. Phase 17E：Pages 部署触发与真实公网验收
-- **Pages 重新部署与触发授权**：
-  - 确认 post-rename repository-link cutover 与 Release Preparation 代码均已完全合并到集成分支；
-  - 只有在集成分支中的 `package.json.version` 与新 Tag 精确匹配后，才在独立发布授权下创建并推送新的不可变递增 Tag（`web-playtest-v<version>`），严禁移动、覆盖、复用或重新推送 `web-playtest-v0.16.0-alpha.1` 等历史标签；
-  - 只有在 GitHub Actions 部署成功且 Phase 17E 公网页面实测通过后，才能宣称 Pages 迁移完成。
-- **公开入口正式切换条件**：
-  必须同时满足以下三项条件后，才允许在后续发布/收口阶段正式将公开试玩入口切换至新 Pages URL：
-  1. Phase 17D repository migration completed（GitHub 仓库重命名与设置完成）
-  2. Pages deployment completed successfully（新 Pages 工作流部署成功）
-  3. Phase 17E public acceptance passed（公网真实 URL 访问与验收通过）
-- **验收清单**：
+#### 4.4.2 Release-Source 严格校验与本地 Annotated Tag 创建
+> [!IMPORTANT]
+> 在创建不可变发布 Tag 前，必须执行严格的 Release-Source 校验契约，严禁在未经验证的 commit 或脏本地直接创建/推送 Tag。
+
+- **Release-Source 校验契约（6 步执行序列）**：
+  1. **Fetch 集成分支**：
+     ```bash
+     git fetch origin <integration-branch>
+     ```
+  2. **获取远端目标 Commit SHA**：
+     ```bash
+     TARGET_SHA=$(git rev-parse origin/<integration-branch>)
+     ```
+  3. **祖先关系校验（Ancestry Verification）**：
+     验证 Post-rename link cutover commit 与 Release Preparation bump commit 确为远端目标 commit 的祖先提交：
+     ```bash
+     git merge-base --is-ancestor <cutover_commit_sha> ${TARGET_SHA}
+     git merge-base --is-ancestor <version_bump_commit_sha> ${TARGET_SHA}
+     ```
+  4. **远端快照版本校验（Remote Snapshot Version Check）**：
+     直接从远端目标 commit 读取 `package.json` 快照，确认版本号与待发布的 `<version>` 精确匹配：
+     ```bash
+     git show ${TARGET_SHA}:package.json | grep '"version"'
+     ```
+  5. **显式绑定 Target SHA 创建本地 Annotated Tag**：
+     ```bash
+     git tag -a web-playtest-v<version> ${TARGET_SHA} -m "Release Reaction Field Alpha <N> — v<version>"
+     ```
+  6. **Tag Peeled Commit SHA 校验**：
+     ```bash
+     TAG_PEELED_SHA=$(git rev-parse "web-playtest-v<version>^{commit}")
+     ```
+     验证 `${TAG_PEELED_SHA}` 严格等于 `${TARGET_SHA}`。
+- **Tag Push 独立授权门禁**：
+  校验完成后，向用户报告 `${TARGET_SHA}`、Tag 名称及 Tag message，申请独立 Tag Push 明确授权。
+
+#### 4.4.3 不可变 Tag 推送与 GitHub Actions Pages 部署工作流
+- **Tag 推送**：
+  获取用户显式授权后，推送新 Tag：
+  ```bash
+  git push origin web-playtest-v<version>
+  ```
+- **不可变资产红线**：
+  Tag 一旦推送到远端即成为不可变发布凭证，严禁移动、覆盖、删除、复用或重新推送 `web-playtest-v0.16.0-alpha.1` 及后续任意版本标签。
+- **GitHub Actions 触发与门禁**：
+  推送将自动触发 `.github/workflows/phase12-web-playtest-pages.yml`，执行 `check:web-playtest-tag` 门禁核验、生产构建与 Pages 静态站点部署。
+- **独立性声明**：
+  GitHub Actions Pages workflow 仅负责构建并部署 Pages 静态站点，**不会也不会替代 GitHub Release 的创建**。
+
+#### 4.4.4 Phase 17E：真实公网验收（Acceptance Checklist）
+只有在 GitHub Actions Pages 部署成功且 Phase 17E 公网页面实测通过后，才能宣称 Pages 迁移完成。
+- **验收清单（7 项）**：
   1. **新 Pages 试玩 URL**：访问目标 Pages URL（`https://9947447-alt.github.io/reaction-field/`，若启用备用 slug 则为对应 fallback URL），确认 HTTP 200，页面正常渲染。
   2. **旧 Pages URL 实测**：访问 `https://9947447-alt.github.io/Chemistry-online-Card-Game/`，记录实际状态（不预设 100% 必然失效，真实记录是 404 还是被重定向）。
   3. **静态资源相对路径**：确认 CSS、JS、SVG 图标（`reaction-field-game-icon.svg`）正常加载，无 `/assets/` 根绝对路径 404。
@@ -285,6 +359,32 @@
   5. **仓库外链**：在 About 弹窗与结算页点击 GitHub 链接，确认直接打开实际生效的新仓库 URL（`https://github.com/9947447-alt/reaction-field` 或 fallback URL），无 404。
   6. **反馈入口**：点击 Microsoft Forms 链接，确认正常打开且无自动私密数据泄露。
   7. **双人对局 Smoke Test**：在真实浏览器中完成一次角色选择与开局出牌流程，确认功能完整。
+
+#### 4.4.5 GitHub Release 独立创建与发布（独立外部授权边界）
+- **独立授权契约**：
+  在 Pages 部署成功且 Phase 17E 公网验收全部通过后，向用户申请独立的 GitHub Release 创建授权。
+- **Release 创建指令与参数契约**：
+  ```bash
+  gh release create web-playtest-v<version> \
+    --title "Reaction Field Alpha <N> — v<version>" \
+    --notes "<release_notes_markdown>" \
+    --target <target_commit_sha> \
+    --prerelease
+  ```
+- **契约要求**：
+  1. 标题模板必须精确匹配第 2 节规范表：`Reaction Field Alpha <N> — v<version>`；
+  2. Tag 严格使用已推送到远端的 `web-playtest-v<version>`；
+  3. 目标 commit 显式指定经过验证的 `<target_commit_sha>`；
+  4. 正式完成 GitHub 平台 Release 资产发布。
+
+#### 4.4.6 公开入口切流收口（Public Entrypoint Switch）
+- **切流前置四要素（全部满足后方可切流）**：
+  1. Phase 17D GitHub 仓库改名与设置已完成；
+  2. GitHub Actions Pages 工作流部署成功；
+  3. Phase 17E 真实公网 7 项验收全部通过；
+  4. 对应版本的 GitHub Release 已正式创建并发布。
+- **切流执行**：
+  在四要素全部齐备后，提交独立收口 PR，将 `README.md`、`README.zh-CN.md` 及 `docs/MVP_PLAN.md` 中的公开试玩入口切换至新 Pages URL。
 
 ---
 
@@ -308,47 +408,60 @@
 
 ## 6. 回滚与异常应急方案
 
-- **仓库改名回滚（Repository Rename Rollback）**：
-  若仓库改名后出现不可逆异常需要回滚，必须按以下**严格顺序**执行，严禁猜测或硬编码 primary slug：
+### 6.1 仓库改名回滚（Repository Rename Rollback）
+若仓库改名后出现不可逆异常需要回滚，必须按以下**严格顺序**执行，严禁猜测或硬编码 primary slug：
 
-  1. **Step 1（通过平台查询核实当前实际生效的 active slug）**：
-     在执行回滚前，必须先通过平台只读命令（如 `gh repo view --json name -q .name`）确认当前实际生效的远端仓库 slug，只能是 `reaction-field` 或 `reaction-field-card-game` 之一。
-  2. **Step 2（执行授权改名回滚指令）**：
-     - 若当前 active slug 为 `reaction-field`：
-       ```bash
-       gh repo rename Chemistry-online-Card-Game -R 9947447-alt/reaction-field --yes
-       ```
-     - 若当前 active slug 为 `reaction-field-card-game`：
-       ```bash
-       gh repo rename Chemistry-online-Card-Game -R 9947447-alt/reaction-field-card-game --yes
-       ```
-     *(不得同时执行两条指令)*
-  3. **Step 3（核实远端仓库名恢复）**：
-     只读确认远端仓库名已成功恢复为 `Chemistry-online-Card-Game`。
-  4. **Step 4（恢复本地 remote URL）**：
-     远端改名回滚成功后，再更新本地主仓库 remote URL（所有 linked worktree 自动共享）：
+1. **Step 1（通过平台查询核实当前实际生效的 active slug）**：
+   在执行回滚前，必须先通过平台只读命令（如 `gh repo view --json name -q .name`）确认当前实际生效的远端仓库 slug，只能是 `reaction-field` 或 `reaction-field-card-game` 之一。
+2. **Step 2（执行授权改名回滚指令）**：
+   - 若当前 active slug 为 `reaction-field`：
      ```bash
-     git remote set-url origin git@github.com:9947447-alt/Chemistry-online-Card-Game.git
+     gh repo rename Chemistry-online-Card-Game -R 9947447-alt/reaction-field --yes
      ```
-  5. **Step 5（验证 remote 状态）**：
-     只读验证 `git remote -v` 与 `git ls-remote` 正确指向 `Chemistry-online-Card-Game`。严禁在远端改名回滚成功前提前修改 local remote，防止产生 local/remote 分裂。
+   - 若当前 active slug 为 `reaction-field-card-game`：
+     ```bash
+     gh repo rename Chemistry-online-Card-Game -R 9947447-alt/reaction-field-card-game --yes
+     ```
+   *(不得同时执行两条指令)*
+3. **Step 3（核实远端仓库名恢复）**：
+   只读确认远端仓库名已成功恢复为 `Chemistry-online-Card-Game`。
+4. **Step 4（恢复本地 remote URL）**：
+   远端改名回滚成功后，再更新本地主仓库 remote URL（所有 linked worktree 自动共享）：
+   ```bash
+   git remote set-url origin git@github.com:9947447-alt/Chemistry-online-Card-Game.git
+   ```
+5. **Step 5（验证 remote 状态）**：
+   只读验证 `git remote -v` 与 `git ls-remote` 正确指向 `Chemistry-online-Card-Game`。严禁在远端改名回滚成功前提前修改 local remote，防止产生 local/remote 分裂。
 
-- **代码与链接回滚（Code & Identity Rollback）**：
-  - 仓库改名回滚不会自动撤销代码与文档变更。
-  - **完整回滚集合发现**：回滚前必须先通过实际 Phase 17 merge diff 与 commit 历史发现完整变更集合，不得仅依赖手工枚举；
-  - **完整恢复范围**：若此前已合并了 post-rename link cutover、Release Preparation 或 Phase 17C 代码，必须通过独立代码回滚边界（`git revert` 或经审阅的回滚 commit）完整恢复所有已切换的代码、测试、README、规划文档及公开 URL 元数据：
-    1. `src/app/projectRepository.tsx` 中的仓库链接
-    2. `src/app/projectRepository.test.tsx` 单元测试断言
-    3. `e2e/production/reaction-field.spec.ts` 与 `e2e/tests/debug-alpha.spec.ts` 中的 E2E 仓库链接断言
-    4. `package.json` 中的包名与版本号
-    5. `README.md` 与 `README.zh-CN.md` 中的仓库外链与 Pages 入口（严禁出现仓库已退回旧名但文档仍指向新 slug 的半回滚状态）
-    6. `docs/MVP_PLAN.md` 中的仓库 URL 与 Pages URL 记录
-    7. 经 merge diff 发现的其他所有 slug 派生活动值
-  - 严禁 hard reset，严禁历史重写；
-  - 必须重新完成本地构建与测试验证、获取 Commit 授权、获取 Push 授权、PR review 和 merge 流程。
-- **发布与 Tag 红线警告**：
-  - **严禁删除、移动或覆盖已有 Git Tags**；
-  - 回滚若需重新部署 Pages，必须发布符合 semver 的新递增版本标签（例如新 patch 版本），严禁复用历史标签。
+### 6.2 代码与身份回滚规范（Code & Identity Rollback）
+- 仓库改名回滚不会自动撤销代码与文档变更。
+- **完整回滚集合发现**：回滚前必须先通过实际 Phase 17 merge diff 与 commit 历史发现完整变更集合，不得仅依赖手工枚举。
+- **包名与代码身份恢复范围**：若此前已合并了 post-rename link cutover 或 Phase 17C 代码，必须通过独立代码回滚边界（`git revert` 或经审阅的回滚 commit）完整恢复所有已切换的代码、测试、README、规划文档及公开 URL 元数据：
+  1. `src/app/projectRepository.tsx` 中的仓库链接恢复为 `https://github.com/9947447-alt/Chemistry-online-Card-Game`
+  2. `src/app/projectRepository.test.tsx` 单元测试断言恢复
+  3. `e2e/production/reaction-field.spec.ts` 与 `e2e/tests/debug-alpha.spec.ts` 中的 E2E 仓库链接断言恢复
+  4. `package.json` 中的 `"name"` 恢复为 `"Chemistry-online-Card-Game"`
+  5. `README.md` 与 `README.zh-CN.md` 中的仓库外链与 Pages 入口恢复（严禁出现仓库已退回旧名但文档仍指向新 slug 的半回滚状态）
+  6. `docs/MVP_PLAN.md` 中的仓库 URL 与 Pages URL 记录恢复
+  7. 经 merge diff 发现的其他所有 slug 派生活动值恢复
+  - 严禁 hard reset，严禁历史重写；必须重新完成本地构建与测试验证、获取 Commit 授权、获取 Push 授权、PR review 和 merge 流程。
+
+- **版本号回滚边界与单调性保护（Version Rollback Boundaries）**：
+  > [!IMPORTANT]
+  > 必须显式区分 Pre-tag 回滚与 Post-tag/Post-release 回滚，严禁破坏 SemVer 版本号的不可变性与单调递增性。
+  - **Pre-tag 回滚（未打 Tag 前）**：若仅处于 Release Preparation 阶段，代码修改尚未创建或推送 Tag，在发现问题时可通过 `git revert` 或重新提交将 `package.json.version` 调整或复原为准备前的版本号。
+  - **Post-tag / Post-release 回滚（Tag 已推送或 Release 已发布后）**：**一旦不可变 Tag 推送至远端或 Release 已在平台发布，该版本号永久消耗**。严禁在回滚中使用 `git revert` 将 `package.json.version` 倒退回历史旧版本号（例如严禁将版本号从 `0.17.0-alpha.1` 倒退为 `0.16.0-alpha.1`，这会破坏单调性并引发下游构建缓存与 Tag 冲突）。若回滚需要重新构建并部署 Pages，**必须分配一个全新的、单调递增的 SemVer 版本号**（例如新 patch 版本 `v0.16.1-alpha.1` 或 `v0.17.1-alpha.1`），走完整的 Release Preparation 流程并打新 Tag 部署。
+  - **发布与 Tag 红线**：**严禁删除、移动、覆盖或复用已有 Git Tags**。
+
+### 6.3 5 大标准故障恢复分支规约（Five Standard Failure Recovery Branches）
+
+| 故障分支 | 触发阶段与典型场景 | 标准化处理规约 |
+| :--- | :--- | :--- |
+| **Branch 1: Failure before tag creation / push**<br>(Tag 创建或推送前失败) | Release Preparation 本地/CI 验证失败，或 Release-Source 校验失败（如 ancestry 校验不通过、远端快照版本与 Tag 不匹配）。 | 1. 立即终止发版流程，不创建/不推送 Tag；<br>2. 在集成分支或本地修正代码，或提交 `git revert` 撤销版本 bump commit；<br>3. 在未打 Tag 推送前，版本号允许复用或重新递增；<br>4. 重新完成全量构建测试与 PR 合并门禁。 |
+| **Branch 2: Failure after tag push, before deploy completes**<br>(Tag 已推送但 Actions 未触发或排队阻塞) | Tag 已推送到远端，但 GitHub Actions 平台未触发工作流、webhook 丢失或 runner 队列发生死锁。 | 1. **严禁删除、移动或重新推送同名 Tag**（已推送 Tag 为不可变发布凭据）；<br>2. 通过平台命令（`gh run list --workflow=phase12-web-playtest-pages.yml`）排查运行状态；<br>3. 若属 GitHub 平台临时抖动，通过 `gh run rerun <run_id>` 重新运行工作流；<br>4. 若属工作流配置自身缺陷需要改动代码，必须在集成分支提交修复、递增全新版本号走新发版流程，严禁复用当前 Tag。 |
+| **Branch 3: Pages deployment workflow failure**<br>(Pages 构建或部署流水线报错失败) | GitHub Actions 运行中 `check:web-playtest-tag` 门禁报错、`pnpm run build` 失败、E2E 测试失败或 Pages 部署步骤异常退出。 | 1. **已推送 Tag 永久保留作为失败构建记录，严禁删除/覆盖**；<br>2. 分析 Actions 构建日志定位报错根因；<br>3. 在集成分支提交修复 PR 并合并；<br>4. 分配全新的单调递增版本号，重新走完整 Release 流程打新 Tag 重新部署。 |
+| **Branch 4: Deployment success but Phase 17E acceptance failure**<br>(部署成功但公网验收未通过) | GitHub Actions 部署成功，但在 Phase 17E 真实公网验收中发现静态资源 404、About/结算页仓库外链失效、JS 报错或 smoke test 失败。 | 1. **绝对禁止执行 README 公开入口切流**（确保用户继续访问稳定可用的旧 Pages 入口）；<br>2. 已推送 Tag 永久保留；<br>3. 排查公网环境特异性失效根因并在集成分支提交修复 PR；<br>4. 分配新的单调递增版本号，重新走发版与 Tag 部署流程；<br>5. 只有新版本公网验收 100% 全部通过后，才允许进行公开入口切流。 |
+| **Branch 5: Release published & traffic switched, then critical defect discovered**<br>(全量发布切流后发现致命缺陷紧急回滚) | GitHub Release 已发布且公开入口已切流，随后在生产环境发现规则破坏、重大数据异常或严重安全/运行时崩溃缺陷。 | 1. 评估是否需要仓库改名回滚（如涉及 slug 冲突/合规）或仅需代码回滚；<br>2. 提交代码回滚 PR；<br>3. **严禁在 `package.json` 中将版本号回退为历史旧版本**，必须分配全新的单调递增 patch 版本号（例如 `v0.17.1-alpha.1`）；<br>4. 完成验证并合并回滚代码；<br>5. 经 Release-Source 校验创建新 Tag 并推送，完成 Pages 部署与公网验收；<br>6. 在 GitHub 平台将有缺陷的旧 Release 编辑标记为 `[Deprecated / Superseded]`，并发布新的 patch Release；<br>7. 提交 PR 将 README 公开试玩入口指向新的可用状态。 |
 
 ---
 
