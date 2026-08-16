@@ -3,8 +3,11 @@ import { diyRecipes, type DIYRecipe } from "../data/diyRecipes";
 import { createDIYDamageContext } from "./damageContext";
 import type {
   CardDefinition,
+  CardDefinitionId,
   CardInstanceId,
   DamageEffect,
+  DIYExecutableOutcome,
+  DIYSelectionAnalysis,
   GameState,
   Player,
   PlayerId,
@@ -26,14 +29,6 @@ function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player)
     ...state,
     players: state.players.map((player) => (player.id === playerId ? nextPlayer : player)),
   };
-}
-
-function getDefinitionForCard(
-  state: GameState,
-  cardInstanceId: CardInstanceId,
-): CardDefinition | undefined {
-  const instance = state.cardInstances[cardInstanceId];
-  return instance ? definitionsById.get(instance.definitionId) : undefined;
 }
 
 function getCardHolder(state: GameState, cardInstanceId: CardInstanceId): Player | undefined {
@@ -112,29 +107,6 @@ function addStatusIfMissing(
   );
 }
 
-function componentCountsMatchRecipe(
-  componentDefinitionIds: string[],
-  recipe: DIYRecipe,
-): boolean {
-  const actualCounts = new Map<string, number>();
-
-  for (const definitionId of componentDefinitionIds) {
-    actualCounts.set(definitionId, (actualCounts.get(definitionId) ?? 0) + 1);
-  }
-
-  if (actualCounts.size !== recipe.requiredComponents.length) {
-    return false;
-  }
-
-  return recipe.requiredComponents.every(
-    (requirement) => actualCounts.get(requirement.definitionId) === requirement.count,
-  );
-}
-
-function findMatchingRecipe(componentDefinitionIds: string[]): DIYRecipe | undefined {
-  return diyRecipes.find((recipe) => componentCountsMatchRecipe(componentDefinitionIds, recipe));
-}
-
 function removeOwnFire(state: GameState, playerId: PlayerId): GameState {
   const player = getPlayer(state, playerId);
 
@@ -180,130 +152,250 @@ function discardComponents(
   return nextState;
 }
 
-export function startActiveDIY(
+export function analyzeDIYSelection(
+  state: GameState,
+  playerId: PlayerId,
+  componentCardInstanceIds: readonly CardInstanceId[],
+  targetPlayerId?: PlayerId,
+): DIYSelectionAnalysis {
+  const player = getPlayer(state, playerId);
+
+  const seenIds = new Set<CardInstanceId>();
+  const duplicateIds = new Set<CardInstanceId>();
+  for (const id of componentCardInstanceIds) {
+    if (seenIds.has(id)) {
+      duplicateIds.add(id);
+    } else {
+      seenIds.add(id);
+    }
+  }
+
+  const invalidCardInstanceIds: CardInstanceId[] = [];
+  const recordedInvalid = new Set<CardInstanceId>();
+  const recordInvalid = (id: CardInstanceId) => {
+    if (!recordedInvalid.has(id)) {
+      recordedInvalid.add(id);
+      invalidCardInstanceIds.push(id);
+    }
+  };
+
+  for (const id of componentCardInstanceIds) {
+    if (duplicateIds.has(id)) {
+      recordInvalid(id);
+    }
+    const instance = state.cardInstances[id];
+    if (!instance) {
+      recordInvalid(id);
+      continue;
+    }
+    if (!player || !player.hand.includes(id)) {
+      recordInvalid(id);
+      continue;
+    }
+    const definition = definitionsById.get(instance.definitionId);
+    if (!definition || !definition.allowedTimings.includes("diy-component")) {
+      recordInvalid(id);
+    }
+  }
+
+  if (invalidCardInstanceIds.length > 0) {
+    return {
+      status: "INVALID_SELECTION",
+      invalidCardInstanceIds,
+    };
+  }
+
+  const actualCounts = new Map<CardDefinitionId, number>();
+  for (const cardId of componentCardInstanceIds) {
+    const defId = state.cardInstances[cardId]!.definitionId;
+    actualCounts.set(defId, (actualCounts.get(defId) ?? 0) + 1);
+  }
+
+  const matchingRecipes = diyRecipes.filter((recipe) => {
+    if (actualCounts.size !== recipe.requiredComponents.length) {
+      return false;
+    }
+    return recipe.requiredComponents.every(
+      (req) => actualCounts.get(req.definitionId) === req.count,
+    );
+  });
+
+  if (matchingRecipes.length === 0) {
+    return { status: "NO_RECIPE_MATCH" };
+  }
+
+  if (matchingRecipes.length > 1) {
+    throw new Error(
+      `Registry invariant violation: multiple DIY recipes match the same component signature: ${matchingRecipes.map((r) => r.id).join(", ")}`,
+    );
+  }
+
+  const matchedRecipe = matchingRecipes[0]!;
+
+  if (!player || player.eliminated || state.activePlayerId !== playerId) {
+    return {
+      status: "MATCHED_NOT_EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      blockerCode: "NOT_ACTIVE_PLAYER",
+    };
+  }
+
+  if (state.phase !== "mainAction") {
+    return {
+      status: "MATCHED_NOT_EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      blockerCode: "INVALID_PHASE",
+    };
+  }
+
+  if (player.usedDIYThisCycle) {
+    return {
+      status: "MATCHED_NOT_EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      blockerCode: "DIY_ALREADY_USED_THIS_CYCLE",
+    };
+  }
+
+  if (
+    matchedRecipe.result === "CO2_REMOVE_OWN_FIRE" ||
+    matchedRecipe.result === "H2O_REMOVE_OWN_FIRE"
+  ) {
+    const hasFire = player.statuses.some((status) => status.statusId === "FIRE");
+    if (!hasFire) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "OWN_FIRE_REQUIRED",
+      };
+    }
+    if (targetPlayerId !== undefined) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "UNEXPECTED_TARGET",
+      };
+    }
+    return {
+      status: "EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      outcome: { kind: matchedRecipe.result },
+    };
+  }
+
+  if (matchedRecipe.result === "SO2_APPLY_LEAK") {
+    if (targetPlayerId === undefined) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "TARGET_PLAYER_REQUIRED",
+      };
+    }
+    const target = state.players.find((p) => p.id === targetPlayerId);
+    if (!target || target.id === player.id || target.eliminated) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "TARGET_PLAYER_INVALID",
+      };
+    }
+    return {
+      status: "EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      outcome: {
+        kind: "SO2_APPLY_LEAK",
+        targetPlayerId: target.id,
+      },
+    };
+  }
+
+  if (matchedRecipe.result === "VIRTUAL_ATTACK") {
+    if (targetPlayerId === undefined) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "TARGET_PLAYER_REQUIRED",
+      };
+    }
+    const target = state.players.find((p) => p.id === targetPlayerId);
+    if (!target || target.id === player.id || target.eliminated) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "TARGET_PLAYER_INVALID",
+      };
+    }
+    return {
+      status: "EXECUTABLE",
+      recipeId: matchedRecipe.id,
+      outcome: {
+        kind: "VIRTUAL_ATTACK",
+        targetPlayerId: target.id,
+        damageKind: matchedRecipe.damageKind ?? "acid",
+        damageAmount: matchedRecipe.damageAmount ?? 1,
+      },
+    };
+  }
+
+  return {
+    status: "NO_RECIPE_MATCH",
+  };
+}
+
+function executeValidatedDIYOutcome(
   state: GameState,
   playerId: PlayerId,
   recipeId: string,
   componentCardInstanceIds: CardInstanceId[],
-  targetPlayerId: PlayerId | undefined,
+  outcome: DIYExecutableOutcome,
   shuffle: ShuffleFunction,
 ): GameState {
-  const player = getPlayer(state, playerId);
-
-  if (
-    state.phase !== "mainAction" ||
-    state.activePlayerId !== playerId ||
-    !player ||
-    player.eliminated ||
-    player.usedDIYThisCycle ||
-    new Set(componentCardInstanceIds).size !== componentCardInstanceIds.length
-  ) {
+  const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
+  if (!withComponentsDiscarded) {
     return state;
   }
 
-  const componentDefinitions: CardDefinition[] = [];
-
-  for (const cardInstanceId of componentCardInstanceIds) {
-    if (!player.hand.includes(cardInstanceId)) {
-      return state;
-    }
-
-    const definition = getDefinitionForCard(state, cardInstanceId);
-
-    if (!definition || !definition.allowedTimings.includes("diy-component")) {
-      return state;
-    }
-
-    componentDefinitions.push(definition);
-  }
-
-  const matchedRecipe = findMatchingRecipe(componentDefinitions.map((definition) => definition.id));
-
-  if (!matchedRecipe || matchedRecipe.id !== recipeId) {
-    return state;
-  }
-
-  if (matchedRecipe.result === "CO2_REMOVE_OWN_FIRE") {
-    if (targetPlayerId || !player.statuses.some((status) => status.statusId === "FIRE")) {
-      return state;
-    }
-
-    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
-    if (!withComponentsDiscarded) {
-      return state;
-    }
-
-    const withFireRemoved = removeOwnFire(withComponentsDiscarded, player.id);
+  if (outcome.kind === "CO2_REMOVE_OWN_FIRE") {
+    const withFireRemoved = removeOwnFire(withComponentsDiscarded, playerId);
     const resolved = appendEvent(
-      markDIYUsed(withFireRemoved, player.id),
+      markDIYUsed(withFireRemoved, playerId),
       {
         eventKey: "diy_co2_remove_fire",
-        params: { playerId: player.id },
+        params: { playerId },
       },
     );
-
     return advanceTurnFromReducer(resolved, shuffle);
   }
 
-  if (matchedRecipe.result === "H2O_REMOVE_OWN_FIRE") {
-    if (targetPlayerId || !player.statuses.some((status) => status.statusId === "FIRE")) {
-      return state;
-    }
-
-    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
-    if (!withComponentsDiscarded) {
-      return state;
-    }
-
-    const withFireRemoved = removeOwnFire(withComponentsDiscarded, player.id);
+  if (outcome.kind === "H2O_REMOVE_OWN_FIRE") {
+    const withFireRemoved = removeOwnFire(withComponentsDiscarded, playerId);
     const resolved = appendEvent(
-      markDIYUsed(withFireRemoved, player.id),
+      markDIYUsed(withFireRemoved, playerId),
       {
         eventKey: "diy_h2o_remove_fire",
-        params: { playerId: player.id },
+        params: { playerId },
       },
     );
-
     return advanceTurnFromReducer(resolved, shuffle);
   }
 
-  if (matchedRecipe.result === "VIRTUAL_ATTACK") {
-    const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
-
-    if (
-      !matchedRecipe.requiresTarget ||
-      !target ||
-      target.id === player.id ||
-      target.eliminated ||
-      !matchedRecipe.damageKind ||
-      !matchedRecipe.damageAmount ||
-      !matchedRecipe.displayName
-    ) {
-      return state;
-    }
-
-    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
-    if (!withComponentsDiscarded) {
-      return state;
-    }
-
+  if (outcome.kind === "VIRTUAL_ATTACK") {
     const sourceEffect: DamageEffect = {
       type: "DAMAGE",
       context: createDIYDamageContext({
-        sourcePlayerId: player.id,
-        recipeId: matchedRecipe.id,
-        targetPlayerId: target.id,
-        baseAmount: matchedRecipe.damageAmount,
-        damageKind: matchedRecipe.damageKind,
+        sourcePlayerId: playerId,
+        recipeId,
+        targetPlayerId: outcome.targetPlayerId,
+        baseAmount: outcome.damageAmount,
+        damageKind: outcome.damageKind,
       }),
     };
 
     return appendEvent(
       {
-        ...markDIYUsed(withComponentsDiscarded, player.id),
+        ...markDIYUsed(withComponentsDiscarded, playerId),
         phase: "responseWindow",
         pendingResponse: {
-          responderId: target.id,
+          responderId: outcome.targetPlayerId,
           sourceEffect,
           chainDepth: 1,
           effectsAfterPass: [sourceEffect],
@@ -312,34 +404,28 @@ export function startActiveDIY(
       {
         eventKey: "diy_virtual_attack",
         params: {
-          playerId: player.id,
-          recipeId: matchedRecipe.id,
-          targetId: target.id,
-          damageKind: matchedRecipe.damageKind,
-          amount: matchedRecipe.damageAmount,
+          playerId,
+          recipeId,
+          targetId: outcome.targetPlayerId,
+          damageKind: outcome.damageKind,
+          amount: outcome.damageAmount,
         },
       },
     );
   }
 
-  if (matchedRecipe.result === "SO2_APPLY_LEAK") {
-    const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
-
-    if (!matchedRecipe.requiresTarget || !target || target.id === player.id || target.eliminated) {
-      return state;
-    }
-
-    const withComponentsDiscarded = discardComponents(state, componentCardInstanceIds);
-    if (!withComponentsDiscarded) {
-      return state;
-    }
-
-    const withStatus = addStatusIfMissing(withComponentsDiscarded, target.id, player.id, "SO2_LEAK");
+  if (outcome.kind === "SO2_APPLY_LEAK") {
+    const withStatus = addStatusIfMissing(
+      withComponentsDiscarded,
+      outcome.targetPlayerId,
+      playerId,
+      "SO2_LEAK",
+    );
     const resolved = appendEvent(
-      markDIYUsed(withStatus, player.id),
+      markDIYUsed(withStatus, playerId),
       {
         eventKey: "diy_so2_apply_leak",
-        params: { actorId: player.id, targetId: target.id },
+        params: { actorId: playerId, targetId: outcome.targetPlayerId },
       },
     );
 
@@ -347,4 +433,55 @@ export function startActiveDIY(
   }
 
   return state;
+}
+
+export function playDIYSelection(
+  state: GameState,
+  playerId: PlayerId,
+  componentCardInstanceIds: CardInstanceId[],
+  targetPlayerId: PlayerId | undefined,
+  shuffle: ShuffleFunction,
+): GameState {
+  const analysis = analyzeDIYSelection(state, playerId, componentCardInstanceIds, targetPlayerId);
+
+  if (analysis.status !== "EXECUTABLE") {
+    return state;
+  }
+
+  return executeValidatedDIYOutcome(
+    state,
+    playerId,
+    analysis.recipeId,
+    componentCardInstanceIds,
+    analysis.outcome,
+    shuffle,
+  );
+}
+
+export function startActiveDIY(
+  state: GameState,
+  playerId: PlayerId,
+  recipeId: string,
+  componentCardInstanceIds: CardInstanceId[],
+  targetPlayerId: PlayerId | undefined,
+  shuffle: ShuffleFunction,
+): GameState {
+  const analysis = analyzeDIYSelection(state, playerId, componentCardInstanceIds, targetPlayerId);
+
+  if (analysis.status !== "EXECUTABLE") {
+    return state;
+  }
+
+  if (analysis.recipeId !== recipeId) {
+    return state;
+  }
+
+  return executeValidatedDIYOutcome(
+    state,
+    playerId,
+    analysis.recipeId,
+    componentCardInstanceIds,
+    analysis.outcome,
+    shuffle,
+  );
 }

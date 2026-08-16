@@ -43,6 +43,13 @@ export type ResolveExperimentCounterattackAction =
       cardInstanceId: CardInstanceId;
     };
 
+export type PlayDiySelectionAction = {
+  type: "PLAY_DIY_SELECTION";
+  playerId: PlayerId;
+  componentCardInstanceIds: CardInstanceId[];
+  targetPlayerId?: PlayerId;
+};
+
 export type GameAction =
   | ActivateCharacterSkillAction
   | ResolveExperimentCounterattackAction
@@ -68,6 +75,7 @@ export type GameAction =
       cardInstanceId: CardInstanceId;
     }
   | { type: "PASS_STATUS_HANDLING"; playerId: PlayerId; statusInstanceId: string }
+  | PlayDiySelectionAction
   | {
       type: "START_ACTIVE_DIY";
       playerId: PlayerId;

@@ -301,6 +301,45 @@ export type GamePhase =
 
 export type DamageKind = "acid" | "base";
 
+export type DIYBlockerCode =
+  | "NOT_ACTIVE_PLAYER"
+  | "INVALID_PHASE"
+  | "DIY_ALREADY_USED_THIS_CYCLE"
+  | "OWN_FIRE_REQUIRED"
+  | "TARGET_PLAYER_REQUIRED"
+  | "TARGET_PLAYER_INVALID"
+  | "UNEXPECTED_TARGET";
+
+export type DIYExecutableOutcome =
+  | { kind: "CO2_REMOVE_OWN_FIRE" }
+  | { kind: "H2O_REMOVE_OWN_FIRE" }
+  | { kind: "SO2_APPLY_LEAK"; targetPlayerId: PlayerId }
+  | {
+      kind: "VIRTUAL_ATTACK";
+      targetPlayerId: PlayerId;
+      damageKind: "acid" | "base";
+      damageAmount: number;
+    };
+
+export type DIYSelectionAnalysis =
+  | {
+      status: "INVALID_SELECTION";
+      invalidCardInstanceIds: readonly CardInstanceId[];
+    }
+  | {
+      status: "NO_RECIPE_MATCH";
+    }
+  | {
+      status: "MATCHED_NOT_EXECUTABLE";
+      recipeId: string;
+      blockerCode: DIYBlockerCode;
+    }
+  | {
+      status: "EXECUTABLE";
+      recipeId: string;
+      outcome: DIYExecutableOutcome;
+    };
+
 export type GameLogEventKey =
   | "game_start"
   | "recycle_discard_into_deck"
