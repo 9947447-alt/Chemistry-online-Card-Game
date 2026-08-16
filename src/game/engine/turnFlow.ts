@@ -182,7 +182,7 @@ export function dealCycleStartHands(state: GameState, shuffle: ShuffleFunction):
   };
 }
 
-function isValidLaboratoryPreparationSelection(
+export function isValidLaboratoryPreparationSelection(
   state: GameState,
   selection: NonNullable<
     GameState["pendingLaboratoryPreparation"]
@@ -213,7 +213,7 @@ function isValidLaboratoryPreparationSelection(
   );
 }
 
-function isValidLaboratoryPreparationConfirmation(
+export function isValidLaboratoryPreparationConfirmation(
   state: GameState,
   playerId: PlayerId,
   keptCardInstanceIds: CardInstanceId[],

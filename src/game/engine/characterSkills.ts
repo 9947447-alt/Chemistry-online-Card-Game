@@ -6,6 +6,7 @@ import { canRecoverHp } from "./recovery";
 import type {
   CardDefinition,
   CharacterId,
+  CharacterSkillId,
   CharacterUsageKey,
   GameState,
   Player,
@@ -65,6 +66,10 @@ function getCommonSkillActor(
   action: ActivateCharacterSkillAction,
 ): Player | undefined {
   const spec = activeSkillSpecs[action.skillId];
+  if (!spec) {
+    return undefined;
+  }
+
   const player = state.players.find((candidate) => candidate.id === action.playerId);
 
   if (
@@ -79,6 +84,162 @@ function getCommonSkillActor(
   }
 
   return player;
+}
+
+export function validateCharacterSkillAction(
+  state: GameState,
+  action: ActivateCharacterSkillAction,
+): boolean {
+  const player = getCommonSkillActor(state, action);
+  if (!player) {
+    return false;
+  }
+
+  switch (action.skillId) {
+    case "extra_lesson":
+    case "emergency_supply": {
+      return player.hand.length <= 4 && getAvailableDrawCardCount(state) > 0;
+    }
+    case "alkali_recovery": {
+      if (!canRecoverHp(player)) {
+        return false;
+      }
+      if (!action.cardInstanceId || !player.hand.includes(action.cardInstanceId)) {
+        return false;
+      }
+      const instance = state.cardInstances[action.cardInstanceId];
+      if (
+        !instance ||
+        instance.ownerId !== player.id ||
+        instance.zone.type !== "hand" ||
+        instance.zone.playerId !== player.id
+      ) {
+        return false;
+      }
+      const definition = definitionsById.get(instance.definitionId);
+      return Boolean(
+        definition &&
+          definition.type === "substance" &&
+          definition.tags.includes("strong-alkali"),
+      );
+    }
+    case "exhaust_discharge": {
+      if (!action.targetPlayerId) {
+        return false;
+      }
+      const target = state.players.find((candidate) => candidate.id === action.targetPlayerId);
+      return Boolean(target && target.id !== player.id && !target.eliminated);
+    }
+    case "exhaust_leak":
+    case "lab_fire":
+    case "exothermic_accident": {
+      return getOtherAlivePlayerIds(state, player.id).length > 0;
+    }
+    default: {
+      const exhaustiveSkill: never = action;
+      return exhaustiveSkill;
+    }
+  }
+}
+
+export function getLegalCharacterSkillActions(
+  state: GameState,
+  playerId: PlayerId,
+): readonly ActivateCharacterSkillAction[] {
+  if (state.phase !== "mainAction" || state.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player || player.eliminated) {
+    return [];
+  }
+
+  const legalActions: ActivateCharacterSkillAction[] = [];
+
+  switch (player.characterId) {
+    case "laboratory_teacher": {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId: "extra_lesson",
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+      break;
+    }
+    case "chemical_factory_ceo": {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId: "emergency_supply",
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+      break;
+    }
+    case "caustic_soda_captain": {
+      for (const cardInstanceId of player.hand) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId: "alkali_recovery",
+          cardInstanceId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    case "sulfuric_acid_factory_director": {
+      for (const targetPlayerId of getOtherAlivePlayerIds(state, playerId)) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId: "exhaust_discharge",
+          targetPlayerId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    case "clumsy_party_secretary": {
+      const skills: readonly ["exhaust_leak", "lab_fire", "exothermic_accident"] = [
+        "exhaust_leak",
+        "lab_fire",
+        "exothermic_accident",
+      ];
+      for (const skillId of skills) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return legalActions;
+}
+
+export function canActivateCharacterSkill(
+  state: GameState,
+  playerId: PlayerId,
+  skillId: CharacterSkillId,
+): boolean {
+  const actions = getLegalCharacterSkillActions(state, playerId);
+  return actions.some((action) => action.skillId === skillId);
 }
 
 function markSkillUsed(
@@ -158,10 +319,6 @@ function activateDrawSkill(
   const drawCount = skillId === "extra_lesson" ? 4 : 3;
   const usageKey = activeSkillSpecs[skillId].usageKey;
 
-  if (player.hand.length > 4 || getAvailableDrawCardCount(state) === 0) {
-    return state;
-  }
-
   const handSizeBefore = player.hand.length;
   const drawnState = drawCardsForPlayer(state, player.id, drawCount, shuffle);
   const drawnPlayer = drawnState.players.find((candidate) => candidate.id === player.id);
@@ -189,17 +346,7 @@ function activateAlkaliRecovery(
   const instance = state.cardInstances[action.cardInstanceId];
   const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
 
-  if (
-    !canRecoverHp(player) ||
-    !player.hand.includes(action.cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== player.id ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== player.id ||
-    !definition ||
-    definition.type !== "substance" ||
-    !definition.tags.includes("strong-alkali")
-  ) {
+  if (!instance || !definition) {
     return state;
   }
 
@@ -251,7 +398,7 @@ function activateExhaustDischarge(
   shuffle: ShuffleFunction,
 ): GameState {
   const target = state.players.find((candidate) => candidate.id === action.targetPlayerId);
-  if (!target || target.id === player.id || target.eliminated) {
+  if (!target) {
     return state;
   }
 
@@ -346,7 +493,11 @@ export function activateCharacterSkill(
   action: ActivateCharacterSkillAction,
   shuffle: ShuffleFunction,
 ): GameState {
-  const player = getCommonSkillActor(state, action);
+  if (!validateCharacterSkillAction(state, action)) {
+    return state;
+  }
+
+  const player = state.players.find((candidate) => candidate.id === action.playerId);
   if (!player) {
     return state;
   }

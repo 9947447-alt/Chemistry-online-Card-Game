@@ -116,7 +116,7 @@ function moveCardFromHandToDiscard(
   );
 }
 
-function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
+export function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
   if (definition.tags.includes("acid")) {
     return "acid";
   }
@@ -128,7 +128,7 @@ function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | un
   return undefined;
 }
 
-function canNeutralize(
+export function canNeutralize(
   incomingDamageKind: "acid" | "base",
   responseDefinition: CardDefinition,
 ): boolean {
@@ -147,7 +147,7 @@ function canNeutralize(
   return responseDefinition.tags.includes("acid");
 }
 
-function canGenerateCarbonDioxideAgainstAcid(
+export function canGenerateCarbonDioxideAgainstAcid(
   incomingDamageKind: "acid" | "base",
   responseDefinition: CardDefinition,
 ): boolean {

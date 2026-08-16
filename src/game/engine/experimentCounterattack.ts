@@ -248,7 +248,7 @@ function discardOwnedHandCard(
   };
 }
 
-function isValidPending(
+export function getValidPendingExperimentCounterattack(
   state: GameState,
   playerId: PlayerId,
 ): PendingExperimentCounterattack | undefined {
@@ -318,7 +318,7 @@ export function resolveExperimentCounterattack(
   action: ResolveExperimentCounterattackAction,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pending = isValidPending(state, action.playerId);
+  const pending = getValidPendingExperimentCounterattack(state, action.playerId);
   const responder = state.players.find((player) => player.id === action.playerId);
   const attacker = pending
     ? state.players.find((player) => player.id === pending.attackerPlayerId)

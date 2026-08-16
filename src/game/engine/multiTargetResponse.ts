@@ -106,7 +106,7 @@ function discardResponseCard(
   };
 }
 
-function getValidPendingResponse(
+export function getValidMultiTargetPendingResponse(
   state: GameState,
   playerId: PlayerId,
 ): MultiTargetPendingResponse | undefined {
@@ -144,7 +144,7 @@ export function respondToMultiTargetDamage(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingResponse = getValidPendingResponse(state, playerId);
+  const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
   const instance = state.cardInstances[cardInstanceId];
   const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
 
@@ -204,7 +204,7 @@ export function passMultiTargetDamageResponse(
   playerId: PlayerId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingResponse = getValidPendingResponse(state, playerId);
+  const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
   if (!pendingResponse) {
     return state;
   }
