@@ -96,6 +96,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: [
+      "src/chemistry/**/*.test.ts",
       "src/game/tests/**/*.test.ts",
       "src/app/**/*.test.tsx",
       "src/features/**/*.test.tsx",
