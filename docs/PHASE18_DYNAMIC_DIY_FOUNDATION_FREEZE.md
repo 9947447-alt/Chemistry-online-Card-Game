@@ -48,7 +48,7 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 ```
 +-------------------------------------------------------------------+
 | LAYER 1: Chemistry Knowledge                                      |
-| (元素符号 / 原子团 / 常见化合价表 / 显式离子电荷 / 只读物种注册表)       |
+| (元素符号 / 原子团 / 常见化合价表 / 显式离子电荷 / 最小物种注册表)       |
 +---------------------------------+---------------------------------+
                                   | 引用化学物种定义
                                   v
@@ -60,7 +60,7 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
                                   v
 +-------------------------------------------------------------------+
 | LAYER 3: Reaction Field DIY Rule Resolver & Analysis              |
-| (纯语义分析 / 规则白名单匹配 / 可执行性校验 / 纯数据输出)             |
+| (纯语义分析 / 规则白名单匹配 / 可执行性校验 / 目标绑定纯数据输出)       |
 +---------------------------------+---------------------------------+
                                   | 产出纯语义分析结果
                                   v
@@ -71,8 +71,8 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 ```
 
 ### Layer 1: Chemistry Knowledge（纯化学知识层）
-- **职责**：管理元素符号、原子团、用户确认的初中常见化合价表、显式离子与原子团电荷、稳定的只读化学物种注册表（`ChemicalSpecies`）。
-- **禁止事项**：绝不包含任何 Reaction Field 游戏概念（伤害数值、生命值、牌区、时点合法性、状态、回合推进、卡牌数量等）。不得在 Phase 18C 引入化学式合成算法或方程式自动配平器。
+- **职责**：管理 21 个常见元素符号、5 个常见原子团、用户确认的初中常见化合价表、显式离子与原子团电荷、稳定的只读最小化学物种注册表（`ChemicalSpecies`）。
+- **禁止事项**：绝不包含任何 Reaction Field 游戏概念（伤害数值、生命值、牌区、时点合法性、状态、回合推进、卡牌数量等）。不得在 Phase 18C 引入化学式合成算法或方程式自动配平器。不得依赖任何游戏数据模块。
 
 ### Layer 2: Card $\rightarrow$ Chemistry Mapping（卡牌至化学映射层）
 - **职责**：建立实体卡牌定义（`CardDefinitionId`）到化学物种（`ChemicalSpeciesId?`）的单向关联声明与只读派生。
@@ -80,16 +80,16 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
   - 权威依赖方向为：`CardInstanceId` $\rightarrow$ `CardDefinitionId` $\rightarrow$ `ChemicalSpeciesId?`；
   - `CardInstance` 绝不重复保存 chemistry identity；
   - 允许某些 `CardDefinition` 无对应 `ChemicalSpecies`（如事件卡、未来概念卡）；
-  - 允许某些 `ChemicalSpecies` 当前无对应实体卡牌（如金属物种）；
+  - 允许某些 `ChemicalSpecies` 当前无对应实体卡牌（如硝酸根、铵根或未来金属物种）；
   - 允许未来多个不同 `CardDefinition` 指向同一个 `ChemicalSpecies`；
   - 反向查找（Reverse lookup）若未来需要，仅为可选的派生一对多映射，非权威身份来源。
-- **禁止事项**：不得决定 DIY 组合在游戏中的合法性，不得覆盖或篡改 `CardDefinition` 的既有游戏字段。
+- **禁止事项**：不得决定 DIY 组合在游戏中的合法性，不得覆盖或篡改 `CardDefinition` 的既有游戏字段。**Phase 18C 阶段暂不实现此 Adapter**。
 
 ### Layer 3: RF DIY Rule Resolver & Analysis（游戏规则解析与分析层）
 - **职责**：根据当前已冻结的 Reaction Field 游戏规则，纯函数解析玩家所选的卡牌实例组合：
-  - 区分非法选牌（`INVALID_SELECTION`）、配方无匹配（`NO_RECIPE_MATCH`）、配方匹配但当前不可执行（`MATCHED_NOT_EXECUTABLE`）以及完全可执行（`EXECUTABLE`）；
-  - 输出强类型的纯语义数据结构（不包含任何面向玩家的展示字符串）；
-  - 指示目标需求（`targetRequirement`）与强类型效果语义数据。
+  - 严格区分非法选牌（`INVALID_SELECTION`）、配方未匹配（`NO_RECIPE_MATCH`）、配方匹配但当前不可执行（`MATCHED_NOT_EXECUTABLE`）以及完全可执行（`EXECUTABLE`）；
+  - 目标语义（Target Semantics）与效果分支强类型绑定，统一处理缺少目标、目标非法或意外提供多余目标（`UNEXPECTED_TARGET`）；
+  - 输出强类型的纯语义数据结构（不包含任何面向玩家的展示字符串）。
 - **禁止事项**：不得仅因“化学式能配平”就判定合法；必须严格受限于已冻结的游戏规则配方白名单；不得返回展示文案。
 
 ### Layer 4: Game Effect Executor & Presentation（执行与展示层）
@@ -98,11 +98,11 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 
 ---
 
-## 3. 初中化学人工确认知识库（Junior Chemistry Data）
+## 3. 初中化学人工确认知识库与最小物种种子表
 
 以下数据来自用户明确指定的初中化学常见化合价与常见原子团，作为 Phase 18 第一批人工确认的 Layer 1 权威化学知识库：
 
-### 3.1 元素及常见化合价（Elements and Common Valences）
+### 3.1 元素及常见化合价（Elements and Common Valences，共 21 个元素）
 
 | 元素符号 | 英文名称 | 中文名称 | 常见化合价（Common Valences） |
 | :--- | :--- | :--- | :--- |
@@ -128,7 +128,7 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 | **C** | Carbon | 碳 | `+2, +4` |
 | **Si** | Silicon | 硅 | `+4` |
 
-### 3.2 常见原子团及化合价（Common Radicals）
+### 3.2 常见原子团及化合价（Common Radicals，共 5 个原子团）
 
 | 原子团化学式 | 中文名称 | 英文名称 | 整体化合价 / 电荷 |
 | :--- | :--- | :--- | :--- |
@@ -138,17 +138,49 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 | **SO4** | 硫酸根 | Sulfate | `-2` |
 | **NH4** | 铵根 | Ammonium | `+1` |
 
+### 3.3 Phase 18C 最小化学物种种子表（Minimum Chemical Species Seed）
+
+在 Phase 18C 建立 Layer 1 ChemicalSpecies 注册表时，**严禁从元素化合价表自动派生物种**。每个具体物种必须拥有显式冻结的 ID、类别（kind）、化学式与电荷。Phase 18C 仅建立以下权威种子物种：
+
+#### A. 当前 Dynamic DIY 所需的中性单质元素组件物种（Neutral Elemental Component Species，`charge = 0`）
+1. `species_c`（$\text{C}$，碳单质组件，中性，`charge: 0`）
+2. `species_o`（$\text{O}$，氧单质组件，中性，`charge: 0`；**特别说明**：$\text{O}$ 单质组件身份 $\neq \text{O}_2$ 物质牌身份，严禁将 `element_o` 自动解释为氧气分子）
+3. `species_s`（$\text{S}$，硫单质组件，中性，`charge: 0`）
+
+#### B. 当前已有游戏规则与卡牌明确使用的离子物种（Explicit Gameplay Ion Species，显式电荷）
+4. `species_ion_h`（$\text{H}^+$，氢离子，`charge: +1`）
+5. `species_ion_na`（$\text{Na}^+$，钠离子，`charge: +1`）
+6. `species_ion_k`（$\text{K}^+$，钾离子，`charge: +1`）
+7. `species_ion_ca`（$\text{Ca}^{2+}$，钙离子，`charge: +2`）
+8. `species_ion_cl`（$\text{Cl}^-$，氯离子，`charge: -1`）
+9. `species_ion_oh`（$\text{OH}^-$，氢氧根离子，`charge: -1`）
+10. `species_ion_co3`（$\text{CO}_3^{2-}$，碳酸根离子，`charge: -2`）
+11. `species_ion_so4`（$\text{SO}_4^{2-}$，硫酸根离子，`charge: -2`）
+
+*注：上述离子的显式电荷权威性来源于当前已合并游戏规则与既有卡牌语义的明确持久化，绝非从常见化合价表中自动猜测。*
+
+#### C. 用户提供的常见原子团中具有显式整体电荷的物种（Explicit Radical Species，当前暂无实体卡牌）
+12. `species_ion_no3`（$\text{NO}_3^-$，硝酸根离子，`charge: -1`）
+13. `species_ion_nh4`（$\text{NH}_4^+$，铵根离子，`charge: +1`）
+
+*注：$\text{OH}^-$、$\text{CO}_3^{2-}$ 与 $\text{SO}_4^{2-}$ 已包含在 B 项离子列表中，不建立重复身份。*
+
 ---
 
-## 4. 化合价、电荷与现有 CardDefinition 字段所有权
+## 4. 知识记录、具象物种与现有 CardDefinition 字段所有权
 
-### 4.1 化合价与具体离子电荷严格区分（Valence vs Charge）
-1. **化合价不可直接推断为自由离子电荷**：
-   - 严禁将 `common valence` 自动等同于自由离子的 `charge`；
-   - 例：铁（Fe）的常见化合价包含 `+2` 与 `+3`，系统绝不得在通用引擎中盲目竞猜当前代表 $\text{Fe}^{2+}$ 还是 $\text{Fe}^{3+}$；必须由具体的卡牌物种定义或显式上下文明确指定；
+### 4.1 知识记录与具象物种严格区分（Knowledge Records vs Concrete Species）
+1. **元素知识 $\neq$ 自由带电离子物种**：
+   - `ElementKnowledge` 表示某元素的基础知识与常见化合价（例如 $\text{Fe: [+2, +3]}$），这**绝不自动建立 $\text{Fe}^{2+}$ 或 $\text{Fe}^{3+}$**；
+   - `RadicalKnowledge` 表示原子团的基础信息与整体化合价；
+   - `ChemicalSpecies` 表示具象确定的化学物种身份，只有显式种子表（3.3 节）或后续 Freeze 明确批准后才允许建立。
+2. **多价态非金属的卡牌物种单义性**：
    - 氯（Cl）的常见化合价包含 `-1, +1, +5, +7`，但当前卡池中的 `ion_cl` 实体卡牌仅代表氯离子（$\text{Cl}^-$，电荷 `-1`），绝不能在运行时动态变为 $\text{Cl}^+$、$\text{Cl}^{5+}$ 或 $\text{Cl}^{7+}$。
-2. **数据模型分离**：
-   - 数据结构中必须将“元素的化学属性（`ElementKnowledge`）”与“具体的带电物种（`IonSpecies`）”分为两个独立类型，禁止混淆。
+3. **四维严格隔离不变量**：
+   $$\text{Knowledge availability} \neq \text{Concrete species availability} \neq \text{Card availability} \neq \text{Playable DIY legality}$$
+   - 知识库中存在 21 个元素的化合价，不代表存在对应具体离子物种；
+   - 种子表中存在 $\text{NO}_3^-$、$\text{NH}_4^+$ 物种，不代表卡池中新增了对应实体卡牌；
+   - 化学上能配平的物质，绝不代表成为游戏中合法可执行的 DIY。
 
 ### 4.2 现有 CardDefinition 游戏字段所有权保护
 当前代码库中：
@@ -166,6 +198,12 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 - V1 Dynamic DIY 配方匹配继续以当前冻结的 `CardDefinitionId` 多重集白名单为准；
 - 两个卡牌定义即使对应相同化学物种（`ChemicalSpecies`），**绝不代表其在现有 DIY 配方中自动可互换**；
 - 任何将现有游戏元数据重构为“由化学数据自动派生”的工作，必须经由未来独立 Freeze 明确批准。
+
+### 4.3 Phase 18C 模块独立性（No Card Adapter in 18C）
+- Phase 18C 只实现 Layer 1 Chemistry Knowledge/Data Foundation；
+- **Phase 18C 不实现 `CardDefinitionId -> ChemicalSpeciesId` 的 Adapter**；
+- Layer 1 模块**严禁 import `cardDefinitions`、`starterDeck`、`game reducer` 或 `diyRecipes`**；
+- Layer 1 化学注册表必须能够独立存在与初始化，不依赖游戏数据。Card $\rightarrow$ Chemistry Adapter 留到后续明确阶段实现。
 
 ---
 
@@ -208,17 +246,19 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 
 ---
 
-## 8. 权威 DIY 语义分析与纯数据预览契约（Authoritative DIY Analysis & Preview Contract）
+## 8. 权威 DIY 语义分析、目标语义绑定与纯数据预览契约
 
 ### 8.1 核心概念严格区分：匹配（Match） vs 可执行性（Executability）
 必须在类型系统与分析入口中严格区分以下四种互斥状态：
 
 1. **`INVALID_SELECTION`（非法选择）**：所选 `CardInstanceId` 包含重复 ID、非玩家当前手牌、未知实例或不具备 `diy-component` 时点的卡牌。这是强类型的选择边界错误，**绝不能被掩盖为配方未匹配**。
 2. **`NO_RECIPE_MATCH`（配方未匹配）**：所选手牌组件集合在合法的 DIY 配方白名单中无任何匹配。
-3. **`MATCHED_NOT_EXECUTABLE`（匹配但不可执行）**：所选组件成功匹配到唯一合法配方，但受限于当前游戏状态机无法执行（例如：匹配到 $\text{CO}_2$ 配方但自身没有 `FIRE` 状态；或者当前周期已使用过主动 DIY；或者不是当前行动玩家；或者未提供必须的目标对手）。返回稳定的阻断原因码（`BlockerCode`）。
+3. **`MATCHED_NOT_EXECUTABLE`（匹配但不可执行）**：所选组件成功匹配到唯一合法配方，但受限于当前游戏状态机、前置条件或目标参数无法执行。返回稳定的阻断原因码（`DIYBlockerCode`）。
 4. **`EXECUTABLE`（完全可执行）**：所选组件成功匹配唯一配方，且当前游戏状态机、前置条件、目标参数全部满足，允许执行出牌。
 
-### 8.2 权威纯语义分析入口（Authoritative Pure Semantic Analysis）
+### 8.2 权威纯语义分析入口与目标语义强类型绑定
+目标语义由匹配配方的效果类型唯一决定，不再保留独立且容易自相矛盾的 `targetRequirement` 字段。
+
 冻结统一的纯函数语义分析接口：
 
 ```ts
@@ -228,7 +268,19 @@ export type DIYBlockerCode =
   | "DIY_ALREADY_USED_THIS_CYCLE"
   | "OWN_FIRE_REQUIRED"
   | "TARGET_PLAYER_REQUIRED"
-  | "TARGET_PLAYER_INVALID";
+  | "TARGET_PLAYER_INVALID"
+  | "UNEXPECTED_TARGET";
+
+export type DIYExecutableOutcome =
+  | { kind: "CO2_REMOVE_OWN_FIRE" }
+  | { kind: "H2O_REMOVE_OWN_FIRE" }
+  | { kind: "SO2_APPLY_LEAK"; targetPlayerId: PlayerId }
+  | {
+      kind: "VIRTUAL_ATTACK";
+      targetPlayerId: PlayerId;
+      damageKind: "acid" | "base";
+      damageAmount: number;
+    };
 
 export type DIYSelectionAnalysis =
   | {
@@ -242,22 +294,11 @@ export type DIYSelectionAnalysis =
       status: "MATCHED_NOT_EXECUTABLE";
       recipeId: string;
       blockerCode: DIYBlockerCode;
-      targetRequirement: "NONE" | "OPPONENT_REQUIRED";
     }
   | {
       status: "EXECUTABLE";
       recipeId: string;
-      targetRequirement: "NONE" | "OPPONENT_REQUIRED";
-      outcome:
-        | { kind: "CO2_REMOVE_OWN_FIRE" }
-        | { kind: "H2O_REMOVE_OWN_FIRE" }
-        | { kind: "SO2_APPLY_LEAK"; targetPlayerId: PlayerId }
-        | {
-            kind: "VIRTUAL_ATTACK";
-            targetPlayerId: PlayerId;
-            damageKind: "acid" | "base";
-            damageAmount: number;
-          };
+      outcome: DIYExecutableOutcome;
     };
 
 export function analyzeDIYSelection(
@@ -268,21 +309,34 @@ export function analyzeDIYSelection(
 ): DIYSelectionAnalysis;
 ```
 
-### 8.3 纯语义输出与展示层解耦（No Human Strings in Layer 3）
+### 8.3 目标语义（Target Semantics）完全收敛
+对于当前 8 个 DIY 配方，目标语义的判定规则严格冻结如下：
+
+1. **无需目标配方（`CO2_REMOVE_OWN_FIRE`, `H2O_REMOVE_OWN_FIRE`）**：
+   - 效果分支不允许任何目标；
+   - **若调用方意外传入了任何 `targetPlayerId`（即 `targetPlayerId !== undefined`），`analyzeDIYSelection` 必须返回 `MATCHED_NOT_EXECUTABLE`，并携带唯一正式阻断码 `UNEXPECTED_TARGET`**；
+   - 现有引擎行为（多余目标 $\rightarrow$ 拒绝执行 $\rightarrow$ 保持原 GameState 不变）得到 100% 保持。
+2. **需要目标配方（`VIRTUAL_ATTACK`, `SO2_APPLY_LEAK`）**：
+   - 必须提供合法的存活对手目标；
+   - 若未提供目标（`targetPlayerId === undefined`），返回 `MATCHED_NOT_EXECUTABLE` + `TARGET_PLAYER_REQUIRED`；
+   - 若提供了目标但目标非法（如指定了自身、已淘汰玩家或不存在的玩家 ID），返回 `MATCHED_NOT_EXECUTABLE` + `TARGET_PLAYER_INVALID`；
+   - 只有当目标合法且存活时，返回 `EXECUTABLE`，且其 `outcome` 中直接携带经校验的 `targetPlayerId: PlayerId`。
+
+### 8.4 纯语义输出与展示层解耦（No Human Strings in Layer 3）
 - **禁止在 Layer 3 返回展示字符串**：`analyzeDIYSelection` 及其内部 helper **绝不返回 `displayName`、`reason`、`message` 等面向玩家的本地化文本**。
 - **展示层映射**：所有中文/英文预览描述（如“执行效果：稀 NaOH”）、按钮提示与阻断提示文案，统一由现有 `presentationLocale` / UI 本地化渲染函数消费上述强类型字段生成，严格遵循 Phase 16 双语渲染架构。
 
-### 8.4 UI 预览契约与按钮行为
+### 8.5 UI 预览契约与按钮行为
 1. **当 `status !== "EXECUTABLE"` 时**：
    - 统一“出牌 / 执行”按钮保持 **disabled**；
-   - UI 展示对应的本地化提示（例如：未匹配时显示“当前组合暂无可执行 DIY”；匹配灭火配方但无火情时显示“需处于火情状态”；缺少目标时提示“请选择目标”）；
+   - UI 根据 `status` 与 `blockerCode` 展示对应的本地化提示（例如：未匹配时显示“当前组合暂无可执行 DIY”；匹配灭火配方但无火情时显示“需处于火情状态”；缺少目标时提示“请选择目标”；多余目标时提示“此配方不需要选择目标”）；
    - 严禁弹出侵入式的 alert / modal 错误窗口。
 2. **当 `status === "EXECUTABLE"` 时**：
    - 预览区域展示解析出的效果预览（例如通过 `getDiyVirtualProductDisplayName` 渲染生成的虚拟产物）；
    - 启用“出牌 / 执行”按钮。
 3. **只读性**：预览结果纯粹为只读数据，**绝对不改变 GameState**。
 
-### 8.5 调试呈现与未来视觉映射
+### 8.6 调试呈现与未来视觉映射
 - **当前 Preview / Debug presentation**：
   - 仅要求具备明确、可测试、可无障碍访问（a11y）的选中状态表现（高亮边框、背景高亮、选中标记或简单微位移）；
   - **严禁将“斗地主式手牌上浮流畅动画”作为 Phase 18 验收门槛**。
@@ -337,14 +391,14 @@ DIY 规则注册表（`DIYRecipe[]`）必须满足以下编译期与测试断言
 
 | # | 配方名称 / 方程式 | 所需组件（Cards & Counts） | 目标要求 | 游戏结算结果（Outcome） |
 | :--- | :--- | :--- | :--- | :--- |
-| 1 | $\text{C} + \text{O} + \text{O} \longrightarrow \text{CO}_2$ | `element_c` $\times 1$, `element_o` $\times 2$ | 无目标 | `CO2_REMOVE_OWN_FIRE`（需自身有 `FIRE`，移除自身 `FIRE`） |
-| 2 | $\text{H}^+ + \text{OH}^- \longrightarrow \text{H}_2\text{O}$ | `ion_h` $\times 1$, `ion_oh` $\times 1$ | 无目标 | `H2O_REMOVE_OWN_FIRE`（需自身有 `FIRE`，移除自身 `FIRE`） |
-| 3 | $\text{H}^+ + \text{Cl}^- \longrightarrow \text{稀 HCl}$ | `ion_h` $\times 1$, `ion_cl` $\times 1$ | 需对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `acid` 伤害，开启响应窗口） |
-| 4 | $2\text{H}^+ + \text{SO}_4^{2-} \longrightarrow \text{稀 H}_2\text{SO}_4$ | `ion_h` $\times 2$, `ion_so4` $\times 1$ | 需对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `acid` 伤害，开启响应窗口） |
-| 5 | $\text{Na}^+ + \text{OH}^- \longrightarrow \text{稀 NaOH}$ | `ion_na` $\times 1$, `ion_oh` $\times 1$ | 需对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
-| 6 | $\text{K}^+ + \text{OH}^- \longrightarrow \text{稀 KOH}$ | `ion_k` $\times 1$, `ion_oh` $\times 1$ | 需对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
-| 7 | $\text{Ca}^{2+} + 2\text{OH}^- \longrightarrow \text{石灰水 Ca(OH)}_2$ | `ion_ca` $\times 1$, `ion_oh` $\times 2$ | 需对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
-| 8 | $\text{S} + \text{O} + \text{O} \longrightarrow \text{SO}_2$ | `element_s` $\times 1$, `element_o` $\times 2$ | 需对手目标 | `SO2_APPLY_LEAK`（对目标施加 `SO2_LEAK` 状态） |
+| 1 | $\text{C} + \text{O} + \text{O} \longrightarrow \text{CO}_2$ | `element_c` $\times 1$, `element_o` $\times 2$ | 禁止目标（提供则阻断为 `UNEXPECTED_TARGET`） | `CO2_REMOVE_OWN_FIRE`（需自身有 `FIRE`，移除自身 `FIRE`） |
+| 2 | $\text{H}^+ + \text{OH}^- \longrightarrow \text{H}_2\text{O}$ | `ion_h` $\times 1$, `ion_oh` $\times 1$ | 禁止目标（提供则阻断为 `UNEXPECTED_TARGET`） | `H2O_REMOVE_OWN_FIRE`（需自身有 `FIRE`，移除自身 `FIRE`） |
+| 3 | $\text{H}^+ + \text{Cl}^- \longrightarrow \text{稀 HCl}$ | `ion_h` $\times 1$, `ion_cl` $\times 1$ | 必须提供合法对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `acid` 伤害，开启响应窗口） |
+| 4 | $2\text{H}^+ + \text{SO}_4^{2-} \longrightarrow \text{稀 H}_2\text{SO}_4$ | `ion_h` $\times 2$, `ion_so4` $\times 1$ | 必须提供合法对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `acid` 伤害，开启响应窗口） |
+| 5 | $\text{Na}^+ + \text{OH}^- \longrightarrow \text{稀 NaOH}$ | `ion_na` $\times 1$, `ion_oh` $\times 1$ | 必须提供合法对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
+| 6 | $\text{K}^+ + \text{OH}^- \longrightarrow \text{稀 KOH}$ | `ion_k` $\times 1$, `ion_oh` $\times 1$ | 必须提供合法对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
+| 7 | $\text{Ca}^{2+} + 2\text{OH}^- \longrightarrow \text{石灰水 Ca(OH)}_2$ | `ion_ca` $\times 1$, `ion_oh` $\times 2$ | 必须提供合法对手目标 | `VIRTUAL_ATTACK`（造成 1 点 `base` 伤害，开启响应窗口） |
+| 8 | $\text{S} + \text{O} + \text{O} \longrightarrow \text{SO}_2$ | `element_s` $\times 1$, `element_o` $\times 2$ | 必须提供合法对手目标 | `SO2_APPLY_LEAK`（对目标施加 `SO2_LEAK` 状态） |
 
 > **核心原则**：Dynamic DIY 的第一阶段是**“动态匹配玩家自由选择的手牌组件”**，而**不是“动态发明未经规则冻结的新化学反应”**。
 
@@ -356,7 +410,7 @@ DIY 规则注册表（`DIYRecipe[]`）必须满足以下编译期与测试断言
 
 1. **时点与权限**：仅存活的 `activePlayer` 在 `phase === "mainAction"` 时可用。
 2. **周期频次限制**：每名玩家每个实验周期最多使用 1 次主动 DIY（受 `usedDIYThisCycle` 严格约束）。
-3. **灭火前置条件**：$\text{CO}_2$ 与 $\text{H}_2\text{O}$ 配方仅在玩家自身处于 `FIRE` 状态时合法可用；若无 `FIRE` 则必须判定为不可执行（`MATCHED_NOT_EXECUTABLE`）。
+3. **灭火前置条件**：$\text{CO}_2$ 与 $\text{H}_2\text{O}$ 配方仅在玩家自身处于 `FIRE` 状态时合法可用；若无 `FIRE` 则必须判定为不可执行（`MATCHED_NOT_EXECUTABLE` + `OWN_FIRE_REQUIRED`）。
 4. **组件销毁**：参与 DIY 的实体卡牌实例在结算时必须移入 `discardPile`，且不创建新的实体卡牌（不创建产物 `CardInstance`）。
 5. **伤害与响应上下文**：虚拟酸碱攻击产生的 `DamageEffect` 继续携带 `source.kind === "diy"` 的强类型 `DamageContext`，正确触发对手的酸碱中和或碳酸盐响应。
 6. **角色被动技能联动**：化学爱好者（Chemistry Enthusiast）的 DIY 被动技能（DIY 实验）及相关结算保持原有语义。
@@ -409,8 +463,8 @@ Reaction Field Phase 18 后续推荐按以下严格顺序分步演进：
                                v
 +-------------------------------------------------------------+
 | Phase 18C: Junior Chemistry Data Foundation                 |
-| 仅落地 Layer 1 只读化学数据/模型（SpeciesId/元素/原子团/化合价表）|
-| 纯数据与完整性测试，零游戏/UI/Reducer变更，不含合成器        |
+| 仅落地 Layer 1 最小只读化学数据/模型（Species/元素/原子团）   |
+| 纯数据与完整性测试，零游戏/UI/Reducer变更，不含 Card Adapter  |
 +------------------------------+------------------------------+
                                |
                                v
@@ -486,7 +540,7 @@ Reaction Field Phase 18 后续推荐按以下严格顺序分步演进：
 
 为防范任何误解与过度承诺，在此明确声明：
 - **单质金属卡牌未入池，金属反应未实现**；
-- **初中化学完整反应网络未实现（当前仅冻结知识库与 8 个既有配方）**；
+- **初中化学完整反应网络未实现（当前仅冻结知识库、最小物种种子与 8 个既有配方）**；
 - **响应 DIY（Response DIY）继续保持关闭**；
 - **斗地主式手牌上升精美动画属于未来前端美化，当前仅冻结可测试的 debug 选中状态**；
 - **Phase 18 游戏玩法与代码目前未发生任何变更，本阶段仅完成架构与行为冻结**。
