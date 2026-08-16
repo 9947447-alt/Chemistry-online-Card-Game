@@ -2,7 +2,7 @@
 
 本文档为 Reaction Field Phase 18「Dynamic DIY Foundation（动态 DIY 基础）」的权威架构与产品行为冻结合同。本文档确立了从“配方优先（recipe-first）”向“选牌驱动（selection-driven）+ 规则解析（rule-resolved）”迁移的全部技术契约、分层架构、交互边界、数据定义与验收原则。
 
-除本文明确覆盖的边界外，`docs/MVP0_RULE_FREEZE.md`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md`、`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`、`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md` 与 `docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md` 继续有效；既有规则冻结不因本阶段被改写。
+除本文明确覆盖的边界外，所有适用的已合并权威冻结文档（包括但不限于 `docs/MVP0_RULE_FREEZE.md`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md`、`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`、`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md` 与 `docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md` 等）继续有效；既有规则冻结不因本阶段被改写。
 
 ---
 
@@ -48,56 +48,53 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 ```
 +-------------------------------------------------------------------+
 | LAYER 1: Chemistry Knowledge                                      |
-| (元素符号 / 原子团 / 常见化合价 / 显式离子电荷 / 化学式表示 / 配平辅助) |
+| (元素符号 / 原子团 / 常见化合价表 / 显式离子电荷 / 只读物种注册表)       |
 +---------------------------------+---------------------------------+
-                                  | 引用知识
+                                  | 引用化学物种定义
                                   v
 +-------------------------------------------------------------------+
-| LAYER 2: Card <-> Chemistry Adapter                               |
-| (CardDefinition / CardInstance 映射到 Chemical Species 身份)        |
+| LAYER 2: Card -> Chemistry Mapping                                |
+| (CardDefinitionId -> ChemicalSpeciesId? 单向声明与派生关联)        |
 +---------------------------------+---------------------------------+
-                                  | 识别物质/离子
+                                  | 识别组件卡牌
                                   v
 +-------------------------------------------------------------------+
-| LAYER 3: Reaction Field DIY Rule Resolver                         |
-| (判断所选材料组合是否合法 / 唯一结果 / 是否需要目标 / 对应游戏效果)  |
+| LAYER 3: Reaction Field DIY Rule Resolver & Analysis              |
+| (纯语义分析 / 规则白名单匹配 / 可执行性校验 / 纯数据输出)             |
 +---------------------------------+---------------------------------+
-                                  | 产出结算指示
+                                  | 产出纯语义分析结果
                                   v
 +-------------------------------------------------------------------+
-| LAYER 4: Game Effect Executor                                     |
-| (弃牌 / DamageContext / 状态 / 响应窗口 / usedDIYThisCycle / 日志)  |
+| LAYER 4: Game Effect Executor & Presentation                      |
+| (Executor 执行状态机变更 / Presentation Layer 独立负责双语展示)     |
 +-------------------------------------------------------------------+
 ```
 
 ### Layer 1: Chemistry Knowledge（纯化学知识层）
-- **职责**：管理元素符号、原子团、用户确认的初中常见化合价表、显式离子电荷、标准化学式字符串生成与最简整数比计算。
-- **禁止事项**：绝不包含任何 Reaction Field 游戏概念（伤害点数、生命值、牌区、时点合法性、状态、回合推进等）。
+- **职责**：管理元素符号、原子团、用户确认的初中常见化合价表、显式离子与原子团电荷、稳定的只读化学物种注册表（`ChemicalSpecies`）。
+- **禁止事项**：绝不包含任何 Reaction Field 游戏概念（伤害数值、生命值、牌区、时点合法性、状态、回合推进、卡牌数量等）。不得在 Phase 18C 引入化学式合成算法或方程式自动配平器。
 
-### Layer 2: Card $\leftrightarrow$ Chemistry Adapter（卡牌与化学适配层）
-- **职责**：建立实体卡牌定义（`CardDefinitionId`）与具体化学物种（`Chemical Species`）之间的双向映射。
-  - 例：`ion_na` $\rightarrow \text{Na}^+$
-  - 例：`ion_oh` $\rightarrow \text{OH}^-$
-  - 例：`ion_ca` $\rightarrow \text{Ca}^{2+}$
-  - 例：`element_c` $\rightarrow \text{C}$
-- **禁止事项**：不得决定 DIY 组合在游戏中的合法性，不得包含动作派发或结算逻辑。
+### Layer 2: Card $\rightarrow$ Chemistry Mapping（卡牌至化学映射层）
+- **职责**：建立实体卡牌定义（`CardDefinitionId`）到化学物种（`ChemicalSpeciesId?`）的单向关联声明与只读派生。
+- **映射关系边界（非严格双射）**：
+  - 权威依赖方向为：`CardInstanceId` $\rightarrow$ `CardDefinitionId` $\rightarrow$ `ChemicalSpeciesId?`；
+  - `CardInstance` 绝不重复保存 chemistry identity；
+  - 允许某些 `CardDefinition` 无对应 `ChemicalSpecies`（如事件卡、未来概念卡）；
+  - 允许某些 `ChemicalSpecies` 当前无对应实体卡牌（如金属物种）；
+  - 允许未来多个不同 `CardDefinition` 指向同一个 `ChemicalSpecies`；
+  - 反向查找（Reverse lookup）若未来需要，仅为可选的派生一对多映射，非权威身份来源。
+- **禁止事项**：不得决定 DIY 组合在游戏中的合法性，不得覆盖或篡改 `CardDefinition` 的既有游戏字段。
 
-### Layer 3: RF DIY Rule Resolver（游戏规则解析层）
-- **职责**：根据当前已冻结的 Reaction Field 游戏规则，纯函数解析玩家所选的化学物种/卡牌组合：
-  - 判断当前组合是否合法；
-  - 解析唯一匹配的游戏结果（或返回无匹配）；
-  - 指示是否需要选择目标玩家；
-  - 确定对应的游戏伤害类型与数值。
-- **禁止事项**：不得仅因“化学式能配平”就判定合法；必须严格受限于已冻结的游戏规则配方白名单。
+### Layer 3: RF DIY Rule Resolver & Analysis（游戏规则解析与分析层）
+- **职责**：根据当前已冻结的 Reaction Field 游戏规则，纯函数解析玩家所选的卡牌实例组合：
+  - 区分非法选牌（`INVALID_SELECTION`）、配方无匹配（`NO_RECIPE_MATCH`）、配方匹配但当前不可执行（`MATCHED_NOT_EXECUTABLE`）以及完全可执行（`EXECUTABLE`）；
+  - 输出强类型的纯语义数据结构（不包含任何面向玩家的展示字符串）；
+  - 指示目标需求（`targetRequirement`）与强类型效果语义数据。
+- **禁止事项**：不得仅因“化学式能配平”就判定合法；必须严格受限于已冻结的游戏规则配方白名单；不得返回展示文案。
 
-### Layer 4: Game Effect Executor（游戏效果执行层）
-- **职责**：在正式游戏 Action 派发后，执行状态变更：
-  - 从手牌移动组件卡牌至弃牌堆（`discardComponents`）；
-  - 构建 `DamageContext` 并开启 `responseWindow`，或施加状态、移除 `FIRE`；
-  - 标记 `usedDIYThisCycle: true`；
-  - 推进回合或轮次（`advanceTurnFromReducer`）；
-  - 记录双语结构化日志。
-- **禁止事项**：不得在执行层自行推导或硬编码化学知识，必须消费 Layer 3 的解析结果。
+### Layer 4: Game Effect Executor & Presentation（执行与展示层）
+- **Effect Executor 职责**：在接收到正式游戏 Action 后，在权威 `GameState` 上重新调用 Layer 3 分析，仅在 `EXECUTABLE` 状态下执行状态变更（弃牌、`DamageContext`、状态处理、回合推进等）。
+- **Presentation Layer 职责**：独立消费 Layer 3 的纯语义数据，结合当前语言环境（`zh-CN` / `en`）生成面向玩家的展示文本、预览描述、按钮禁用原因与调试信息。
 
 ---
 
@@ -143,18 +140,32 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 
 ---
 
-## 4. 化合价与具体离子电荷严格区分（Valence vs Charge）
+## 4. 化合价、电荷与现有 CardDefinition 字段所有权
 
-在化学数据模型与运行时设计中，必须严格区分“元素常见化合价知识”与“具体自由离子带电量”：
+### 4.1 化合价与具体离子电荷严格区分（Valence vs Charge）
+1. **化合价不可直接推断为自由离子电荷**：
+   - 严禁将 `common valence` 自动等同于自由离子的 `charge`；
+   - 例：铁（Fe）的常见化合价包含 `+2` 与 `+3`，系统绝不得在通用引擎中盲目竞猜当前代表 $\text{Fe}^{2+}$ 还是 $\text{Fe}^{3+}$；必须由具体的卡牌物种定义或显式上下文明确指定；
+   - 氯（Cl）的常见化合价包含 `-1, +1, +5, +7`，但当前卡池中的 `ion_cl` 实体卡牌仅代表氯离子（$\text{Cl}^-$，电荷 `-1`），绝不能在运行时动态变为 $\text{Cl}^+$、$\text{Cl}^{5+}$ 或 $\text{Cl}^{7+}$。
+2. **数据模型分离**：
+   - 数据结构中必须将“元素的化学属性（`ElementKnowledge`）”与“具体的带电物种（`IonSpecies`）”分为两个独立类型，禁止混淆。
 
-1. **化合价不可直接推断为离子电荷**：
-   - 严禁将 `common valence` 自动等同于自由离子的 `charge`。
-   - 例：铁（Fe）的常见化合价包含 `+2` 与 `+3`，系统绝不得在通用引擎中盲目竞猜当前代表 $\text{Fe}^{2+}$ 还是 $\text{Fe}^{3+}$；必须由具体的卡牌物种定义或显式上下文明确指定。
-2. **多价态非金属的卡牌物种单义性**：
-   - 氯（Cl）的化合价包含 `-1, +1, +5, +7`；但在当前卡池中，`ion_cl` 实体卡牌仅代表氯离子（$\text{Cl}^-$，电荷 `-1`）。
-   - 引擎绝不可因为常见化合价表中存在 `+1, +5, +7` 而在运行时将 `ion_cl` 动态篡改为 $\text{Cl}^+$、$\text{Cl}^{5+}$ 或 $\text{Cl}^{7+}$。
-3. **数据模型表达**：
-   - 数据结构中必须将“元素的化学属性（`ElementKnowledge`）”与“具体的带电离子物种（`IonSpecies`）”分为两个独立类型，禁止混淆。
+### 4.2 现有 CardDefinition 游戏字段所有权保护
+当前代码库中：
+- `CardDefinition.elements`
+- `CardDefinition.ionsProvided`
+- `CardDefinition.tags`
+- `CardDefinition.allowedTimings`
+- 伤害与反应相关元数据
+
+已经深度参与现有游戏结算（例如 `ionsProvided` 参与硫酸厂厂长“硫酸盐副产”判定，`tags` 参与酸碱中和与状态处理）。
+
+**重要不变量**：
+- Phase 18C 新增 Layer 1 化学知识时，现有 `CardDefinition` 中的上述游戏字段继续作为**显式游戏规则声明（explicit gameplay declarations）**；
+- **Phase 18C 严禁从 Chemistry Knowledge 自动覆盖或重新推导现有 `CardDefinition` 的游戏字段**；
+- V1 Dynamic DIY 配方匹配继续以当前冻结的 `CardDefinitionId` 多重集白名单为准；
+- 两个卡牌定义即使对应相同化学物种（`ChemicalSpecies`），**绝不代表其在现有 DIY 配方中自动可互换**；
+- 任何将现有游戏元数据重构为“由化学数据自动派生”的工作，必须经由未来独立 Freeze 明确批准。
 
 ---
 
@@ -169,17 +180,8 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 
 ## 6. 化学式合成与配平边界（Formula Composition Boundary）
 
-未来 Chemistry Core 可以支持基于显式化合价/离子电荷的化合物化学式生成与最简整数比计算：
-
-- $\text{Na}^+ + \text{Cl}^- \longrightarrow \text{NaCl}$
-- $\text{Ca}^{2+} + 2\text{Cl}^- \longrightarrow \text{CaCl}_2$
-- $\text{Ca}^{2+} + 2\text{OH}^- \longrightarrow \text{Ca(OH)}_2$
-- $2\text{NH}_4^+ + \text{CO}_3^{2-} \longrightarrow \text{(NH}_4)_2\text{CO}_3$
-- $2\text{Al}^{3+} + 3\text{SO}_4^{2-} \longrightarrow \text{Al}_2(\text{SO}_4)_3$
-
-### 边界约束：
-1. **合成能力 $\neq$ 游戏合法 DIY**：上述化学式合成能力仅作为 Chemistry Core 的底层化学算法能力。未经 Reaction Field 游戏规则显式冻结的物质（如 $\text{(NH}_4)_2\text{CO}_3$、$\text{Al}_2(\text{SO}_4)_3$），**只能存在于 Chemistry Core 的单元测试/示例中，严禁进入可玩 DIY 配方**。
-2. **多价元素禁止自动猜测**：对于具有多种化合价的元素（如 $\text{Fe, Cu, Mn, S, N, Cl, C}$），Formula Composer 严禁在缺失上下文时猜测化合价，调用方必须提供显式指定的物种或价态。
+- **Phase 18C 范围收窄**：通用的化学式合成器（Formula Composer）与方程式自动配平算法**不包含在 Phase 18C 的落地范围中**。
+- **计算能力 $\neq$ 游戏合法 DIY**：未来若引入化学式合成算法，其合成能力仅作为 Chemistry Core 的底层辅助函数；未经 Reaction Field 游戏规则显式冻结的物质（如 $\text{(NH}_4)_2\text{CO}_3$、$\text{Al}_2(\text{SO}_4)_3$），只能存在于 Chemistry Core 的独立测试中，严禁自动进入可玩 DIY 配方。
 
 ---
 
@@ -188,16 +190,16 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 为彻底避免手牌普通出牌（如普通打出关联基准牌、打出主行动物质牌）与 DIY 选材点击之间的语义冲突，冻结统一的 **DIY Selection Context**。
 
 ### 7.1 进入与退出合同
-- **进入 Context**：玩家通过 Preview / Debug UI 上的显式入口（如“进入 DIY 模式 / Active DIY”）进入选牌状态。
+- **进入 Context**：玩家通过 UI 显式入口进入选牌状态。
   - 进入操作**不消耗行动点**、**不修改 GameState**、**不算使用 DIY**。
-- **退出或取消 Context**：玩家可随时取消或退出 DIY 模式。
+- **退出或取消 Context**：玩家可随时取消或退出 DIY 选牌模式。
   - 退出操作**立即清空 UI 本地选牌状态**，**不产生任何 GameState 副作用**。
 
 ### 7.2 候选资格与选择规则
 - **候选白名单**：仅允许当前手牌中具备 DIY 组件资格（`allowedTimings.includes("diy-component")`）的实体卡牌实例被加入选牌集合。
 - **非组件阻断**：普通非 DIY 组件卡牌（如无组件时点的物质牌、事件卡等）严禁被误选为 DIY 输入。
 - **基于 CardInstanceId 的唯一性**：
-  - 选牌状态以 `CardInstanceId` 为唯一标识。
+  - 选牌状态以 `CardInstanceId` 为唯一标识；
   - 玩家手牌中若有 2 张相同的 `ion_h` 实体卡，它们具有不同的 `CardInstanceId`，玩家必须且能够独立选择其中任意一张或两张。
 - **选择与反选行为**：
   - 点击未选中的候选卡 $\rightarrow$ 标记为 `selected`；
@@ -206,81 +208,126 @@ Dynamic DIY 在本阶段的严格定义为：**selection-driven + rule-resolved 
 
 ---
 
-## 8. 预览与调试呈现合同（Preview & Debug UI Contract）
+## 8. 权威 DIY 语义分析与纯数据预览契约（Authoritative DIY Analysis & Preview Contract）
 
-### 8.1 预览纯函数调用契约
-每当 `selectedCardInstanceIds` 发生变化时，UI 必须调用 Layer 3 提供的纯函数解析器 `previewDIYSelection`：
+### 8.1 核心概念严格区分：匹配（Match） vs 可执行性（Executability）
+必须在类型系统与分析入口中严格区分以下四种互斥状态：
+
+1. **`INVALID_SELECTION`（非法选择）**：所选 `CardInstanceId` 包含重复 ID、非玩家当前手牌、未知实例或不具备 `diy-component` 时点的卡牌。这是强类型的选择边界错误，**绝不能被掩盖为配方未匹配**。
+2. **`NO_RECIPE_MATCH`（配方未匹配）**：所选手牌组件集合在合法的 DIY 配方白名单中无任何匹配。
+3. **`MATCHED_NOT_EXECUTABLE`（匹配但不可执行）**：所选组件成功匹配到唯一合法配方，但受限于当前游戏状态机无法执行（例如：匹配到 $\text{CO}_2$ 配方但自身没有 `FIRE` 状态；或者当前周期已使用过主动 DIY；或者不是当前行动玩家；或者未提供必须的目标对手）。返回稳定的阻断原因码（`BlockerCode`）。
+4. **`EXECUTABLE`（完全可执行）**：所选组件成功匹配唯一配方，且当前游戏状态机、前置条件、目标参数全部满足，允许执行出牌。
+
+### 8.2 权威纯语义分析入口（Authoritative Pure Semantic Analysis）
+冻结统一的纯函数语义分析接口：
 
 ```ts
-export type DIYPreviewResult =
+export type DIYBlockerCode =
+  | "NOT_ACTIVE_PLAYER"
+  | "INVALID_PHASE"
+  | "DIY_ALREADY_USED_THIS_CYCLE"
+  | "OWN_FIRE_REQUIRED"
+  | "TARGET_PLAYER_REQUIRED"
+  | "TARGET_PLAYER_INVALID";
+
+export type DIYSelectionAnalysis =
   | {
-      status: "NO_MATCH";
-      reason?: string;
+      status: "INVALID_SELECTION";
+      invalidCardInstanceIds: readonly CardInstanceId[];
     }
   | {
-      status: "UNIQUE_MATCH";
+      status: "NO_RECIPE_MATCH";
+    }
+  | {
+      status: "MATCHED_NOT_EXECUTABLE";
       recipeId: string;
-      displayName: string;
-      requiresTarget: boolean;
-      damageKind?: "acid" | "base";
-      damageAmount?: number;
-      resultKind: "CO2_REMOVE_OWN_FIRE" | "H2O_REMOVE_OWN_FIRE" | "SO2_APPLY_LEAK" | "VIRTUAL_ATTACK";
+      blockerCode: DIYBlockerCode;
+      targetRequirement: "NONE" | "OPPONENT_REQUIRED";
+    }
+  | {
+      status: "EXECUTABLE";
+      recipeId: string;
+      targetRequirement: "NONE" | "OPPONENT_REQUIRED";
+      outcome:
+        | { kind: "CO2_REMOVE_OWN_FIRE" }
+        | { kind: "H2O_REMOVE_OWN_FIRE" }
+        | { kind: "SO2_APPLY_LEAK"; targetPlayerId: PlayerId }
+        | {
+            kind: "VIRTUAL_ATTACK";
+            targetPlayerId: PlayerId;
+            damageKind: "acid" | "base";
+            damageAmount: number;
+          };
     };
+
+export function analyzeDIYSelection(
+  state: GameState,
+  playerId: PlayerId,
+  componentCardInstanceIds: readonly CardInstanceId[],
+  targetPlayerId?: PlayerId,
+): DIYSelectionAnalysis;
 ```
 
-*注：Phase 18 V1 仅正式支持 `NO_MATCH` 与 `UNIQUE_MATCH` 两种判别联合分支。不提前引入复杂的多歧义匹配 UI。*
+### 8.3 纯语义输出与展示层解耦（No Human Strings in Layer 3）
+- **禁止在 Layer 3 返回展示字符串**：`analyzeDIYSelection` 及其内部 helper **绝不返回 `displayName`、`reason`、`message` 等面向玩家的本地化文本**。
+- **展示层映射**：所有中文/英文预览描述（如“执行效果：稀 NaOH”）、按钮提示与阻断提示文案，统一由现有 `presentationLocale` / UI 本地化渲染函数消费上述强类型字段生成，严格遵循 Phase 16 双语渲染架构。
 
-### 8.2 预览状态与按钮行为
-1. **当 `status === "NO_MATCH"` 时**：
-   - 统一“出牌 / 执行 DIY”按钮保持 **disabled**（禁用）；
-   - UI 展示温和的状态说明（如“当前组合暂无可执行 DIY”）；
-   - 严禁弹出侵入式的 alert、modal 错误窗口。
-2. **当 `status === "UNIQUE_MATCH"` 时**：
-   - 预览区域显示解析出的效果（例：“执行效果：稀 NaOH，对目标造成 1 点碱性伤害”）；
-   - 若该配方需要目标（`requiresTarget: true`），提示并允许选择合法目标对手；
-   - 在满足目标与周期使用限制的前提下，启用“出牌 / 执行 DIY”按钮。
-3. **只读性**：预览结果纯粹为只读描述，**绝对不是 GameAction 的执行**。
+### 8.4 UI 预览契约与按钮行为
+1. **当 `status !== "EXECUTABLE"` 时**：
+   - 统一“出牌 / 执行”按钮保持 **disabled**；
+   - UI 展示对应的本地化提示（例如：未匹配时显示“当前组合暂无可执行 DIY”；匹配灭火配方但无火情时显示“需处于火情状态”；缺少目标时提示“请选择目标”）；
+   - 严禁弹出侵入式的 alert / modal 错误窗口。
+2. **当 `status === "EXECUTABLE"` 时**：
+   - 预览区域展示解析出的效果预览（例如通过 `getDiyVirtualProductDisplayName` 渲染生成的虚拟产物）；
+   - 启用“出牌 / 执行”按钮。
+3. **只读性**：预览结果纯粹为只读数据，**绝对不改变 GameState**。
 
-### 8.3 视觉呈现合同与未来效果边界
+### 8.5 调试呈现与未来视觉映射
 - **当前 Preview / Debug presentation**：
-  - 仅要求具备明确、可自动化测试、可无障碍访问（a11y）的选中状态表现。
-  - 允许使用：高亮边框（border）、背景高亮（highlight）、选中勾选标记（selected indicator）或简单的位置微调（simple positional offset）。
-  - **严禁将“斗地主式卡牌上浮流畅动画”作为 Phase 18 当前验收门槛**。
+  - 仅要求具备明确、可测试、可无障碍访问（a11y）的选中状态表现（高亮边框、背景高亮、选中标记或简单微位移）；
+  - **严禁将“斗地主式手牌上浮流畅动画”作为 Phase 18 验收门槛**。
 - **未来正式前端视觉映射**：
-  - 未来的正式精美前端可以将同一个 `selected` 状态渲染为“卡牌脱离手牌行向上浮起（visually rises above hand row）”的视觉效果。
-  - 该视觉效果属于纯前端展示糖，**绝对不得反向污染引擎协议或 GameState 数据结构**。
+  - 未来的正式精美前端可以将同一个 `selected` 状态渲染为“卡牌脱离手牌行向上浮起”的动画效果；该视觉效果纯属展示层糖，绝对不污染引擎协议或 `GameState` 数据结构。
 
 ---
 
-## 9. 权威 Resolver 与执行边界（Authoritative Resolver & Execution Boundary）
+## 9. 动作权威性与执行边界（Action Authority & Execution Boundary）
 
-### 9.1 执行触发点
-只有当玩家显式点击“出牌 / 执行”按钮时，UI 才允许向引擎 dispatch 正式游戏 Action（如 `START_ACTIVE_DIY` 或 `PLAY_DIY_SELECTION`）。
+### 9.1 目标正式 Action 定义
+冻结 selection-driven Dynamic DIY 的目标正式 Action：
 
-正式 Action 必须包含足够的重新验证上下文：
-- `playerId`: 发起玩家 ID；
-- `componentCardInstanceIds`: 玩家选中的具体卡牌实例 ID 列表；
-- `targetPlayerId`: 选定的目标玩家 ID（若配方需要）。
+```ts
+export type PlayDiySelectionAction = {
+  type: "PLAY_DIY_SELECTION";
+  playerId: PlayerId;
+  componentCardInstanceIds: CardInstanceId[];
+  targetPlayerId?: PlayerId;
+};
+```
 
-### 9.2 引擎端强制重新验证（Anti-Tampering & Stale Check）
-- **绝不盲目信任 UI 预览**：Engine / Reducer 在接收到 Action 后，**必须调用同一个权威 Rule Resolver 重新完整校验当前所选手牌实例的合法性**。
-- **重新验证内容**：
-  1. 当前玩家是否处于 `mainAction` 时点且为 `activePlayer`；
-  2. 当前玩家本周期是否已使用过主动 DIY（`usedDIYThisCycle === false`）；
-  3. `componentCardInstanceIds` 是否全都在该玩家当前手牌中，且无重复 ID；
-  4. 每张卡牌是否具备 `diy-component` 时点；
-  5. 组合解析出的配方与前置条件（如 `FIRE` 状态）是否完全满足；
-  6. 目标玩家是否存在、存活且非自身（若需要目标）。
-- **拒绝行为**：若执行时校验失败（例如手牌已在并发或异常状态下失效），引擎必须**拒绝执行 Action，保持原 GameState 完全不变**，不得产生任何部分状态修改或脏数据。
+### 9.2 选牌驱动与配方权威性
+- **禁止要求客户端传递 `recipeId` 作为规则权威**：正式的 `PLAY_DIY_SELECTION` Action 中**不得包含 `recipeId` 字段**；配方的识别与判定必须由 Engine 通过权威的 `analyzeDIYSelection` 纯函数在当前权威状态上解析；
+- **迁移期兼容说明**：若迁移过渡期间暂时兼容旧 `START_ACTIVE_DIY` Action，其中的 `recipeId` 最多只能作为一致性断言（consistency assertion），绝不可决定实际合法性；最终契约以 selection 为唯一权威输入。
+
+### 9.3 引擎端强制重新验证（Anti-Tampering & Stale Check）
+- **绝不盲目信任客户端状态**：Engine 在接收到 `PLAY_DIY_SELECTION` 后，**必须使用完全相同的 `analyzeDIYSelection` 在当前权威 `GameState` 上重新分析**；
+- **拒绝与不变量保证**：只有当分析结果确为 `status === "EXECUTABLE"` 时，才允许进入 Layer 4 的 Effect Executor；若状态为非 `EXECUTABLE`，引擎必须**直接拒绝执行 Action，原样返回未修改的 `GameState`**，杜绝任何中间状态或脏数据。
 
 ---
 
-## 10. 单一真值源保障（Single Source of Truth）
+## 10. 单一真值源与配方注册表结构不变量（Single Source of Truth & Registry Invariants）
 
-冻结以下架构红线：
-- **严禁双重规则实现**：代码库中绝对不得同时存在“UI 独立编写的配方匹配逻辑”与“Engine 独立编写的配方匹配逻辑”。
-- **同源解析**：UI 预览纯函数与 Engine 校验逻辑必须直接调用同一个底层的权威 Resolver（`resolveDIYSelection`）。
-- **允许展示适配**：UI 层可以编写将 Resolver 输出格式化为本地多语言文本的 presentation mapper，但**规则合法性（legality）的唯一真值源必须且只能有一个**。
+### 10.1 单一真值源保障
+- **严禁双重规则实现**：代码库中绝对不得同时存在“UI 独立编写的配方匹配逻辑”与“Engine 独立编写的配方匹配逻辑”；
+- **同源调用**：UI 预览渲染与 Engine 执行校验必须直接调用同一个底层的权威分析入口 `analyzeDIYSelection`。
+
+### 10.2 配方注册表结构不变量（Registry Invariants）
+DIY 规则注册表（`DIYRecipe[]`）必须满足以下编译期与测试断言强保证的结构不变量：
+1. **`recipeId` 全局唯一性**：注册表中不得存在重复的 `recipeId`；
+2. **组件签名（Component Signature）唯一性**：任意两个配方的所需组件多重集（`CardDefinitionId` 及数量）必须不同，**严禁存在相同组件签名的冲突配方**；
+3. **正整数组件数量**：每个配方中每项组件的 `count` 必须为正整数（$\ge 1$）；
+4. **顺序无关决定论（Order Independence）**：同一组选牌输入，在注册表中无论配方数组顺序如何颠倒，都必须匹配到完全相同的唯一结果；
+5. **歧义即开发期违规**：Phase 18 V1 不支持多结果歧义 DIY 玩法；若注册表中出现重复签名，视为开发期不变量违规（Development-time Invariant Violation），严禁采用运行时“默认取数组第一个”的静默容错。
 
 ---
 
@@ -309,10 +356,10 @@ export type DIYPreviewResult =
 
 1. **时点与权限**：仅存活的 `activePlayer` 在 `phase === "mainAction"` 时可用。
 2. **周期频次限制**：每名玩家每个实验周期最多使用 1 次主动 DIY（受 `usedDIYThisCycle` 严格约束）。
-3. **灭火前置条件**：$\text{CO}_2$ 与 $\text{H}_2\text{O}$ 配方仅在玩家自身处于 `FIRE` 状态时合法可用；若无 `FIRE` 则必须判定为非法。
+3. **灭火前置条件**：$\text{CO}_2$ 与 $\text{H}_2\text{O}$ 配方仅在玩家自身处于 `FIRE` 状态时合法可用；若无 `FIRE` 则必须判定为不可执行（`MATCHED_NOT_EXECUTABLE`）。
 4. **组件销毁**：参与 DIY 的实体卡牌实例在结算时必须移入 `discardPile`，且不创建新的实体卡牌（不创建产物 `CardInstance`）。
 5. **伤害与响应上下文**：虚拟酸碱攻击产生的 `DamageEffect` 继续携带 `source.kind === "diy"` 的强类型 `DamageContext`，正确触发对手的酸碱中和或碳酸盐响应。
-6. **角色被动技能联动**：化学课代表的 DIY 被动技能（如适用）及相关结算保持原有语义。
+6. **角色被动技能联动**：化学爱好者（Chemistry Enthusiast）的 DIY 被动技能（DIY 实验）及相关结算保持原有语义。
 7. **状态处理与清除**：$\text{SO}_2$ 施加 `SO2_LEAK` 状态；灭火配方正确清除 `FIRE`。
 8. **结构化双语日志**：按照 `docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md` 的规范，正确记录 `diy_co2_remove_fire`、`diy_h2o_remove_fire`、`diy_virtual_attack`、`diy_so2_apply_leak` 及成功反应事件。
 9. **回合推进**：无响应窗口的主动 DIY 成功后正常推进回合；带攻击响应窗口的 DIY 待响应结算后推进。
@@ -330,7 +377,7 @@ export type DIYPreviewResult =
    - 金属与酸反应（生成氢气/伤害/状态）；
    - 金属与盐溶液置换反应；
    - 变价金属的氧化还原行为；
-   - 实验反击中化学课代表“金属反击”选项的正式启用。
+   - 实验反击中化学爱好者“金属反击”选项的正式启用。
 4. **禁止推测实现**：严禁凭通用现实化学经验提前在代码库中实现任何未经规则冻结的金属玩法。
 
 ---
@@ -362,25 +409,28 @@ Reaction Field Phase 18 后续推荐按以下严格顺序分步演进：
                                v
 +-------------------------------------------------------------+
 | Phase 18C: Junior Chemistry Data Foundation                 |
-| 落地纯 Chemistry Knowledge (Layer 1) 数据模型与测试，零游戏变更|
+| 仅落地 Layer 1 只读化学数据/模型（SpeciesId/元素/原子团/化合价表）|
+| 纯数据与完整性测试，零游戏/UI/Reducer变更，不含合成器        |
 +------------------------------+------------------------------+
                                |
                                v
 +-------------------------------------------------------------+
 | Phase 18D: Authoritative DIY Selection Resolver V1          |
-| 实现基于手牌实例 ID 匹配现有 8 个 DIY 的核心解析器，保障 100% 等价|
+| 落地 analyzeDIYSelection 纯语义分析器，支持 PLAY_DIY_SELECTION|
+| 匹配现有 8 个 DIY，保障 100% 规则等价与引擎重校验            |
 +------------------------------+------------------------------+
                                |
                                v
 +-------------------------------------------------------------+
 | Phase 18E: Preview / Debug Hand-Selection UI                |
-| 前端改造：手牌直接多选 -> 实时只读 Preview -> 统一出牌按钮   |
+| 前端改造：手牌多选 -> 纯语义 Preview 呈现 -> 统一出牌按钮    |
+| 仅需 Debug 选中状态，不含斗地主式卡牌上浮复杂动画           |
 +------------------------------+------------------------------+
                                |
                                v
 +-------------------------------------------------------------+
 | Phase 18F: Junior Chemistry Rule Expansion                  |
-| 逐批由用户确认新反应规则：先单独 Freeze，再实现 Resolver 扩展  |
+| 逐批由用户确认新反应规则：先单独 Freeze，再扩展 Resolver 白名单|
 +------------------------------+------------------------------+
                                |
                                v
@@ -407,26 +457,28 @@ Reaction Field Phase 18 后续推荐按以下严格顺序分步演进：
 | 验收原则 | 合同要求 |
 | :--- | :--- |
 | **A. Selection Purity（选择纯粹性）** | 在手牌中选中或反选 `CardInstance` 纯属 UI 本地状态，绝不改变 `GameState`，不消耗卡牌，不记日志，不占使用次数。 |
-| **B. Preview Purity（预览纯粹性）** | 组合解析与预览函数必须为无副作用的纯函数，不得派发 Action，不得修改游戏状态。 |
-| **C. Execution Revalidation（执行重新验证）** | Engine 在执行“出牌”时，必须调用权威 Resolver 重新校验选中的组件实例，杜绝过期 UI 或伪造 Action。 |
+| **B. Preview Purity（预览纯粹性）** | 语义分析与预览函数必须为无副作用的纯函数，不得派发 Action，不得修改游戏状态。 |
+| **C. Execution Revalidation（执行重新验证）** | Engine 在执行“出牌”时，必须调用权威分析器重新校验选中的组件实例，杜绝过期 UI 或伪造 Action。 |
 | **D. Existing Equivalence（既有行为等价）** | 现有 8 个 DIY 配方的触发条件、目标、伤害、状态、日志和推进行为 100% 保持原有语义，无任何回归。 |
 | **E. Card Instance Correctness（实例独立性）** | 相同定义的多张实体卡（如两张 `ion_h`）必须能被独立选中与区分。 |
-| **F. No Duplicate Rules（单一真值源）** | UI 与 Engine 之间不存在两份独立的 DIY 合法性判定逻辑。 |
-| **G. No Hidden Expansion（零隐式扩展）** | 引入初中化学知识库绝不自动导致可玩 DIY 配方或卡池偷偷扩充。 |
+| **F. No Duplicate Rules（单一真值源）** | UI 与 Engine 之间不存在两份独立的 DIY 合法性判定逻辑，共享唯一分析入口。 |
+| **G. No Hidden Expansion（零隐式扩展）** | 引入初中化学知识库绝不自动导致可玩 DIY 配方或卡池偷偷扩充，`CardDefinition` 既有游戏字段不被覆盖。 |
 
 ---
 
-## 17. 文档权威性与裁决层级（Document Authority Precedence）
+## 17. 规则持久化与裁决层级（Rule Authority Persistence & Precedence）
 
-明确废止历史 AI 生成规则文档的权威性：
-- `docs/rules/core-rules-v0.1.docx` 与 `docs/rules/ion-reaction-and-diy-manual-v1.0.docx` 从 Phase 18 起仅作为**非权威的历史概念参考资料（historical conceptual references only）**，不再作为 Reaction Field 的化学与游戏规则真值源。
+### 17.1 规则持久化合同（Rule Authority Persistence）
+- 用户可以随时提出新的正式产品决策与规则裁定；
+- **在生产代码或测试代码根据该裁定修改行为之前，必须先将裁定持久化至当前权威 Freeze 文档的更新或新的继承 Freeze 文档中**，并通过正常的 Git 评审与合并流程；
+- 对话上下文（Conversation history）可以作为触发规则变更的讨论输入，但**仅留在对话中的记忆不是未来 Agent 与开发团队可依赖的持久可执行规范（durable executable specification）**；
+- 若用户在对话中的意图与已合并的权威 Freeze 文档发生冲突，遵循“先更新并合并 Freeze 文档，再修改生产行为”的严格流程。
 
-从 Phase 18 起，规则与架构解释权遵循以下绝对裁决层级：
-1. **用户明确批准的 Phase 18 设计决策与裁定**；
-2. **`docs/PHASE18_DYNAMIC_DIY_FOUNDATION_FREEZE.md`（本文档）**；
-3. **适用的既有规则冻结文档（`docs/MVP0_RULE_FREEZE.md`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md`、`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`、`docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md`）**；
-4. **代码库中已实现且未被上述文档覆盖的既有正确行为**；
-5. **历史 AI 生成规则手册（仅供非约束性灵感参考，严禁自动导入未批准规则）**。
+### 17.2 裁决层级（Authority Precedence）
+规则与架构解释权严格遵循以下层级：
+1. **所有适用的已合并权威冻结文档**（以 `docs/PHASE18_DYNAMIC_DIY_FOUNDATION_FREEZE.md`（本文档）、`docs/MVP0_RULE_FREEZE.md`、`docs/PHASE8_CHARACTER_RULE_FREEZE.md`、`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`、`docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`、`docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md` 等为代表）；
+2. **代码库中已实现且未被上述冻结文档覆盖或修正的既有正确行为与测试不变量**；
+3. **历史 AI 生成规则手册（`docs/rules/core-rules-v0.1.docx` 与 `docs/rules/ion-reaction-and-diy-manual-v1.0.docx`，仅作为非约束性历史概念参考，严禁自动导入未批准规则）**。
 
 ---
 
