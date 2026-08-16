@@ -169,7 +169,7 @@ for (const [path, assetPrefix, brandPrefix] of [["/", "/assets/", "/"], ["/playt
     const repository = about.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
     await expect(repository).toHaveAttribute(
       "href",
-      "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+      "https://github.com/9947447-alt/reaction-field",
     );
     await expect(repository).toHaveAttribute("target", "_blank");
     await expect(repository).toHaveAttribute("rel", "noopener noreferrer");

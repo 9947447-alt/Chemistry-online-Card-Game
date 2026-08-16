@@ -1,7 +1,7 @@
 import { useLocale } from "./locale";
 
 export const projectRepositoryUrl =
-  "https://github.com/9947447-alt/Chemistry-online-Card-Game";
+  "https://github.com/9947447-alt/reaction-field";
 
 export function ProjectRepositoryLink() {
   const { locale } = useLocale();
