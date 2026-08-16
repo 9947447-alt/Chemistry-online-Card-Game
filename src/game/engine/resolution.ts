@@ -9,6 +9,8 @@ import {
 import { applyDamage } from "./damage";
 import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
 import {
+  getValidMultiTargetPendingResponse,
+  isAlkalineAbsorptionDefinition,
   isMultiTargetPendingResponse,
   passMultiTargetDamageResponse,
   respondToMultiTargetDamage,
@@ -375,13 +377,23 @@ function playOxygenRecoveryCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
-export function playReferenceCard(
+export function validatePassAction(state: GameState, playerId: PlayerId): boolean {
+  const actor = getPlayer(state, playerId);
+  return Boolean(
+    state.phase === "mainAction" &&
+    playerId === state.activePlayerId &&
+    actor &&
+    !actor.eliminated,
+  );
+}
+
+export function validatePlayReferenceCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   const actor = getPlayer(state, playerId);
+  const instance = state.cardInstances[cardInstanceId];
   const definition = getDefinitionForCard(state, cardInstanceId);
 
   if (
@@ -390,12 +402,31 @@ export function playReferenceCard(
     !actor ||
     actor.eliminated ||
     !actor.hand.includes(cardInstanceId) ||
+    !instance ||
+    instance.ownerId !== playerId ||
+    instance.zone.type !== "hand" ||
+    instance.zone.playerId !== playerId ||
     !definition ||
     !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
   ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function playReferenceCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validatePlayReferenceCard(state, playerId, cardInstanceId)) {
     return state;
   }
 
+  const actor = getPlayer(state, playerId)!;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
   const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
 
   if (!withCardDiscarded) {
@@ -422,15 +453,15 @@ export function playReferenceCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
-export function playMainActionCard(
+export function validatePlayMainActionCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
   targetPlayerId: PlayerId | undefined,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   const actor = getPlayer(state, playerId);
   const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
+  const instance = state.cardInstances[cardInstanceId];
   const definition = getDefinitionForCard(state, cardInstanceId);
   const damageKind = definition ? getAcidBaseDamageKind(definition) : undefined;
 
@@ -440,18 +471,64 @@ export function playMainActionCard(
     !actor ||
     actor.eliminated ||
     !actor.hand.includes(cardInstanceId) ||
+    !instance ||
+    instance.ownerId !== playerId ||
+    instance.zone.type !== "hand" ||
+    instance.zone.playerId !== playerId ||
     !definition ||
     !definition.allowedTimings.includes("main-action") ||
     !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
   ) {
+    return false;
+  }
+
+  if (definition.id === "substance_o2") {
+    return Boolean(
+      canRecoverHp(actor) &&
+      (targetPlayerId === undefined || targetPlayerId === actor.id),
+    );
+  }
+
+  if (!target || target.id === actor.id || target.eliminated) {
+    return false;
+  }
+
+  if (definition.id === "substance_so2") {
+    return true;
+  }
+
+  if (definition.type !== "substance") {
+    return false;
+  }
+
+  if (definition.baseDamage !== 1 || !damageKind) {
+    return false;
+  }
+
+  return true;
+}
+
+export function playMainActionCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+  targetPlayerId: PlayerId | undefined,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validatePlayMainActionCard(state, playerId, cardInstanceId, targetPlayerId)) {
     return state;
   }
+
+  const actor = getPlayer(state, playerId)!;
+  const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
+  const damageKind = getAcidBaseDamageKind(definition);
 
   if (definition.id === "substance_o2") {
     return playOxygenRecoveryCard(state, actor, definition, cardInstanceId, targetPlayerId, shuffle);
   }
 
-  if (!target || target.id === actor.id || target.eliminated) {
+  if (!target) {
     return state;
   }
 
@@ -459,11 +536,7 @@ export function playMainActionCard(
     return playSulfurDioxideCard(state, actor, target, definition, cardInstanceId, shuffle);
   }
 
-  if (definition.type !== "substance") {
-    return state;
-  }
-
-  if (definition.baseDamage !== 1 || !damageKind) {
+  if (!damageKind) {
     return state;
   }
 
@@ -474,7 +547,7 @@ export function playMainActionCard(
       cardInstanceId,
       definition,
       targetPlayerId: target.id,
-      baseAmount: definition.baseDamage,
+      baseAmount: definition.baseDamage ?? 1,
     }),
   };
 
@@ -501,22 +574,22 @@ export function playMainActionCard(
         cardDefinitionId: definition.id,
         targetId: target.id,
         damageKind,
-        baseAmount: definition.baseDamage,
+        baseAmount: definition.baseDamage ?? 1,
       },
     },
   );
 }
 
-export function handleStatusWithCard(
+export function validateHandleStatusWithCard(
   state: GameState,
   playerId: PlayerId,
   statusInstanceId: string,
   cardInstanceId: CardInstanceId,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   const pendingStatusHandling = state.pendingStatusHandling;
   const player = getPlayer(state, playerId);
   const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
+  const instance = state.cardInstances[cardInstanceId];
   const definition = getDefinitionForCard(state, cardInstanceId);
   const canHandleSo2Leak =
     status?.statusId === "SO2_LEAK" &&
@@ -538,11 +611,33 @@ export function handleStatusWithCard(
     player.eliminated ||
     !status ||
     !player.hand.includes(cardInstanceId) ||
+    !instance ||
+    instance.ownerId !== playerId ||
+    instance.zone.type !== "hand" ||
+    instance.zone.playerId !== playerId ||
     !definition ||
     (!canHandleSo2Leak && !canHandleFire)
   ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function handleStatusWithCard(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+  cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validateHandleStatusWithCard(state, playerId, statusInstanceId, cardInstanceId)) {
     return state;
   }
+
+  const player = getPlayer(state, playerId)!;
+  const status = player.statuses.find((candidate) => candidate.id === statusInstanceId)!;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
 
   const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
 
@@ -582,12 +677,11 @@ export function handleStatusWithCard(
   return enterNextStatusWindowOrMainAction(resolved, player.id, status.createdAt);
 }
 
-export function passStatusHandling(
+export function validatePassStatusHandling(
   state: GameState,
   playerId: PlayerId,
   statusInstanceId: string,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   const pendingStatusHandling = state.pendingStatusHandling;
   const player = getPlayer(state, playerId);
   const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
@@ -603,8 +697,24 @@ export function passStatusHandling(
     !status ||
     (status.statusId !== "SO2_LEAK" && status.statusId !== "FIRE")
   ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function passStatusHandling(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validatePassStatusHandling(state, playerId, statusInstanceId)) {
     return state;
   }
+
+  const player = getPlayer(state, playerId)!;
+  const status = player.statuses.find((candidate) => candidate.id === statusInstanceId)!;
 
   const appliedDamage = applyDamage(state, {
     type: "DAMAGE",
@@ -651,14 +761,28 @@ export function passStatusHandling(
   return enterNextStatusWindowOrMainAction(gameOverChecked, player.id, status.createdAt);
 }
 
-export function respondWithCard(
+export function validateRespondWithCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   if (isMultiTargetPendingResponse(state)) {
-    return respondToMultiTargetDamage(state, playerId, cardInstanceId, shuffle);
+    const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
+    const responder = getPlayer(state, playerId);
+    const instance = state.cardInstances[cardInstanceId];
+    const definition = getDefinitionForCard(state, cardInstanceId);
+    return Boolean(
+      pendingResponse &&
+      responder &&
+      !responder.eliminated &&
+      responder.hand.includes(cardInstanceId) &&
+      instance &&
+      instance.ownerId === responder.id &&
+      instance.zone.type === "hand" &&
+      instance.zone.playerId === responder.id &&
+      definition &&
+      isAlkalineAbsorptionDefinition(definition),
+    );
   }
 
   const pendingResponse = state.pendingResponse;
@@ -668,7 +792,6 @@ export function respondWithCard(
   const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
   const responseDefinition = getDefinitionForCard(state, cardInstanceId);
   const responseInstance = state.cardInstances[cardInstanceId];
-  const attackName = sourceEffect ? getDamageSourceName(sourceEffect.context.source) : "";
   const isCarbonateResponse =
     damageKind === "acid" &&
     responseDefinition &&
@@ -691,8 +814,35 @@ export function respondWithCard(
     !responseDefinition ||
     (!canNeutralize(damageKind, responseDefinition) && !isCarbonateResponse)
   ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function respondWithCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validateRespondWithCard(state, playerId, cardInstanceId)) {
     return state;
   }
+
+  if (isMultiTargetPendingResponse(state)) {
+    return respondToMultiTargetDamage(state, playerId, cardInstanceId, shuffle);
+  }
+
+  const pendingResponse = state.pendingResponse!;
+  const responder = getPlayer(state, playerId)!;
+  const sourceEffect = pendingResponse.sourceEffect!;
+  const damageContext = sourceEffect.context;
+  const damageKind = getAcidBaseDamageTag(damageContext);
+  const responseDefinition = getDefinitionForCard(state, cardInstanceId)!;
+  const isCarbonateResponse =
+    damageKind === "acid" &&
+    canGenerateCarbonDioxideAgainstAcid(damageKind, responseDefinition);
 
   const reactionEvent = createAcidBaseResponseReactionEvent({
     context: sourceEffect.context,
@@ -741,19 +891,16 @@ export function respondWithCard(
   });
 }
 
-export function passResponse(
-  state: GameState,
-  playerId: PlayerId,
-  shuffle: ShuffleFunction,
-): GameState {
+export function validatePassResponse(state: GameState, playerId: PlayerId): boolean {
   if (isMultiTargetPendingResponse(state)) {
-    return passMultiTargetDamageResponse(state, playerId, shuffle);
+    const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
+    const responder = getPlayer(state, playerId);
+    return Boolean(pendingResponse && responder && !responder.eliminated);
   }
 
   const pendingResponse = state.pendingResponse;
   const sourceEffect = pendingResponse?.sourceEffect;
   const damageContext = sourceEffect?.context;
-  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
   const responder = getPlayer(state, playerId);
   const target = damageContext ? getPlayer(state, damageContext.targetPlayerId) : undefined;
 
@@ -767,8 +914,30 @@ export function passResponse(
     !target ||
     target.eliminated
   ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function passResponse(
+  state: GameState,
+  playerId: PlayerId,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validatePassResponse(state, playerId)) {
     return state;
   }
+
+  if (isMultiTargetPendingResponse(state)) {
+    return passMultiTargetDamageResponse(state, playerId, shuffle);
+  }
+
+  const pendingResponse = state.pendingResponse!;
+  const sourceEffect = pendingResponse.sourceEffect!;
+  const damageContext = sourceEffect.context;
+  const damageKind = getAcidBaseDamageTag(damageContext);
+  const target = getPlayer(state, damageContext.targetPlayerId)!;
 
   const appliedDamage = applyDamage(state, sourceEffect);
   const withDamage = appliedDamage.state;

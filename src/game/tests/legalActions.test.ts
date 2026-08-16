@@ -4,8 +4,13 @@ import { createInitialGame } from "../engine/createInitialGame";
 import {
   getLegalActions,
   validateGameAction,
+  validateHandleStatusWithCardAction,
+  validatePassAction,
+  validatePassResponseAction,
+  validatePassStatusHandlingAction,
   validatePlayCardAction,
   validatePlayDiySelectionAction,
+  validatePlayReferenceCardAction,
   validateRespondWithCardAction,
 } from "../engine/legalActions";
 import { engineReducer } from "../engine/reducer";
@@ -32,6 +37,235 @@ function createReadyMainGameState(characters?: [string, string]): GameState {
 }
 
 describe("Phase 19A — LegalActions & Legality Validation", () => {
+  describe("Single Authority Alignment (Validators & Executors)", () => {
+    it("aligns PLAY_CARD validator and executor on valid and invalid payloads", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+      const p2 = state.players[1];
+
+      const hclCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_hcl_dilute",
+      )!;
+
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [hclCardId]: {
+            ...state.cardInstances[hclCardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, hand: [hclCardId] }, p2],
+      };
+
+      // Valid attack payload -> validator true -> executor transforms state
+      const validAction = {
+        type: "PLAY_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: hclCardId,
+        targetPlayerId: p2.id,
+      };
+      expect(validateGameAction(state, validAction)).toBe(true);
+      const afterPlay = engineReducer(state, validAction);
+      expect(afterPlay).not.toBe(state);
+      expect(afterPlay.phase).toBe("responseWindow");
+
+      // Invalid self-target payload -> validator false -> executor rejects (returns state)
+      const invalidAction = {
+        type: "PLAY_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: hclCardId,
+        targetPlayerId: p1.id,
+      };
+      expect(validateGameAction(state, invalidAction)).toBe(false);
+      expect(engineReducer(state, invalidAction)).toBe(state);
+    });
+
+    it("aligns PLAY_REFERENCE_CARD validator and executor on valid and unassociated payloads", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+
+      const h2oCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_h2o",
+      )!;
+
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [h2oCardId]: {
+            ...state.cardInstances[h2oCardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, hand: [h2oCardId] }, state.players[1]],
+      };
+
+      // Valid reference play -> validator true -> executor transforms state
+      const validAction = {
+        type: "PLAY_REFERENCE_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: h2oCardId,
+      };
+      expect(validateGameAction(state, validAction)).toBe(true);
+      const afterPlay = engineReducer(state, validAction);
+      expect(afterPlay).not.toBe(state);
+      expect(afterPlay.tableReference?.cardInstanceId).toBe(h2oCardId);
+
+      // Card not in hand -> validator false -> executor rejects
+      const invalidAction = {
+        type: "PLAY_REFERENCE_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: "card_not_in_hand",
+      };
+      expect(validateGameAction(state, invalidAction)).toBe(false);
+      expect(engineReducer(state, invalidAction)).toBe(state);
+    });
+
+    it("aligns RESPOND_WITH_CARD and PASS_RESPONSE validator and executor", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+      const p2 = state.players[1];
+
+      const hclCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_hcl_dilute",
+      )!;
+      const naohCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_naoh_dilute",
+      )!;
+
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [hclCardId]: {
+            ...state.cardInstances[hclCardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+          [naohCardId]: {
+            ...state.cardInstances[naohCardId],
+            ownerId: p2.id,
+            zone: { type: "hand", playerId: p2.id },
+          },
+        },
+        players: [
+          { ...p1, hand: [hclCardId] },
+          { ...p2, hand: [naohCardId] },
+        ],
+      };
+
+      // p1 attacks p2 with HCl -> transitions to responseWindow
+      state = engineReducer(state, {
+        type: "PLAY_CARD",
+        playerId: p1.id,
+        cardInstanceId: hclCardId,
+        targetPlayerId: p2.id,
+      });
+
+      expect(state.phase).toBe("responseWindow");
+
+      // Valid response -> validator true -> executor transforms
+      const validResponse = {
+        type: "RESPOND_WITH_CARD" as const,
+        playerId: p2.id,
+        cardInstanceId: naohCardId,
+      };
+      expect(validateGameAction(state, validResponse)).toBe(true);
+      expect(engineReducer(state, validResponse)).not.toBe(state);
+
+      // Invalid responder -> validator false -> executor rejects
+      const invalidResponder = {
+        type: "RESPOND_WITH_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: naohCardId,
+      };
+      expect(validateGameAction(state, invalidResponder)).toBe(false);
+      expect(engineReducer(state, invalidResponder)).toBe(state);
+
+      // Valid pass response -> validator true -> executor transforms
+      const passAction = {
+        type: "PASS_RESPONSE" as const,
+        playerId: p2.id,
+      };
+      expect(validateGameAction(state, passAction)).toBe(true);
+      expect(engineReducer(state, passAction)).not.toBe(state);
+    });
+
+    it("aligns HANDLE_STATUS_WITH_CARD and PASS_STATUS_HANDLING validator and executor", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+
+      const fireStatus = {
+        id: "status_fire_01",
+        statusId: "FIRE" as const,
+        sourcePlayerId: p1.id,
+        createdAt: 1,
+      };
+      const h2oCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_h2o",
+      )!;
+
+      state = {
+        ...state,
+        phase: "statusWindow",
+        activePlayerId: p1.id,
+        cardInstances: {
+          ...state.cardInstances,
+          [h2oCardId]: {
+            ...state.cardInstances[h2oCardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, statuses: [fireStatus], hand: [h2oCardId] }, state.players[1]],
+        pendingStatusHandling: {
+          playerId: p1.id,
+          statusInstanceId: fireStatus.id,
+        },
+      };
+
+      // Valid handle -> validator true -> executor removes status
+      const validHandle = {
+        type: "HANDLE_STATUS_WITH_CARD" as const,
+        playerId: p1.id,
+        statusInstanceId: fireStatus.id,
+        cardInstanceId: h2oCardId,
+      };
+      expect(validateGameAction(state, validHandle)).toBe(true);
+      const afterHandle = engineReducer(state, validHandle);
+      expect(afterHandle).not.toBe(state);
+      expect(afterHandle.players[0].statuses).toHaveLength(0);
+
+      // Invalid status ID -> validator false -> executor rejects
+      const invalidHandle = {
+        type: "HANDLE_STATUS_WITH_CARD" as const,
+        playerId: p1.id,
+        statusInstanceId: "wrong_status_id",
+        cardInstanceId: h2oCardId,
+      };
+      expect(validateGameAction(state, invalidHandle)).toBe(false);
+      expect(engineReducer(state, invalidHandle)).toBe(state);
+
+      // Valid pass -> validator true -> executor applies status damage
+      const validPass = {
+        type: "PASS_STATUS_HANDLING" as const,
+        playerId: p1.id,
+        statusInstanceId: fireStatus.id,
+      };
+      expect(validateGameAction(state, validPass)).toBe(true);
+      const afterPass = engineReducer(state, validPass);
+      expect(afterPass).not.toBe(state);
+      expect(afterPass.players[0].hp).toBe(p1.hp - 2);
+    });
+  });
+
   describe("Main Action Legal Space", () => {
     it("generates PASS_ACTION, PLAY_CARD, PLAY_REFERENCE_CARD, and ACTIVATE_CHARACTER_SKILL for active player", () => {
       const state = createReadyMainGameState(["clumsy_party_secretary", "acid_king"]);
@@ -145,7 +379,6 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
       const p1 = state.players[0];
       const p2 = state.players[1];
 
-      // Give p1 components for virtual attack DIY (e.g. H+ and OH- or specific components)
       const hCardId = Object.keys(state.cardInstances).find(
         (id) => state.cardInstances[id].definitionId === "ion_h",
       )!;
@@ -175,7 +408,6 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
       const actions = getLegalActions(state, p1.id);
       const diyActions = actions.filter((a) => a.type === "PLAY_DIY_SELECTION");
 
-      // Verify that all generated DIY actions are strictly EXECUTABLE
       for (const diyAction of diyActions) {
         expect(
           validatePlayDiySelectionAction(
@@ -228,7 +460,6 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
       const actions = getLegalActions(state, p1.id);
       const diyActions = actions.filter((a) => a.type === "PLAY_DIY_SELECTION");
 
-      // Both [hCard1, clCard] and [hCard2, clCard] combinations should be generated as distinct actions
       const hasH1 = diyActions.some(
         (a) =>
           a.componentCardInstanceIds.includes(hCard1) &&

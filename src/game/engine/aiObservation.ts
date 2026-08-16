@@ -1,4 +1,5 @@
 import { cardDefinitions } from "../data/cardDefinitions";
+import type { SuccessfulReactionEvent } from "./reactions";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -43,6 +44,11 @@ export type AIObservationOpponent = Readonly<{
   characterUsage: Readonly<CharacterUsageState>;
 }>;
 
+export type AIObservationDiscardCard = Readonly<{
+  cardInstanceId: CardInstanceId;
+  definition: Readonly<CardDefinition>;
+}>;
+
 export type AIObservationPendingContext =
   | { readonly kind: "none" }
   | {
@@ -78,6 +84,7 @@ export type AIObservation = Readonly<{
   startingPlayerId: PlayerId;
   deckCount: number;
   discardPile: readonly CardInstanceId[];
+  discardPileCards: readonly AIObservationDiscardCard[];
   tableReference?: Readonly<TableReference>;
   self: AIObservationSelf;
   opponents: readonly AIObservationOpponent[];
@@ -86,6 +93,22 @@ export type AIObservation = Readonly<{
   winnerPlayerId?: PlayerId;
   isDraw?: boolean;
 }>;
+
+export function cloneCardDefinition(def: CardDefinition): CardDefinition {
+  return {
+    id: def.id,
+    name: def.name,
+    type: def.type,
+    formula: def.formula,
+    elements: def.elements ? [...def.elements] : undefined,
+    elementCategory: def.elementCategory,
+    ionsProvided: def.ionsProvided ? [...def.ionsProvided] : undefined,
+    tags: [...def.tags],
+    baseDamage: def.baseDamage,
+    allowedTimings: [...def.allowedTimings],
+    rulesText: def.rulesText,
+  };
+}
 
 function cloneCharacterUsage(usage: CharacterUsageState): CharacterUsageState {
   return {
@@ -119,12 +142,33 @@ function cloneTableReference(
   };
 }
 
+function cloneSuccessfulReactionEvent(
+  reaction: SuccessfulReactionEvent,
+): SuccessfulReactionEvent {
+  return {
+    ...reaction,
+    trigger: { ...reaction.trigger },
+    participants: reaction.participants.map((p) => ({ ...p })) as any,
+    outcome: { ...reaction.outcome },
+  } as SuccessfulReactionEvent;
+}
+
 function cloneLog(log: readonly GameLogEntry[]): GameLogEntry[] {
-  return log.map((entry) => ({
-    ...entry,
-    params: { ...entry.params },
-    ...(entry.reaction ? { reaction: { ...entry.reaction } } : {}),
-  })) as GameLogEntry[];
+  return log.map((entry) => {
+    if (entry.eventKey === "reaction") {
+      return {
+        id: entry.id,
+        eventKey: "reaction" as const,
+        params: { ...entry.params },
+        reaction: cloneSuccessfulReactionEvent(entry.reaction),
+      };
+    }
+    return {
+      id: entry.id,
+      eventKey: entry.eventKey,
+      params: { ...entry.params },
+    };
+  }) as GameLogEntry[];
 }
 
 function projectPendingContext(
@@ -198,7 +242,7 @@ export function getAIObservation(
             return instance ? definitionsById.get(instance.definitionId) : undefined;
           })
           .filter((definition): definition is CardDefinition => definition !== undefined)
-          .map((def) => ({ ...def })),
+          .map(cloneCardDefinition),
         statuses: cloneStatuses(viewerPlayer.statuses),
         eliminated: viewerPlayer.eliminated,
         usedDIYThisCycle: viewerPlayer.usedDIYThisCycle,
@@ -233,6 +277,28 @@ export function getAIObservation(
       characterUsage: cloneCharacterUsage(opponent.characterUsage),
     }));
 
+  const discardPileCards: AIObservationDiscardCard[] = state.discardPile.map(
+    (cardInstanceId) => {
+      const instance = state.cardInstances[cardInstanceId];
+      const def = instance ? definitionsById.get(instance.definitionId) : undefined;
+      const definition = def
+        ? cloneCardDefinition(def)
+        : {
+            id: instance?.definitionId ?? "unknown",
+            name: "Unknown Card",
+            type: "substance" as const,
+            formula: "Unknown",
+            tags: [],
+            allowedTimings: [],
+            rulesText: "",
+          };
+      return {
+        cardInstanceId,
+        definition,
+      };
+    },
+  );
+
   return {
     viewerPlayerId,
     gameId: state.id,
@@ -243,6 +309,7 @@ export function getAIObservation(
     startingPlayerId: state.startingPlayerId,
     deckCount: state.deck.length,
     discardPile: [...state.discardPile],
+    discardPileCards,
     tableReference: cloneTableReference(state.tableReference),
     self,
     opponents,

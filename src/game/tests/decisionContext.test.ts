@@ -204,7 +204,7 @@ describe("Phase 19A — DecisionContext & Authoritative Decision Layer", () => {
               kind: "card",
               sourcePlayerId: attacker.id,
               cardInstanceId: "card_attack_01",
-              cardDefinitionId: "substance_hcl",
+              cardDefinitionId: "substance_hcl_dilute",
             },
             tags: ["acid"],
             responsePolicy: "acid-base",
@@ -302,12 +302,86 @@ describe("Phase 19A — DecisionContext & Authoritative Decision Layer", () => {
       expect(getDecisionContext(state)).toEqual({ kind: "none" });
     });
 
-    it("fails closed on malformed statusWindow state", () => {
+    it("fails closed on malformed statusWindow state with non-existent statusInstanceId", () => {
+      const p1 = createReadyMainGameState().players[0];
       const state: GameState = {
         ...createReadyMainGameState(),
         phase: "statusWindow",
-        pendingStatusHandling: undefined,
+        activePlayerId: p1.id,
+        players: [{ ...p1, statuses: [] }, createReadyMainGameState().players[1]],
+        pendingStatusHandling: {
+          playerId: p1.id,
+          statusInstanceId: "non_existent_status_id",
+        },
       };
+      expect(getAuthoritativeDecisionMaker(state)).toBeUndefined();
+      expect(getDecisionContext(state)).toEqual({ kind: "none" });
+    });
+
+    it("fails closed on malformed experimentCounterattackWindow state with broken attacker snapshot", () => {
+      const responder = {
+        ...createReadyMainGameState().players[0],
+        characterId: "chemistry_enthusiast" as const,
+      };
+      const state: GameState = {
+        ...createReadyMainGameState(),
+        phase: "experimentCounterattackWindow",
+        players: [responder, createReadyMainGameState().players[1]],
+        pendingExperimentCounterattack: {
+          responderPlayerId: responder.id,
+          attackerPlayerId: "missing_attacker_id",
+          originalDamageContext: {
+            targetPlayerId: responder.id,
+            baseAmount: 1,
+            source: {
+              kind: "card",
+              sourcePlayerId: "missing_attacker_id",
+              cardInstanceId: "card_attack_01",
+              cardDefinitionId: "substance_hcl_dilute",
+            },
+            tags: ["acid"],
+            responsePolicy: "acid-base",
+          },
+          responseType: "acid-base",
+          legalOptions: ["recover"],
+          legalMetalCardInstanceIds: [],
+          legalPursuitCardInstanceIds: [],
+          continuation: { kind: "single-response" },
+        },
+      };
+      expect(getAuthoritativeDecisionMaker(state)).toBeUndefined();
+      expect(getDecisionContext(state)).toEqual({ kind: "none" });
+    });
+
+    it("fails closed on malformed responseWindow state with missing target", () => {
+      const p1 = createReadyMainGameState().players[0];
+      const p2 = createReadyMainGameState().players[1];
+      const state: GameState = {
+        ...createReadyMainGameState(),
+        phase: "responseWindow",
+        players: [p1, { ...p2, eliminated: true }],
+        pendingResponse: {
+          responderId: p1.id,
+          chainDepth: 1,
+          effectsAfterPass: [],
+          sourceEffect: {
+            type: "DAMAGE",
+            context: {
+              targetPlayerId: p2.id,
+              baseAmount: 1,
+              source: {
+                kind: "card",
+                sourcePlayerId: p1.id,
+                cardInstanceId: "card_1",
+                cardDefinitionId: "substance_hcl_dilute",
+              },
+              tags: ["acid"],
+              responsePolicy: "acid-base",
+            },
+          },
+        },
+      };
+      expect(getAuthoritativeDecisionMaker(state)).toBeUndefined();
       expect(getDecisionContext(state)).toEqual({ kind: "none" });
     });
   });

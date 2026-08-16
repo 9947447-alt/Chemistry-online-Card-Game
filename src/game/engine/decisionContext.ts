@@ -1,5 +1,10 @@
 import type { GameAction } from "./actions";
+import { getValidPendingExperimentCounterattack } from "./experimentCounterattack";
 import { getLegalActions } from "./legalActions";
+import {
+  getValidMultiTargetPendingResponse,
+  isMultiTargetPendingResponse,
+} from "./multiTargetResponse";
 import { isValidLaboratoryPreparationSelection } from "./turnFlow";
 import type { CardInstanceId, GameState, PlayerId } from "./types";
 
@@ -37,7 +42,11 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
 
   if (state.phase === "preparationSelection") {
     const pending = state.pendingLaboratoryPreparation;
-    if (!pending) {
+    if (
+      !pending ||
+      pending.keepCount !== 10 ||
+      !isValidLaboratoryPreparationSelection(state, pending)
+    ) {
       return undefined;
     }
     const player = state.players.find((candidate) => candidate.id === pending.playerId);
@@ -52,12 +61,32 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
   }
 
   if (state.phase === "responseWindow") {
-    const responderId = state.pendingResponse?.responderId;
-    if (!responderId) {
+    if (isMultiTargetPendingResponse(state)) {
+      const responderId = state.pendingResponse?.responderId;
+      if (!responderId) {
+        return undefined;
+      }
+      const validPending = getValidMultiTargetPendingResponse(state, responderId);
+      const responder = state.players.find((candidate) => candidate.id === responderId);
+      return validPending && responder && !responder.eliminated ? responder.id : undefined;
+    }
+
+    const pending = state.pendingResponse;
+    if (!pending || !pending.responderId || !pending.sourceEffect) {
       return undefined;
     }
-    const responder = state.players.find((candidate) => candidate.id === responderId);
-    return responder && !responder.eliminated ? responder.id : undefined;
+    const damageContext = pending.sourceEffect.context;
+    if (!damageContext || damageContext.responsePolicy !== "acid-base") {
+      return undefined;
+    }
+    const responder = state.players.find((candidate) => candidate.id === pending.responderId);
+    const target = state.players.find((candidate) => candidate.id === damageContext.targetPlayerId);
+
+    if (!responder || responder.eliminated || !target || target.eliminated) {
+      return undefined;
+    }
+
+    return responder.id;
   }
 
   if (state.phase === "statusWindow") {
@@ -66,7 +95,16 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
       return undefined;
     }
     const player = state.players.find((candidate) => candidate.id === pending.playerId);
-    return player && !player.eliminated ? player.id : undefined;
+    if (!player || player.eliminated) {
+      return undefined;
+    }
+    const status = player.statuses.find(
+      (candidate) => candidate.id === pending.statusInstanceId,
+    );
+    if (!status || (status.statusId !== "FIRE" && status.statusId !== "SO2_LEAK")) {
+      return undefined;
+    }
+    return player.id;
   }
 
   if (state.phase === "experimentCounterattackWindow") {
@@ -74,8 +112,8 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
     if (!responderId) {
       return undefined;
     }
-    const responder = state.players.find((candidate) => candidate.id === responderId);
-    return responder && !responder.eliminated ? responder.id : undefined;
+    const validPending = getValidPendingExperimentCounterattack(state, responderId);
+    return validPending ? responderId : undefined;
   }
 
   return undefined;
@@ -121,6 +159,9 @@ export function getDecisionContext(state: GameState): DecisionContext {
     }
 
     const legalActions = getLegalActions(state, decisionMakerId);
+    if (legalActions.length === 0) {
+      return { kind: "none" };
+    }
 
     return {
       kind: "finite-actions",

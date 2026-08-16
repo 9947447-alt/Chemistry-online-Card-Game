@@ -313,11 +313,10 @@ export function getValidPendingExperimentCounterattack(
   return pending;
 }
 
-export function resolveExperimentCounterattack(
+export function validateExperimentCounterattackAction(
   state: GameState,
   action: ResolveExperimentCounterattackAction,
-  shuffle: ShuffleFunction,
-): GameState {
+): boolean {
   const pending = getValidPendingExperimentCounterattack(state, action.playerId);
   const responder = state.players.find((player) => player.id === action.playerId);
   const attacker = pending
@@ -325,14 +324,50 @@ export function resolveExperimentCounterattack(
     : undefined;
 
   if (!pending || !responder || !attacker) {
-    return state;
+    return false;
   }
 
   if (action.option === "recover") {
-    if (!pending.legalOptions.includes("recover") || !canRecoverHp(responder)) {
-      return state;
-    }
+    return pending.legalOptions.includes("recover") && canRecoverHp(responder);
+  }
 
+  if (action.option === "acid-base-pursuit") {
+    if (
+      !action.cardInstanceId ||
+      !pending.legalOptions.includes("acid-base-pursuit") ||
+      !pending.legalPursuitCardInstanceIds.includes(action.cardInstanceId)
+    ) {
+      return false;
+    }
+    const instance = state.cardInstances[action.cardInstanceId];
+    const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+    return Boolean(
+      instance &&
+      instance.ownerId === responder.id &&
+      instance.zone.type === "hand" &&
+      instance.zone.playerId === responder.id &&
+      definition &&
+      isLegalExperimentCounterattackPursuitDefinition(definition),
+    );
+  }
+
+  return false;
+}
+
+export function resolveExperimentCounterattack(
+  state: GameState,
+  action: ResolveExperimentCounterattackAction,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validateExperimentCounterattackAction(state, action)) {
+    return state;
+  }
+
+  const pending = getValidPendingExperimentCounterattack(state, action.playerId)!;
+  const responder = state.players.find((player) => player.id === action.playerId)!;
+  const attacker = state.players.find((player) => player.id === pending.attackerPlayerId)!;
+
+  if (action.option === "recover") {
     const healedState: GameState = {
       ...state,
       players: state.players.map((player) =>
@@ -357,12 +392,7 @@ export function resolveExperimentCounterattack(
 
   const instance = state.cardInstances[action.cardInstanceId];
   const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
-  if (
-    !pending.legalOptions.includes("acid-base-pursuit") ||
-    !pending.legalPursuitCardInstanceIds.includes(action.cardInstanceId) ||
-    !definition ||
-    !isLegalExperimentCounterattackPursuitDefinition(definition)
-  ) {
+  if (!definition) {
     return state;
   }
 
