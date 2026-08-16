@@ -38,6 +38,7 @@ export function CardDebugCard({
       className={`debug-card${selected ? " is-selected" : ""}`}
     >
       <button
+        aria-pressed={selected}
         className="debug-card__select"
         disabled={disabled}
         onClick={() => onSelect?.(cardInstanceId)}

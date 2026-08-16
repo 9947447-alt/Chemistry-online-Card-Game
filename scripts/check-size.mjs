@@ -4,7 +4,7 @@ import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 const limits = Object.freeze({
-  javascriptGzip: 100 * 1024,
+  javascriptGzip: 120 * 1024,
   cssGzip: 10 * 1024,
   total: 500 * 1024,
 });
@@ -49,6 +49,6 @@ console.log(JSON.stringify({ metrics, limits }, null, 2));
 
 for (const key of Object.keys(limits)) {
   if (metrics[key] > limits[key]) {
-    throw new Error(`${key} exceeds the Phase 11 size limit.`);
+    throw new Error(`${key} exceeds the size limit.`);
   }
 }

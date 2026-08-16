@@ -1055,28 +1055,58 @@ select {
   overflow-y: auto;
 }
 
-.recipe-list {
+.diy-controls-bar {
+  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.recipe-chip {
-  background: #f4f6f8;
-  border-color: #d7dee4;
-  color: #334250;
-  font-size: 0.78rem;
-}
-
-.recipe-chip.is-selected {
-  background: #e7eef8;
-  border-color: #4e6e9b;
-  color: #1e3f69;
-}
-
-.component-slots {
+.diy-preview-area {
   display: grid;
   gap: 8px;
+}
+
+.diy-preview {
+  background: #f4f7f9;
+  border: 1px solid #d1dbe3;
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.diy-preview p {
+  margin: 0;
+}
+
+.diy-preview.is-invalid,
+.diy-preview.is-blocked {
+  background: #fff8f0;
+  border-color: #f0c997;
+}
+
+.diy-preview.is-executable {
+  background: #eef7f2;
+  border-color: #a3d9bc;
+}
+
+.diy-recipe-name {
+  color: #17212b;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.diy-blocker-note {
+  color: #a04c10;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.diy-outcome-preview {
+  color: #1d5738;
+  font-size: 0.82rem;
+  margin: 0;
 }
 
 .error-banner,

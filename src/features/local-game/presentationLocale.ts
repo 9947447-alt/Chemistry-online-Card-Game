@@ -3,6 +3,8 @@ import type {
   CharacterSkillId,
   CharacterSkillImplementationStatus,
   CharacterSkillType,
+  DIYBlockerCode,
+  DIYExecutableOutcome,
   LogPresentationContext,
   Player,
   PlayerId,
@@ -285,6 +287,49 @@ export function getDiyVirtualProductDisplayName(recipeId: string, locale: Displa
 
 export function getStrictDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
   return lookup(diyVirtualProductNames, recipeId, locale, "virtual product recipeId");
+}
+
+const diyBlockerNames: Readonly<Record<DIYBlockerCode, LocalizedLabel>> = {
+  NOT_ACTIVE_PLAYER: ["非当前行动玩家", "Not active player"],
+  INVALID_PHASE: ["当前不是主行动阶段", "Not in main action phase"],
+  DIY_ALREADY_USED_THIS_CYCLE: ["本周期已使用过主动 DIY", "Active DIY already used this cycle"],
+  OWN_FIRE_REQUIRED: ["需要自身处于火情状态", "Requires player to be on Fire"],
+  TARGET_PLAYER_REQUIRED: ["需要选择目标玩家", "Target player required"],
+  TARGET_PLAYER_INVALID: ["所选目标玩家无效", "Selected target player is invalid"],
+  UNEXPECTED_TARGET: ["此配方不需要选择目标", "This recipe does not accept a target"],
+};
+
+export function getDiyBlockerDisplayName(blockerCode: DIYBlockerCode, locale: DisplayLocale): string {
+  return lookup(diyBlockerNames, blockerCode, locale);
+}
+
+export function getDiyOutcomeDescription(
+  recipeId: string,
+  outcome: DIYExecutableOutcome,
+  locale: DisplayLocale,
+  context?: LogPresentationContext,
+): string {
+  const en = locale === "en";
+  const noCard = en ? "; no entity card is created." : "；不创建实体卡牌。";
+  if (outcome.kind === "CO2_REMOVE_OWN_FIRE") {
+    return (en ? "Produces CO2 and removes own Fire" : "生成 CO2 并移除自身火情") + noCard;
+  }
+  if (outcome.kind === "H2O_REMOVE_OWN_FIRE") {
+    return (en ? "Produces H2O and removes own Fire" : "生成 H2O 并移除自身火情") + noCard;
+  }
+  if (outcome.kind === "SO2_APPLY_LEAK") {
+    const target = getPlayerDisplayNameById(outcome.targetPlayerId, locale, context);
+    return (en ? `Produces SO2, giving ${target} SO2 leak` : `生成 SO2，使 ${target} 获得 SO2 泄漏`) + noCard;
+  }
+  if (outcome.kind === "VIRTUAL_ATTACK") {
+    const product = getDiyVirtualProductDisplayName(recipeId, locale);
+    const target = getPlayerDisplayNameById(outcome.targetPlayerId, locale, context);
+    const kind = getDamageKindDisplayName(outcome.damageKind, locale);
+    return en
+      ? `Produces the virtual product ${product}; the base ${kind} damage value to ${target} is ${outcome.damageAmount} (awaiting response); no entity card is created.`
+      : `生成虚拟产品 ${product}；对 ${target} 造成 ${kind}伤害基础值 ${outcome.damageAmount} 点（等待响应）；不创建实体卡牌。`;
+  }
+  return "";
 }
 
 export function getPlayerDisplayNameById(
