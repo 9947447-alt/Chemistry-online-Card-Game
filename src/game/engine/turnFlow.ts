@@ -4,19 +4,12 @@ import {
   resetCharacterUsageForNewRound,
 } from "./characterUsage";
 import { getAllowedDrawCount } from "./handCapacity";
+import { appendEvent } from "./logEvents";
 
 export type ShuffleFunction = <T>(items: readonly T[]) => T[];
 
 export function getAvailableDrawCardCount(state: GameState): number {
   return state.deck.length + state.discardPile.length;
-}
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
 }
 
 function replacePlayer(state: GameState, playerId: PlayerId, update: (player: GameState["players"][number]) => GameState["players"][number]): GameState {
@@ -61,14 +54,14 @@ function recycleDiscardIntoDeck(state: GameState, shuffle: ShuffleFunction): Gam
     };
   }
 
-  return appendLog(
+  return appendEvent(
     {
       ...state,
       cardInstances,
       deck: recycledDeck,
       discardPile: [],
     },
-    "主牌堆不足，弃牌堆洗回主牌堆。",
+    { eventKey: "recycle_discard_into_deck", params: {} },
   );
 }
 
@@ -92,7 +85,7 @@ export function drawCardsForPlayer(
 
     const [cardId, ...remainingDeck] = nextState.deck;
     if (!cardId) {
-      return appendLog(nextState, "主牌堆与弃牌堆均为空，摸牌停止。");
+      return appendEvent(nextState, { eventKey: "draw_stopped_empty", params: {} });
     }
 
     nextState = moveCardToHand(
@@ -285,7 +278,7 @@ function discardAllHands(state: GameState): GameState {
     };
   });
 
-  return appendLog(
+  return appendEvent(
     {
       ...state,
       players,
@@ -293,7 +286,7 @@ function discardAllHands(state: GameState): GameState {
       discardPile,
       phase: "cleanup",
     },
-    "实验周期结束，所有剩余手牌进入弃牌堆。",
+    { eventKey: "cycle_cleanup_discard_hands", params: {} },
   );
 }
 
@@ -315,7 +308,10 @@ function startNextCycle(state: GameState, shuffle: ShuffleFunction): GameState {
     players: state.players.map(resetCharacterUsageForNewCycle),
   };
 
-  nextState = appendLog(nextState, `进入第 ${nextState.cycleNumber} 实验周期。`);
+  nextState = appendEvent(nextState, {
+    eventKey: "cycle_start",
+    params: { cycleNumber: nextState.cycleNumber },
+  });
 
   nextState = dealCycleStartHands(nextState, shuffle);
 
@@ -355,7 +351,7 @@ export function confirmLaboratoryPreparation(
     };
   }
 
-  const resolved = appendLog(
+  const resolved = appendEvent(
     {
       ...state,
       players: state.players.map((candidate) =>
@@ -369,7 +365,10 @@ export function confirmLaboratoryPreparation(
       cardInstances,
       discardPile: [...state.discardPile, ...discardedIds],
     },
-    `${player.name} 完成备课，保留 ${pending.keepCount} 张牌。`,
+    {
+      eventKey: "laboratory_preparation_confirmed",
+      params: { playerId, keepCount: pending.keepCount },
+    },
   );
   const [nextSelection, ...remainingSelections] = pending.remainingSelections;
 
@@ -402,7 +401,7 @@ export function finishGameIfResolved(state: GameState): GameState {
   const survivors = state.players.filter((player) => !player.eliminated);
 
   if (survivors.length === 1) {
-    return appendLog(
+    return appendEvent(
       {
         ...state,
         phase: "gameOver",
@@ -413,12 +412,12 @@ export function finishGameIfResolved(state: GameState): GameState {
         winnerPlayerId: survivors[0].id,
         isDraw: undefined,
       },
-      `${survivors[0].name} 获胜。`,
+      { eventKey: "winner", params: { playerId: survivors[0].id } },
     );
   }
 
   if (survivors.length === 0) {
-    return appendLog(
+    return appendEvent(
       {
         ...state,
         phase: "gameOver",
@@ -428,7 +427,7 @@ export function finishGameIfResolved(state: GameState): GameState {
         winnerPlayerId: undefined,
         isDraw: true,
       },
-      "所有玩家均被淘汰，本局平局。",
+      { eventKey: "draw_game", params: {} },
     );
   }
 
@@ -461,7 +460,7 @@ export function beginActionForPlayer(state: GameState, playerId: PlayerId): Game
     };
   }
 
-  return appendLog(
+  return appendEvent(
     {
       ...state,
       activePlayerId: player.id,
@@ -471,7 +470,10 @@ export function beginActionForPlayer(state: GameState, playerId: PlayerId): Game
         statusInstanceId: nextStatus.id,
       },
     },
-    `${player.name} 开始处理 ${nextStatus.statusId}。`,
+    {
+      eventKey: "status_window_start",
+      params: { playerId: player.id, statusId: nextStatus.statusId },
+    },
   );
 }
 
@@ -485,7 +487,13 @@ export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunctio
   const nextPlayer = findNextAlivePlayer(resolvedState, activeIndex + 1);
 
   if (nextPlayer) {
-    return beginActionForPlayer(appendLog(resolvedState, `轮到 ${nextPlayer.name} 行动。`), nextPlayer.id);
+    return beginActionForPlayer(
+      appendEvent(resolvedState, {
+        eventKey: "turn_start",
+        params: { playerId: nextPlayer.id },
+      }),
+      nextPlayer.id,
+    );
   }
 
   if (resolvedState.roundInCycle < resolvedState.settings.roundsPerCycle) {
@@ -498,7 +506,10 @@ export function advanceTurnFromReducer(state: GameState, shuffle: ShuffleFunctio
 
     return beginActionForPlayer(
       {
-        ...appendLog(resolvedState, `进入第 ${nextRound} 实验轮次。`),
+        ...appendEvent(resolvedState, {
+          eventKey: "round_start",
+          params: { roundInCycle: nextRound },
+        }),
         activePlayerId: nextStartingPlayer.id,
         startingPlayerId: nextStartingPlayer.id,
         roundInCycle: nextRound,

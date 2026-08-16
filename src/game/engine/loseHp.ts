@@ -1,18 +1,11 @@
 import { finishGameIfResolved } from "./turnFlow";
 import type { GameState, PlayerId } from "./types";
+import { appendEvent } from "./logEvents";
 
 export type LoseHpTarget = Readonly<{
   targetPlayerId: PlayerId;
   amount: number;
 }>;
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 function isValidLoseHpBatch(state: GameState, targets: readonly LoseHpTarget[]): boolean {
   if (state.phase === "gameOver") {
@@ -97,10 +90,10 @@ export function applyLoseHpBatch(
       (player) => player.id === originalPlayer.id,
     );
     const actualAmount = originalPlayer.hp - (resolvedPlayer?.hp ?? originalPlayer.hp);
-    nextState = appendLog(
-      nextState,
-      `${originalPlayer.name} 失去 ${actualAmount} 点体力。`,
-    );
+    nextState = appendEvent(nextState, {
+      eventKey: "lose_hp",
+      params: { playerId: originalPlayer.id, amount: actualAmount },
+    });
   }
 
   for (const originalPlayer of state.players) {
@@ -109,7 +102,10 @@ export function applyLoseHpBatch(
     );
 
     if (!originalPlayer.eliminated && resolvedPlayer?.eliminated) {
-      nextState = appendLog(nextState, `${originalPlayer.name} HP 降至 0，被淘汰。`);
+      nextState = appendEvent(nextState, {
+        eventKey: "eliminated",
+        params: { playerId: originalPlayer.id },
+      });
     }
   }
 

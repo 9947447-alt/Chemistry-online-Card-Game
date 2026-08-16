@@ -18,6 +18,7 @@ import {
   getAvailableDrawCardCount,
   type ShuffleFunction,
 } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 type ActiveSkillId = ActivateCharacterSkillAction["skillId"];
 
@@ -25,6 +26,13 @@ type ActiveSkillSpec = Readonly<{
   characterId: CharacterId;
   usageKey: CharacterUsageKey;
 }>;
+
+function createSecretarySkillSpec(): ActiveSkillSpec {
+  return {
+    characterId: "clumsy_party_secretary",
+    usageKey: "clumsy_party_secretary_shared_active",
+  };
+}
 
 const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
   extra_lesson: {
@@ -35,18 +43,9 @@ const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
     characterId: "chemical_factory_ceo",
     usageKey: "chemical_factory_ceo_emergency_supply",
   },
-  exhaust_leak: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
-  lab_fire: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
-  exothermic_accident: {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  },
+  exhaust_leak: createSecretarySkillSpec(),
+  lab_fire: createSecretarySkillSpec(),
+  exothermic_accident: createSecretarySkillSpec(),
   alkali_recovery: {
     characterId: "caustic_soda_captain",
     usageKey: "caustic_soda_captain_alkali_recovery",
@@ -60,14 +59,6 @@ const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
-
-function appendSkillLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 function getCommonSkillActor(
   state: GameState,
@@ -133,7 +124,10 @@ function addStatusIfMissing(
   }
 
   if (target.statuses.some((status) => status.statusId === statusId)) {
-    return appendSkillLog(state, `${target.name} 的 ${statusId} 已刷新/重复施加。`);
+    return appendEvent(state, {
+      eventKey: "status_refreshed",
+      params: { playerId: target.id, statusId },
+    });
   }
 
   const status: PlayerStatus = {
@@ -143,12 +137,15 @@ function addStatusIfMissing(
     createdAt: state.log.length + 1,
   };
 
-  return appendSkillLog(
+  return appendEvent(
     replacePlayer(state, target.id, {
       ...target,
       statuses: [...target.statuses, status],
     }),
-    `${target.name} 获得 ${statusId}。`,
+    {
+      eventKey: "status_gained",
+      params: { playerId: target.id, statusId },
+    },
   );
 }
 
@@ -159,7 +156,6 @@ function activateDrawSkill(
   shuffle: ShuffleFunction,
 ): GameState {
   const drawCount = skillId === "extra_lesson" ? 4 : 3;
-  const name = skillId === "extra_lesson" ? "补课" : "紧急调货";
   const usageKey = activeSkillSpecs[skillId].usageKey;
 
   if (player.hand.length > 4 || getAvailableDrawCardCount(state) === 0) {
@@ -174,9 +170,12 @@ function activateDrawSkill(
     return state;
   }
 
-  const loggedState = appendSkillLog(
+  const loggedState = appendEvent(
     markSkillUsed(drawnState, player.id, usageKey),
-    `${player.name} 发动${name}，实际摸 ${actualDrawCount} 张牌，本行动结束。`,
+    {
+      eventKey: "skill_draw",
+      params: { playerId: player.id, skillId, amount: actualDrawCount },
+    },
   );
   return advanceTurnFromReducer(loggedState, shuffle);
 }
@@ -226,13 +225,20 @@ function activateAlkaliRecovery(
     },
     discardPile: [...state.discardPile, action.cardInstanceId],
   };
-  const loggedState = appendSkillLog(
+  const loggedState = appendEvent(
     markSkillUsed(
       withCostDiscarded,
       player.id,
       activeSkillSpecs.alkali_recovery.usageKey,
     ),
-    `${player.name} 发动碱液回收，弃置 ${definition.name}，回复 ${healedHp - player.hp} HP，本行动结束。`,
+    {
+      eventKey: "skill_alkali_recovery",
+      params: {
+        playerId: player.id,
+        cardDefinitionId: definition.id,
+        amount: healedHp - player.hp,
+      },
+    },
   );
 
   return advanceTurnFromReducer(loggedState, shuffle);
@@ -250,13 +256,16 @@ function activateExhaustDischarge(
   }
 
   const withStatus = addStatusIfMissing(state, target.id, player.id, "SO2_LEAK");
-  const loggedState = appendSkillLog(
+  const loggedState = appendEvent(
     markSkillUsed(
       withStatus,
       player.id,
       activeSkillSpecs.exhaust_discharge.usageKey,
     ),
-    `${player.name} 发动排放尾气，使 ${target.name} 获得 SO2_LEAK；不造成即时伤害，本行动结束。`,
+    {
+      eventKey: "skill_exhaust_discharge",
+      params: { actorId: player.id, targetId: target.id },
+    },
   );
   return advanceTurnFromReducer(loggedState, shuffle);
 }
@@ -277,10 +286,10 @@ function activateExhaustLeak(
     player.id,
     activeSkillSpecs.exhaust_leak.usageKey,
   );
-  const withLog = appendSkillLog(
-    withUsage,
-    `${player.name} 发动尾气泄漏，按稳定顺序等待 ${targetPlayerIds.length} 名目标分别进行碱性吸收响应。`,
-  );
+  const withLog = appendEvent(withUsage, {
+    eventKey: "skill_exhaust_leak",
+    params: { playerId: player.id, targetCount: targetPlayerIds.length },
+  });
   return startExhaustLeakResponseSequence(withLog, player.id, targetPlayerIds);
 }
 
@@ -295,9 +304,12 @@ function activateLabFire(
     withStatuses = addStatusIfMissing(withStatuses, targetPlayerId, player.id, "FIRE");
   }
 
-  const loggedState = appendSkillLog(
+  const loggedState = appendEvent(
     markSkillUsed(withStatuses, player.id, activeSkillSpecs.lab_fire.usageKey),
-    `${player.name} 发动实验台起火（lab_fire），以虚拟角色技能效果向所有其他存活玩家施加 FIRE；本行动结束。`,
+    {
+      eventKey: "skill_lab_fire",
+      params: { playerId: player.id },
+    },
   );
   return advanceTurnFromReducer(loggedState, shuffle);
 }
@@ -308,13 +320,16 @@ function activateExothermicAccident(
   targetPlayerIds: readonly PlayerId[],
   shuffle: ShuffleFunction,
 ): GameState {
-  const withUsageAndLog = appendSkillLog(
+  const withUsageAndLog = appendEvent(
     markSkillUsed(
       state,
       player.id,
       activeSkillSpecs.exothermic_accident.usageKey,
     ),
-    `${player.name} 发动强放热事故，所有其他存活玩家失去 1 点体力。`,
+    {
+      eventKey: "skill_exothermic_accident",
+      params: { playerId: player.id, amount: 1 },
+    },
   );
   const resolved = applyLoseHpBatch(
     withUsageAndLog,

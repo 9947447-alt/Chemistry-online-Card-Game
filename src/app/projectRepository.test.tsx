@@ -17,7 +17,7 @@ describe("Phase 15 project repository link", () => {
       const link = container.querySelector("a");
 
       expect(projectRepositoryUrl).toBe(
-        "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+        "https://github.com/9947447-alt/reaction-field",
       );
       expect(link?.getAttribute("href")).toBe(projectRepositoryUrl);
       expect(link?.getAttribute("target")).toBe("_blank");

@@ -31,6 +31,7 @@ import type {
   PlayerStatus,
 } from "./types";
 import { advanceTurnFromReducer, finishGameIfResolved, type ShuffleFunction } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 export function resolveEffects(effects: Effect[]): Effect[] {
   return effects;
@@ -40,14 +41,6 @@ const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
 const diyRecipesById = new Map(diyRecipes.map((recipe) => [recipe.id, recipe]));
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
@@ -222,7 +215,7 @@ function enterNextStatusWindowOrMainAction(
     };
   }
 
-  return appendLog(
+  return appendEvent(
     {
       ...state,
       phase: "statusWindow",
@@ -231,7 +224,10 @@ function enterNextStatusWindowOrMainAction(
         statusInstanceId: nextStatus.id,
       },
     },
-    `${player.name} 开始处理 ${nextStatus.statusId}。`,
+    {
+      eventKey: "status_window_start",
+      params: { playerId, statusId: nextStatus.statusId },
+    },
   );
 }
 
@@ -250,7 +246,10 @@ function addStatusIfMissing(
   const existingStatus = target.statuses.find((status) => status.statusId === statusId);
 
   if (existingStatus) {
-    return appendLog(state, `${target.name} 的 ${statusId} 已刷新/重复施加。`);
+    return appendEvent(state, {
+      eventKey: "status_refreshed",
+      params: { playerId: target.id, statusId },
+    });
   }
 
   const status: PlayerStatus = {
@@ -260,12 +259,15 @@ function addStatusIfMissing(
     createdAt: state.log.length + 1,
   };
 
-  return appendLog(
+  return appendEvent(
     replacePlayer(state, target.id, {
       ...target,
       statuses: [...target.statuses, status],
     }),
-    `${target.name} 获得 ${statusId}。`,
+    {
+      eventKey: "status_gained",
+      params: { playerId: target.id, statusId },
+    },
   );
 }
 
@@ -302,7 +304,7 @@ function playSulfurDioxideCard(
 
   const withStatus = addStatusIfMissing(withCardDiscarded, target.id, actor.id, "SO2_LEAK");
 
-  const resolved = appendLog(
+  const resolved = appendEvent(
     setTableReference(
       {
         ...withStatus,
@@ -313,7 +315,10 @@ function playSulfurDioxideCard(
       cardInstanceId,
       definition,
     ),
-    `${actor.name} 打出 SO2，使 ${target.name} 获得 SO2_LEAK；不造成即时伤害。`,
+    {
+      eventKey: "card_play_so2",
+      params: { actorId: actor.id, targetId: target.id },
+    },
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
@@ -350,7 +355,7 @@ function playOxygenRecoveryCard(
     ...updatedActor,
     hp: healedHp,
   });
-  const resolved = appendLog(
+  const resolved = appendEvent(
     setTableReference(
       {
         ...withHealing,
@@ -361,7 +366,10 @@ function playOxygenRecoveryCard(
       cardInstanceId,
       definition,
     ),
-    `${actor.name} 使用 O2，回复 ${healedHp - actor.hp} HP。`,
+    {
+      eventKey: "card_play_o2",
+      params: { actorId: actor.id, amount: healedHp - actor.hp },
+    },
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
@@ -394,7 +402,7 @@ export function playReferenceCard(
     return state;
   }
 
-  const resolved = appendLog(
+  const resolved = appendEvent(
     setTableReference(
       {
         ...withCardDiscarded,
@@ -405,7 +413,10 @@ export function playReferenceCard(
       cardInstanceId,
       definition,
     ),
-    `${actor.name} 普通出牌 ${definition.name}，作为场面基准；不触发原有效果。`,
+    {
+      eventKey: "card_play_reference",
+      params: { actorId: actor.id, cardDefinitionId: definition.id },
+    },
   );
 
   return advanceTurnFromReducer(resolved, shuffle);
@@ -467,7 +478,7 @@ export function playMainActionCard(
     }),
   };
 
-  return appendLog(
+  return appendEvent(
     setTableReference(
       {
         ...state,
@@ -483,7 +494,16 @@ export function playMainActionCard(
       cardInstanceId,
       definition,
     ),
-    `${actor.name} 打出 ${definition.name}，对 ${target.name} 的${damageKind === "acid" ? "酸性" : "碱性"}伤害基础值为 1 点，等待响应。`,
+    {
+      eventKey: "card_play_attack",
+      params: {
+        actorId: actor.id,
+        cardDefinitionId: definition.id,
+        targetId: target.id,
+        damageKind,
+        baseAmount: definition.baseDamage,
+      },
+    },
   );
 }
 
@@ -536,9 +556,12 @@ export function handleStatusWithCard(
     pendingStatusHandling: undefined,
   };
   const resolved = status.statusId === "FIRE"
-    ? appendLog(
+    ? appendEvent(
         statusRemovedState,
-        `${player.name} 使用 ${definition.name} 处理 FIRE。`,
+        {
+          eventKey: "status_handled_fire",
+          params: { playerId: player.id, cardDefinitionId: definition.id },
+        },
       )
     : recordSuccessfulReaction({
         stateBeforeReaction: state,
@@ -549,7 +572,6 @@ export function handleStatusWithCard(
           handlerCardInstanceId: cardInstanceId,
           handlerCardDefinitionId: definition.id,
         }),
-        message: `${player.name} 使用 ${definition.name} 碱性吸收，处理 SO2 泄漏。`,
         shuffle,
       });
 
@@ -595,12 +617,19 @@ export function passStatusHandling(
   });
   const withDamage = appliedDamage.state;
   const damagedPlayer = getPlayer(withDamage, player.id);
-  const withLog = appendLog(
+  const withLog = appendEvent(
     {
       ...withDamage,
       pendingStatusHandling: undefined,
     },
-    `${player.name} 未处理 ${status.statusId}，受到 ${appliedDamage.resolution.finalAmount} 点状态伤害；${status.statusId} 保留。`,
+    {
+      eventKey: "status_passed_damage",
+      params: {
+        playerId: player.id,
+        statusId: status.statusId,
+        amount: appliedDamage.resolution.finalAmount,
+      },
+    },
   );
 
   const gameOverChecked = finishGameIfResolved(withLog);
@@ -695,9 +724,6 @@ export function respondWithCard(
       pendingResponse: undefined,
     },
     event: reactionEvent,
-    message: isCarbonateResponse
-      ? `${responder.name} 打出 ${responseDefinition.name}，响应 ${attackName} 的酸性伤害，生成 CO2（虚拟结果），原伤害取消。`
-      : `${responder.name} 打出 ${responseDefinition.name}，中和 ${attackName}，生成 H2O（虚拟结果），原伤害取消。`,
     shuffle,
   });
 
@@ -755,13 +781,20 @@ export function passResponse(
     return state;
   }
 
-  const resolved = appendLog(
+  const resolved = appendEvent(
     {
       ...withAttackDiscarded,
       phase: "mainAction",
       pendingResponse: undefined,
     },
-    `${target.name} 放弃响应，受到 ${appliedDamage.resolution.finalAmount} 点${damageKind === "acid" ? "酸性" : "碱性"}伤害。`,
+    {
+      eventKey: "response_pass_damage",
+      params: {
+        targetId: target.id,
+        damageKind: damageKind!,
+        amount: appliedDamage.resolution.finalAmount,
+      },
+    },
   );
 
   const gameOverChecked = finishGameIfResolved(resolved);

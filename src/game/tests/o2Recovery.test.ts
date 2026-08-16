@@ -5,6 +5,7 @@ import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function putCardInHand(
   state: GameState,
@@ -132,7 +133,7 @@ describe("O2 recovery", () => {
     expect(state.pendingResponse).toBeUndefined();
     expect(state.activePlayerId).toBe(state.players[1].id);
     expect(state.roundInCycle).toBe(1);
-    expect(state.log.some((entry) => entry.message.includes("使用 O2"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("使用 O2"))).toBe(true);
     expectCardZonesToBeConsistent(state);
   });
 
@@ -194,7 +195,7 @@ describe("O2 recovery", () => {
       expectNoSideEffects(rejected, state);
       expect(rejected.players[0].hp).toBe(7);
       expect(rejected.discardPile).not.toContain("substance_o2_01");
-      expect(rejected.log.some((entry) => entry.message.includes("使用 O2"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("使用 O2"))).toBe(false);
       expectCardZonesToBeConsistent(rejected);
     },
   );
@@ -273,7 +274,7 @@ describe("O2 recovery", () => {
       expect(rejected, targetCase.name).toBe(targetCase.state);
       expectNoSideEffects(rejected, targetCase.state);
       expect(rejected.discardPile).not.toContain("substance_o2_01");
-      expect(rejected.log.some((entry) => entry.message.includes("使用 O2"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("使用 O2"))).toBe(false);
       expectCardZonesToBeConsistent(rejected);
     }
   });

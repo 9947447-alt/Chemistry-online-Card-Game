@@ -9,7 +9,7 @@ import {
   getPlayer,
   getPlayerName,
 } from "../localGameView";
-import { getCardDisplayName, getPlayerDisplayName } from "../presentationLocale";
+import { getOptionalCardDisplayName, getPlayerDisplayName } from "../presentationLocale";
 
 type ExperimentCounterattackPanelProps = {
   game: GameState;
@@ -102,28 +102,26 @@ export function ExperimentCounterattackPanel({
           <span>{isEnglish ? "Base damage follows the physical definition, receives +1 at increase, and does not open another response" : "基础伤害按实体定义，increase 阶段 +1，且不再打开响应"}</span>
         </div>
         <div className="candidate-grid">
-          {pursuitCards.map((cardInstanceId) => (
-            <button
-              className="primary-button"
-              key={cardInstanceId}
-              onClick={() =>
-                dispatchGameAction({
-                  type: "RESOLVE_EXPERIMENT_COUNTERATTACK",
-                  playerId: responder.id,
-                  option: "acid-base-pursuit",
-                  cardInstanceId,
-                })
-              }
-              type="button"
-            >
-              {isEnglish ? "Use" : "使用"} {(() => {
-                const definition = getCardDefinition(game, cardInstanceId);
-                return definition
-                  ? getCardDisplayName(definition.id, definition.name, locale)
-                  : (isEnglish ? "Unknown card" : "未知卡牌");
-              })()}
-            </button>
-          ))}
+          {pursuitCards.map((cardInstanceId) => {
+            const definition = getCardDefinition(game, cardInstanceId);
+            return (
+              <button
+                className="primary-button"
+                key={cardInstanceId}
+                onClick={() =>
+                  dispatchGameAction({
+                    type: "RESOLVE_EXPERIMENT_COUNTERATTACK",
+                    playerId: responder.id,
+                    option: "acid-base-pursuit",
+                    cardInstanceId,
+                  })
+                }
+                type="button"
+              >
+                {isEnglish ? "Use" : "使用"} {getOptionalCardDisplayName(definition, locale)}
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>

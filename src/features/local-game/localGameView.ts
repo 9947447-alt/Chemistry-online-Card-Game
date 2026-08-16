@@ -17,6 +17,7 @@ import type {
   DamageEffect,
   GameState,
   GameLogEntry,
+  LogPresentationContext,
   Player,
   PlayerId,
   PlayerStatus,
@@ -31,6 +32,7 @@ import {
   getReactionDisplayName,
   getSkillDisplayName,
   getPlayerDisplayName,
+  getPlayerDisplayNameById,
 } from "./presentationLocale";
 
 export const cardDefinitionById = new Map<string, CardDefinition>(
@@ -57,11 +59,13 @@ const reactionParticipantRoleLabels: Record<ReactionParticipant["role"], string>
   "affected-status": "被处理状态",
 };
 
-function describePublicReactionParticipant(
+export function describePublicReactionParticipant(
   state: GameState,
   participant: ReactionParticipant,
   locale: DisplayLocale,
+  context?: LogPresentationContext,
 ): string {
+  const effectiveContext = context ?? state.logPresentationContext;
   const role = locale === "en"
     ? {
         attacker: "Attack source",
@@ -76,9 +80,10 @@ function describePublicReactionParticipant(
     const name = definition
       ? getCardDisplayName(definition.id, definition.name, locale)
       : participant.cardDefinitionId;
+    const playerStr = getPlayerDisplayNameById(participant.playerId, locale, effectiveContext);
     return locale === "en"
-      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.playerId), locale)} · ${name}`
-      : `${role}：${getPlayerName(state, participant.playerId)} · ${name}`;
+      ? `${role}: ${playerStr} · ${name}`
+      : `${role}：${playerStr} · ${name}`;
   }
 
   if (participant.kind === "diy") {
@@ -86,27 +91,24 @@ function describePublicReactionParticipant(
     const name = recipe
       ? getDiyRecipeDisplayName(recipe.id, recipe.name, locale)
       : participant.recipeId;
+    const playerStr = getPlayerDisplayNameById(participant.playerId, locale, effectiveContext);
     return locale === "en"
-      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.playerId), locale)} · Virtual DIY ${name}`
-      : `${role}：${getPlayerName(state, participant.playerId)} · 虚拟 DIY ${name}`;
+      ? `${role}: ${playerStr} · Virtual DIY ${name}`
+      : `${role}：${playerStr} · 虚拟 DIY ${name}`;
   }
 
   if (participant.kind === "character-skill") {
-    const character = state.players.find(
-      (player) => player.id === participant.sourcePlayerId,
-    );
-    const skill = characterDefinitions
-      .find((definition) => definition.id === character?.characterId)
-      ?.skills.find((candidate) => candidate.id === participant.skillId);
-    const name = skill ? getSkillDisplayName(skill.id, locale) : participant.skillId;
+    const name = getSkillDisplayName(participant.skillId, locale);
+    const playerStr = getPlayerDisplayNameById(participant.sourcePlayerId, locale, effectiveContext);
     return locale === "en"
-      ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.sourcePlayerId), locale)} · ${name}`
-      : `${role}：${getPlayerName(state, participant.sourcePlayerId)} · ${name}`;
+      ? `${role}: ${playerStr} · ${name}`
+      : `${role}：${playerStr} · ${name}`;
   }
 
+  const targetStr = getPlayerDisplayNameById(participant.targetPlayerId, locale, effectiveContext);
   return locale === "en"
-    ? `${role}: ${getPlayerDisplayName(getPlayer(state, participant.targetPlayerId), locale)} · Status being handled`
-    : `${role}：${getPlayerName(state, participant.targetPlayerId)} · 待处理状态`;
+    ? `${role}: ${targetStr} · Status being handled`
+    : `${role}：${targetStr} · 待处理状态`;
 }
 
 function describePublicReactionTrigger(event: SuccessfulReactionEvent, locale: DisplayLocale): string {
@@ -204,6 +206,7 @@ export function getPublicReactionLogView(
   state: GameState,
   entry: GameLogEntry,
   locale: DisplayLocale = "zh-CN",
+  context?: LogPresentationContext,
 ): ReactionLogView | undefined {
   if (!entry.reaction) return undefined;
   return {
@@ -213,7 +216,7 @@ export function getPublicReactionLogView(
     ),
     trigger: describePublicReactionTrigger(entry.reaction, locale),
     participants: entry.reaction.participants.map((participant) =>
-      describePublicReactionParticipant(state, participant, locale),
+      describePublicReactionParticipant(state, participant, locale, context),
     ),
     outcome: describePublicReactionOutcome(entry.reaction, locale),
   };

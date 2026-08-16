@@ -19,18 +19,11 @@ import type {
   PlayerId,
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 export function startExhaustLeakResponseSequence(
   state: GameState,
@@ -180,7 +173,6 @@ export function respondToMultiTargetDamage(
     stateBeforeReaction: state,
     resolvedState: withCardDiscarded,
     event: reactionEvent,
-    message: `${responder?.name ?? playerId} 使用 ${definition.name} 碱性吸收，完全抵消尾气泄漏伤害。`,
     shuffle,
   });
 
@@ -218,11 +210,13 @@ export function passMultiTargetDamageResponse(
   }
 
   const appliedDamage = applyDamage(state, pendingResponse.sourceEffect);
-  const target = state.players.find((player) => player.id === playerId);
-  const withLog = appendLog(
-    appliedDamage.state,
-    `${target?.name ?? playerId} 放弃碱性吸收，受到 ${appliedDamage.resolution.finalAmount} 点 SO2 伤害。`,
-  );
+  const withLog = appendEvent(appliedDamage.state, {
+    eventKey: "response_pass_so2",
+    params: {
+      targetId: playerId,
+      amount: appliedDamage.resolution.finalAmount,
+    },
+  });
 
   return resumeResponseContinuation(
     withLog,

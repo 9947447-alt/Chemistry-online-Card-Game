@@ -1,6 +1,6 @@
 {
-  "name": "chemistry-online-card-game",
-  "version": "0.15.0-alpha.1",
+  "name": "reaction-field",
+  "version": "0.16.0-alpha.2",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

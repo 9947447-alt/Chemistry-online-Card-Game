@@ -18,6 +18,7 @@ import type {
 } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 type CharacterPair = [CharacterId, CharacterId];
 
@@ -183,7 +184,7 @@ function passStatus(state: GameState): GameState {
 }
 
 function finalDamageLog(state: GameState): string {
-  return [...state.log].reverse().find((entry) => entry.message.includes("放弃响应"))?.message ?? "";
+  return [...state.log].reverse().map((entry) => renderGameLogEntry(entry)).find((msg) => msg.includes("放弃响应")) ?? "";
 }
 
 describe("Phase 8C-2 character DAMAGE passives", () => {
@@ -265,7 +266,7 @@ describe("Phase 8C-2 character DAMAGE passives", () => {
       expect(resolved.players[1].hp).toBe(target.hp);
       expect(resolved.pendingResponse).toBeUndefined();
       expect(resolved.discardPile.filter((id) => id === "substance_naoh_dilute_01")).toHaveLength(1);
-      expect(resolved.log.some((entry) => entry.message.includes("受到 0 点"))).toBe(false);
+      expect(resolved.log.some((entry) => renderGameLogEntry(entry).includes("受到 0 点"))).toBe(false);
     });
   });
 

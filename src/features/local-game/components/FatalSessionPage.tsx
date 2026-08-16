@@ -38,12 +38,16 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
           {isEnglish ? "The old game state was removed from the local session and every old game action is rejected. Recovery creates a complete new game." : "旧对局状态已从本地会话中移除，任何旧对局操作都会被拒绝。恢复会重新创建完整的新对局。"}
         </p>
         <dl className="failure-diagnostics">
-          <div><dt>{isEnglish ? "Name" : "名称"}</dt><dd>{session.error.diagnostics.displayName}</dd></div>
-          <div><dt>{isEnglish ? "Error code" : "错误码"}</dt><dd>{session.error.code}</dd></div>
-          <div><dt>{isEnglish ? "App version" : "应用版本"}</dt><dd>{session.error.diagnostics.version}</dd></div>
-          <div><dt>{isEnglish ? "Rules version" : "规则版本"}</dt><dd>{session.error.diagnostics.rulesVersion}</dd></div>
-          <div><dt>Commit</dt><dd>{session.error.diagnostics.commit}</dd></div>
-          <div><dt>{isEnglish ? "Environment" : "运行环境"}</dt><dd>{session.error.diagnostics.environment}</dd></div>
+          {([
+            [isEnglish ? "Name" : "名称", session.error.diagnostics.displayName],
+            [isEnglish ? "Error code" : "错误码", session.error.code],
+            [isEnglish ? "App version" : "应用版本", session.error.diagnostics.version],
+            [isEnglish ? "Rules version" : "规则版本", session.error.diagnostics.rulesVersion],
+            ["Commit", session.error.diagnostics.commit],
+            [isEnglish ? "Environment" : "运行环境", session.error.diagnostics.environment],
+          ] as const).map(([label, value]) => (
+            <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+          ))}
         </dl>
         <div className="fatal-actions">
           <button

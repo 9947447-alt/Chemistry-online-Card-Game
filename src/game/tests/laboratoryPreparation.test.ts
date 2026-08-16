@@ -7,6 +7,7 @@ import type { CardInstanceId, CharacterId, GameState } from "../engine/types";
 import { engineReducer } from "../engine/reducer";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function confirmCurrentPreparation(state: GameState): GameState {
   const pending = state.pendingLaboratoryPreparation;
@@ -192,7 +193,7 @@ describe("Phase 8B-1 cycle draws and laboratory preparation", () => {
     expect(resolved.players[0].characterUsage).toEqual(
       state.players[0].characterUsage,
     );
-    expect(resolved.log.at(-1)?.message).toContain("完成备课");
+    expect(resolved.log.at(-1) && renderGameLogEntry(resolved.log.at(-1)!)).toContain("完成备课");
     expectCardZonesToBeConsistent(resolved);
   });
 
@@ -645,7 +646,7 @@ describe("Phase 8B-1 cycle draws and laboratory preparation", () => {
     expect(drawn.players[1].hand).toHaveLength(14);
     expect(drawn.discardPile).toEqual([]);
     expect(drawn.deck).toHaveLength(discardIds.length - 2);
-    expect(drawn.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
+    expect(drawn.log.some((entry) => renderGameLogEntry(entry).includes("弃牌堆洗回主牌堆"))).toBe(true);
     expectCardZonesToBeConsistent(drawn);
   });
 
@@ -679,7 +680,7 @@ describe("Phase 8B-1 cycle draws and laboratory preparation", () => {
     expect(Object.keys(dealt.cardInstances)).toHaveLength(68);
     expect(new Set(Object.keys(dealt.cardInstances))).toHaveLength(68);
     expect(
-      dealt.log.filter((entry) => entry.message.includes("摸牌停止")),
+      dealt.log.filter((entry) => renderGameLogEntry(entry).includes("摸牌停止")),
     ).toHaveLength(1);
     expectCardZonesToBeConsistent(dealt);
   });

@@ -5,6 +5,7 @@ import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId, StatusId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function putCardInHand(
   state: GameState,
@@ -262,7 +263,7 @@ describe("active DIY", () => {
     expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
     expect(state.activePlayerId).toBe(state.players[1].id);
     expect(state.roundInCycle).toBe(1);
-    expect(state.log.some((entry) => entry.message.includes("主动 DIY 生成 CO2 并移除 FIRE"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2 并移除火情"))).toBe(true);
     expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
   });
@@ -277,7 +278,7 @@ describe("active DIY", () => {
     expect(rejected).toBe(state);
     expectNoCoreSideEffects(rejected, state);
     expect(rejected.players[0].usedDIYThisCycle).toBe(false);
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 CO2"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2"))).toBe(false);
     expectCardZonesToBeConsistent(rejected);
   });
 
@@ -302,7 +303,7 @@ describe("active DIY", () => {
     expect(rejected.discardPile).not.toContain("element_c_01");
     expect(rejected.discardPile).not.toContain("element_o_01");
     expect(rejected.discardPile).not.toContain("element_o_02");
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 CO2"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2"))).toBe(false);
     expectTotalCardInstances(rejected);
     expectCardZonesToBeConsistent(rejected);
   });
@@ -329,7 +330,7 @@ describe("active DIY", () => {
     expect(rejected.discardPile).not.toContain("element_o_01");
     expect(rejected.discardPile).not.toContain("element_o_02");
     expect(rejected.discardPile).not.toContain("element_o_03");
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 CO2"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2"))).toBe(false);
     expectTotalCardInstances(rejected);
     expectCardZonesToBeConsistent(rejected);
   });
@@ -358,7 +359,7 @@ describe("active DIY", () => {
     expect(rejected.discardPile).not.toContain("element_c_01");
     expect(rejected.discardPile).not.toContain("element_o_01");
     expect(rejected.discardPile).not.toContain("element_o_02");
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 CO2"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2"))).toBe(false);
     expectTotalCardInstances(rejected);
     expectCardZonesToBeConsistent(rejected);
   });
@@ -395,7 +396,7 @@ describe("active DIY", () => {
 
     expect(state.players[1].statuses).toHaveLength(1);
     expect(state.players[1].statuses[0].id).toBe("status_test_SO2_LEAK_1");
-    expect(state.log.some((entry) => entry.message.includes("SO2_LEAK 已刷新/重复施加"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("SO2 泄漏 已刷新/重复施加"))).toBe(true);
 
     state = engineReducer(state, {
       type: "PASS_STATUS_HANDLING",
@@ -443,7 +444,7 @@ describe("active DIY", () => {
     expect(state.pendingResponse).toBeUndefined();
     expect(state.activePlayerId).toBe(state.players[1].id);
     expect(state.roundInCycle).toBe(1);
-    expect(state.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O 并移除 FIRE"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 H2O 并移除火情"))).toBe(true);
     expectTotalCardInstances(state);
     expectCardZonesToBeConsistent(state);
   });
@@ -481,7 +482,7 @@ describe("active DIY", () => {
     expect(rejected.players[0].usedDIYThisCycle).toBe(false);
     expect(rejected.discardPile).not.toContain("ion_h_01");
     expect(rejected.discardPile).not.toContain("ion_oh_01");
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 H2O"))).toBe(false);
     expectTotalCardInstances(rejected);
     expectCardZonesToBeConsistent(rejected);
   });
@@ -612,7 +613,7 @@ describe("active DIY", () => {
       expectNoCoreSideEffects(rejected, state);
       expect(rejected.discardPile).not.toContain("ion_h_01");
       expect(rejected.discardPile).not.toContain("ion_oh_01");
-      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 生成 H2O"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 H2O"))).toBe(false);
       expectTotalCardInstances(rejected);
       expectCardZonesToBeConsistent(rejected);
     }
@@ -634,7 +635,7 @@ describe("active DIY", () => {
     expect(state.cycleNumber).toBe(2);
     expect(state.roundInCycle).toBe(1);
     expect(state.phase).toBe("mainAction");
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expectTotalCardInstances(state);
@@ -661,9 +662,9 @@ describe("active DIY", () => {
     expect(state.phase).toBe("mainAction");
     expect(state.players[1].statuses.some((status) => status.statusId === "FIRE")).toBe(false);
     expect(state.players.every((player) => player.usedDIYThisCycle === false)).toBe(true);
-    expect(state.log.filter((entry) => entry.message.includes("主动 DIY 生成 CO2 并移除 FIRE"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 CO2 并移除火情"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("进入第 2 实验周期"))).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_c_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_o_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_o_02")).toHaveLength(1);
@@ -700,9 +701,9 @@ describe("active DIY", () => {
     expect(state.players[0].statuses[0].statusId).toBe("SO2_LEAK");
     expect(state.players[0].hp).toBe(10);
     expect(state.players[1].usedDIYThisCycle).toBe(false);
-    expect(state.log.filter((entry) => entry.message.includes("主动 DIY 生成 SO2"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("主动 DIY 生成 SO2"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("进入第 2 实验周期"))).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_s_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_o_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "element_o_02")).toHaveLength(1);
@@ -873,7 +874,11 @@ describe("active DIY", () => {
         }
         expect(countCardDefinition(state, recipe.materialDefinitionId)).toBe(initialMaterialCount);
         expect(countCardDefinition(state, "substance_co2")).toBe(initialCo2Count);
-        expect(state.log.some((entry) => entry.message.includes(responseCase.expectedLog))).toBe(true);
+        if (responseCase.responseCardId) {
+          expect(state.log.some((entry) => entry.eventKey === "reaction")).toBe(true);
+        } else {
+          expect(state.log.some((entry) => renderGameLogEntry(entry).includes(responseCase.expectedLog))).toBe(true);
+        }
         expectTotalCardInstances(state);
         expectCardZonesToBeConsistent(state);
       }
@@ -1101,7 +1106,7 @@ describe("active DIY", () => {
     expect(responded.pendingResponse).toBeUndefined();
     expect(responded.cycleNumber).toBe(2);
     expect(responded.roundInCycle).toBe(1);
-    expect(responded.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(responded.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(responded.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(responded.discardPile.filter((cardId) => cardId === "ion_cl_01")).toHaveLength(1);
     expect(responded.discardPile.filter((cardId) => cardId === "substance_na2co3_01")).toHaveLength(1);
@@ -1128,7 +1133,7 @@ describe("active DIY", () => {
     expect(passed.players[0].hp).toBe(9);
     expect(passed.cycleNumber).toBe(2);
     expect(passed.roundInCycle).toBe(1);
-    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(passed.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_h_02")).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_so4_01")).toHaveLength(1);
@@ -1158,7 +1163,7 @@ describe("active DIY", () => {
     expect(state.pendingResponse).toBeUndefined();
     expect(state.cycleNumber).toBe(2);
     expect(state.roundInCycle).toBe(1);
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_h_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "ion_cl_01")).toHaveLength(1);
     expect(state.discardPile.filter((cardId) => cardId === "substance_koh_dilute_01")).toHaveLength(1);
@@ -1334,7 +1339,11 @@ describe("active DIY", () => {
           expect(state.discardPile.filter((cardId) => cardId === responseCase.responseCardId)).toHaveLength(1);
         }
         expect(countCardDefinition(state, recipe.materialDefinitionId)).toBe(initialMaterialCount);
-        expect(state.log.some((entry) => entry.message.includes(responseCase.expectedLog))).toBe(true);
+        if (responseCase.responseCardId) {
+          expect(state.log.some((entry) => entry.eventKey === "reaction")).toBe(true);
+        } else {
+          expect(state.log.some((entry) => renderGameLogEntry(entry).includes(responseCase.expectedLog))).toBe(true);
+        }
         expectTotalCardInstances(state);
         expectCardZonesToBeConsistent(state);
       }
@@ -1372,7 +1381,7 @@ describe("active DIY", () => {
       expect(rejected.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
       expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
       expect(rejected.discardPile).not.toContain(responseCardId);
-      expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("生成 CO2"))).toBe(false);
       expectTotalCardInstances(rejected);
       expectCardZonesToBeConsistent(rejected);
     }
@@ -1623,8 +1632,8 @@ describe("active DIY", () => {
       expect(rejected.discardPile).not.toContain("ion_na_01");
       expect(rejected.discardPile).not.toContain("ion_k_01");
       expect(rejected.discardPile).not.toContain("ion_oh_01");
-      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 Na+ + OH-"))).toBe(false);
-      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 K+ + OH-"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("Na+ + OH-"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("K+ + OH-"))).toBe(false);
       expectTotalCardInstances(rejected);
       expectCardZonesToBeConsistent(rejected);
     }
@@ -1654,7 +1663,7 @@ describe("active DIY", () => {
     expect(neutralized.players[0].hp).toBe(10);
     expect(neutralized.cycleNumber).toBe(2);
     expect(neutralized.roundInCycle).toBe(1);
-    expect(neutralized.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(neutralized.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "ion_na_01")).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "substance_hcl_dilute_01")).toHaveLength(1);
@@ -1682,7 +1691,7 @@ describe("active DIY", () => {
     expect(passed.players[0].hp).toBe(9);
     expect(passed.cycleNumber).toBe(2);
     expect(passed.roundInCycle).toBe(1);
-    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(passed.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_k_01")).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expectTotalCardInstances(passed);
@@ -1809,7 +1818,11 @@ describe("active DIY", () => {
         expect(state.discardPile.filter((cardId) => cardId === responseCase.responseCardId)).toHaveLength(1);
       }
       expect(countCardDefinition(state, "substance_caoh2_limewater")).toBe(initialLimewaterCount);
-      expect(state.log.some((entry) => entry.message.includes(responseCase.expectedLog))).toBe(true);
+      if (responseCase.responseCardId) {
+        expect(state.log.some((entry) => entry.eventKey === "reaction")).toBe(true);
+      } else {
+        expect(state.log.some((entry) => renderGameLogEntry(entry).includes(responseCase.expectedLog))).toBe(true);
+      }
       expectTotalCardInstances(state);
       expectCardZonesToBeConsistent(state);
     }
@@ -1849,7 +1862,7 @@ describe("active DIY", () => {
       expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
       expect(rejected.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
       expect(rejected.discardPile).not.toContain(responseCardId);
-      expect(rejected.log.some((entry) => entry.message.includes("生成 CO2"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("生成 CO2"))).toBe(false);
       expectTotalCardInstances(rejected);
       expectCardZonesToBeConsistent(rejected);
     }
@@ -2063,7 +2076,7 @@ describe("active DIY", () => {
       expect(rejected.discardPile).not.toContain("ion_ca_01");
       expect(rejected.discardPile).not.toContain("ion_oh_01");
       expect(rejected.discardPile).not.toContain("ion_oh_02");
-      expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 Ca2+ + 2OH-"))).toBe(false);
+      expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("Ca2+ + 2OH-"))).toBe(false);
       expectTotalCardInstances(rejected);
       expectCardZonesToBeConsistent(rejected);
     }
@@ -2093,7 +2106,7 @@ describe("active DIY", () => {
     expect(neutralized.players[0].hp).toBe(10);
     expect(neutralized.cycleNumber).toBe(2);
     expect(neutralized.roundInCycle).toBe(1);
-    expect(neutralized.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(neutralized.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(neutralized.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
@@ -2122,7 +2135,7 @@ describe("active DIY", () => {
     expect(passed.players[0].hp).toBe(9);
     expect(passed.cycleNumber).toBe(2);
     expect(passed.roundInCycle).toBe(1);
-    expect(passed.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
+    expect(passed.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_ca_01")).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_01")).toHaveLength(1);
     expect(passed.discardPile.filter((cardId) => cardId === "ion_oh_02")).toHaveLength(1);
@@ -2261,7 +2274,7 @@ describe("active DIY", () => {
     expect(rejected.discardPile).not.toContain("ion_h_02");
     expect(rejected.discardPile).not.toContain("ion_so4_01");
     expect(rejected.discardPile).not.toContain("ion_so4_02");
-    expect(rejected.log.some((entry) => entry.message.includes("主动 DIY 使用 2H+ + SO4^2-"))).toBe(false);
+    expect(rejected.log.some((entry) => renderGameLogEntry(entry).includes("2H+ + SO4^2-"))).toBe(false);
     expectTotalCardInstances(rejected);
     expectCardZonesToBeConsistent(rejected);
   });

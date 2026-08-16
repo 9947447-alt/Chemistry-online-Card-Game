@@ -17,18 +17,11 @@ import type {
   ResponseContinuation,
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 function getSourcePlayerId(source: DamageSource): PlayerId | null {
   return source.kind === "status" ? null : source.sourcePlayerId;
@@ -174,7 +167,7 @@ export function openExperimentCounterattackOrResume(input: {
     return resumeResponseContinuation(state, input.continuation, input.shuffle);
   }
 
-  return appendLog(
+  return appendEvent(
     {
       ...state,
       phase: "experimentCounterattackWindow",
@@ -188,7 +181,10 @@ export function openExperimentCounterattackOrResume(input: {
         continuation: input.continuation,
       },
     },
-    `${responder.name} 成功完全抵消来自 ${attacker.name} 的攻击，进入实验反击选择窗口。`,
+    {
+      eventKey: "counterattack_window_open",
+      params: { responderId: responder.id, attackerId: attacker.id },
+    },
   );
 }
 
@@ -345,9 +341,12 @@ export function resolveExperimentCounterattack(
           : player,
       ),
     };
-    const resolved = appendLog(
+    const resolved = appendEvent(
       markCounterattackUsed(healedState, responder.id),
-      `${responder.name} 发动实验反击，回复 1 HP。`,
+      {
+        eventKey: "counterattack_recover",
+        params: { playerId: responder.id, amount: 1 },
+      },
     );
     return resumeResponseContinuation(resolved, pending.continuation, shuffle);
   }
@@ -388,10 +387,15 @@ export function resolveExperimentCounterattack(
   };
   const withUsage = markCounterattackUsed(withCardDiscarded, responder.id);
   const applied = applyDamage(withUsage, damageEffect);
-  const resolved = appendLog(
-    applied.state,
-    `${responder.name} 发动实验反击，使用 ${definition.name} 追击 ${attacker.name}，造成 ${applied.resolution.finalAmount} 点伤害。`,
-  );
+  const resolved = appendEvent(applied.state, {
+    eventKey: "counterattack_pursuit",
+    params: {
+      playerId: responder.id,
+      cardDefinitionId: definition.id,
+      targetId: attacker.id,
+      amount: applied.resolution.finalAmount,
+    },
+  });
 
   return resumeResponseContinuation(resolved, pending.continuation, shuffle);
 }

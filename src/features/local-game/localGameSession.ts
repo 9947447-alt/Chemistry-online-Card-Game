@@ -6,6 +6,7 @@ import { characterDefinitions } from "../../game/data/characterDefinitions";
 import { engineReducer } from "../../game/engine/reducer";
 import type { GameAction } from "../../game/engine/actions";
 import type { CharacterId, GameState } from "../../game/engine/types";
+import { getFatalMessageDisplayName } from "./presentationLocale";
 
 export type CharacterSelection = readonly [CharacterId, CharacterId];
 
@@ -119,15 +120,6 @@ export type LocalGameEngineReducer = (
 
 export type LocalGameSessionInitializer = () => LocalGameSessionState;
 
-const fatalUserMessages: Readonly<Record<FatalErrorCode, string>> = {
-  SESSION_INITIALIZATION_FAILED: "本地会话初始化失败。旧状态已被隔离，请重新开始。",
-  GAME_START_FAILED: "无法创建本地对局。未保留不完整的游戏状态。",
-  GAME_RESTART_FAILED: "无法重建本地对局。旧对局已被隔离。",
-  GAME_ACTION_FAILED: "处理本次操作时发生致命错误。旧对局已停止运行。",
-  GAME_RECOVERY_FAILED: "恢复操作未能创建全新对局。你可以重试或返回角色选择。",
-  GAME_STATE_VALIDATION_FAILED: "新建状态未通过会话边界校验，已阻止继续运行。",
-};
-
 export function isCharacterId(value: unknown): value is CharacterId {
   return (
     typeof value === "string" &&
@@ -165,7 +157,7 @@ export function createFatalLocalGameSession(
     revision: revision + 1,
     error: {
       code,
-      userMessage: fatalUserMessages[code],
+      userMessage: getFatalMessageDisplayName(code, code, "zh-CN"),
       diagnostics: createSafeRuntimeDiagnostics(),
     },
   };

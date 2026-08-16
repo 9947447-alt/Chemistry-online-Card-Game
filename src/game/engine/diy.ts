@@ -11,18 +11,11 @@ import type {
   PlayerStatus,
 } from "./types";
 import { advanceTurnFromReducer, type ShuffleFunction } from "./turnFlow";
+import { appendEvent } from "./logEvents";
 
 const definitionsById = new Map<string, CardDefinition>(
   cardDefinitions.map((definition) => [definition.id, definition]),
 );
-
-function appendLog(state: GameState, message: string): GameState {
-  const nextIndex = state.log.length + 1;
-  return {
-    ...state,
-    log: [...state.log, { id: `log_${String(nextIndex).padStart(3, "0")}`, message }],
-  };
-}
 
 function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
@@ -94,7 +87,10 @@ function addStatusIfMissing(
   const existingStatus = target.statuses.find((status) => status.statusId === statusId);
 
   if (existingStatus) {
-    return appendLog(state, `${target.name} 的 ${statusId} 已刷新/重复施加。`);
+    return appendEvent(state, {
+      eventKey: "status_refreshed",
+      params: { playerId: target.id, statusId },
+    });
   }
 
   const status: PlayerStatus = {
@@ -104,12 +100,15 @@ function addStatusIfMissing(
     createdAt: state.log.length + 1,
   };
 
-  return appendLog(
+  return appendEvent(
     replacePlayer(state, target.id, {
       ...target,
       statuses: [...target.statuses, status],
     }),
-    `${target.name} 获得 ${statusId}。`,
+    {
+      eventKey: "status_gained",
+      params: { playerId: target.id, statusId },
+    },
   );
 }
 
@@ -235,9 +234,12 @@ export function startActiveDIY(
     }
 
     const withFireRemoved = removeOwnFire(withComponentsDiscarded, player.id);
-    const resolved = appendLog(
+    const resolved = appendEvent(
       markDIYUsed(withFireRemoved, player.id),
-      `${player.name} 主动 DIY 生成 CO2 并移除 FIRE；不创建 CO2 卡牌。`,
+      {
+        eventKey: "diy_co2_remove_fire",
+        params: { playerId: player.id },
+      },
     );
 
     return advanceTurnFromReducer(resolved, shuffle);
@@ -254,9 +256,12 @@ export function startActiveDIY(
     }
 
     const withFireRemoved = removeOwnFire(withComponentsDiscarded, player.id);
-    const resolved = appendLog(
+    const resolved = appendEvent(
       markDIYUsed(withFireRemoved, player.id),
-      `${player.name} 主动 DIY 生成 H2O 并移除 FIRE；不创建 H2O 卡牌。`,
+      {
+        eventKey: "diy_h2o_remove_fire",
+        params: { playerId: player.id },
+      },
     );
 
     return advanceTurnFromReducer(resolved, shuffle);
@@ -293,7 +298,7 @@ export function startActiveDIY(
       }),
     };
 
-    return appendLog(
+    return appendEvent(
       {
         ...markDIYUsed(withComponentsDiscarded, player.id),
         phase: "responseWindow",
@@ -304,7 +309,16 @@ export function startActiveDIY(
           effectsAfterPass: [sourceEffect],
         },
       },
-      `${player.name} 主动 DIY 使用 ${matchedRecipe.name}，生成虚拟 ${matchedRecipe.displayName}，对 ${target.name} 的${matchedRecipe.damageKind === "acid" ? "酸性" : "碱性"}伤害基础值为 ${matchedRecipe.damageAmount} 点，等待响应；不创建实体卡牌。`,
+      {
+        eventKey: "diy_virtual_attack",
+        params: {
+          playerId: player.id,
+          recipeId: matchedRecipe.id,
+          targetId: target.id,
+          damageKind: matchedRecipe.damageKind,
+          amount: matchedRecipe.damageAmount,
+        },
+      },
     );
   }
 
@@ -321,9 +335,12 @@ export function startActiveDIY(
     }
 
     const withStatus = addStatusIfMissing(withComponentsDiscarded, target.id, player.id, "SO2_LEAK");
-    const resolved = appendLog(
+    const resolved = appendEvent(
       markDIYUsed(withStatus, player.id),
-      `${player.name} 主动 DIY 生成 SO2，使 ${target.name} 获得 SO2_LEAK；不创建 SO2 卡牌。`,
+      {
+        eventKey: "diy_so2_apply_leak",
+        params: { actorId: player.id, targetId: target.id },
+      },
     );
 
     return advanceTurnFromReducer(resolved, shuffle);

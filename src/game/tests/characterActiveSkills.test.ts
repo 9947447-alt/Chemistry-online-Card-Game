@@ -10,6 +10,7 @@ import type {
 } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 type SkillTestCase = {
   characterId: "laboratory_teacher" | "chemical_factory_ceo";
@@ -210,7 +211,7 @@ describe("Phase 8B-2 active draw skills", () => {
       expect(player.usedDIYThisCycle).toBe(true);
       expect(result.activePlayerId).toBe(result.players[1].id);
       expect(result.tableReference).toBe(tableReference);
-      expect(result.log.some((entry) => entry.message.includes(`实际摸 ${skill.drawCount} 张`))).toBe(true);
+      expect(result.log.some((entry) => renderGameLogEntry(entry).includes(`实际摸 ${skill.drawCount} 张`))).toBe(true);
       expectCardZonesToBeConsistent(result);
     },
   );
@@ -321,7 +322,7 @@ describe("Phase 8B-2 active draw skills", () => {
     const result = activateSkill(state, teacherSkill.skillId);
 
     expect(result).not.toBe(state);
-    expect(result.log.filter((entry) => entry.message.includes("发动补课"))).toHaveLength(2);
+    expect(result.log.filter((entry) => renderGameLogEntry(entry).includes("发动补课"))).toHaveLength(2);
     expectCardZonesToBeConsistent(result);
   });
 
@@ -402,7 +403,7 @@ describe("Phase 8B-2 active draw skills", () => {
     expect(result.players[0].hand).toHaveLength(2);
     expect(result.players[0].characterUsage.perCycle[teacherSkill.usageKey]).toBe(1);
     expect(result.activePlayerId).toBe(result.players[1].id);
-    expect(result.log.some((entry) => entry.message.includes("实际摸 2 张"))).toBe(true);
+    expect(result.log.some((entry) => renderGameLogEntry(entry).includes("实际摸 2 张"))).toBe(true);
     expect(Object.keys(result.cardInstances)).toHaveLength(68);
     expectCardZonesToBeConsistent(result);
   });
@@ -425,7 +426,7 @@ describe("Phase 8B-2 active draw skills", () => {
 
     expect(result.players[0].hand).toHaveLength(3);
     expect(result.players[0].characterUsage.perCycle[ceoSkill.usageKey]).toBe(1);
-    expect(result.log.some((entry) => entry.message.includes("弃牌堆洗回主牌堆"))).toBe(true);
+    expect(result.log.some((entry) => renderGameLogEntry(entry).includes("弃牌堆洗回主牌堆"))).toBe(true);
     expectCardZonesToBeConsistent(result);
   });
 

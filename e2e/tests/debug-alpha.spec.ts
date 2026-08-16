@@ -149,7 +149,7 @@ test("Alpha 4 language layer changes only presentation and keeps feedback static
   await expect(page.getByRole("heading", { exact: true, name: "Main action" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "New player guidance: Main action" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Full game log" })).toBeVisible();
-  await expect(page.getByText("The formal game record currently remains in Simplified Chinese.", { exact: false })).toBeVisible();
+  await expect(page.locator(".game-log")).toContainText("entering experiment cycle 1");
 
   const feedback = page.getByRole("link", { name: "Open Microsoft Forms feedback in a new tab" });
   await expect(feedback).toHaveAttribute("href", "https://forms.cloud.microsoft/r/QG8PACUnsa");
@@ -288,7 +288,7 @@ test("默认配置、正式元数据与 configuring 帮助界面", async ({ page
   })).toBeVisible();
   await expect(page.getByLabel("player_1 角色")).toHaveValue("laboratory_teacher");
   await expect(page.getByLabel("player_2 角色")).toHaveValue("chemical_factory_ceo");
-  await expect(page.getByText("Web Playtest Alpha · v0.15.0-alpha.1 · MVP0-P10", {
+  await expect(page.getByText("Web Playtest Alpha · v0.16.0-alpha.2 · MVP0-P10", {
     exact: false,
   })).toBeVisible();
 
@@ -602,7 +602,7 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   const gameOverRepository = page.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
   await expect(gameOverRepository).toHaveAttribute(
     "href",
-    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+    "https://github.com/9947447-alt/reaction-field",
   );
   await expect(gameOverRepository).toHaveAttribute("target", "_blank");
   await expect(gameOverRepository).toHaveAttribute("rel", "noopener noreferrer");
@@ -612,7 +612,7 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   const aboutRepository = about.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
   await expect(aboutRepository).toHaveAttribute(
     "href",
-    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+    "https://github.com/9947447-alt/reaction-field",
   );
   await expect(aboutRepository).toHaveAttribute("target", "_blank");
   await expect(aboutRepository).toHaveAttribute("rel", "noopener noreferrer");

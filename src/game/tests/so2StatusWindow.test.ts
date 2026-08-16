@@ -4,6 +4,7 @@ import { engineReducer } from "../engine/reducer";
 import type { CardInstanceId, GameState, Player, PlayerId } from "../engine/types";
 import { identityShuffle } from "../../shared/random";
 import { expectCardZonesToBeConsistent } from "./assertCardZones";
+import { renderGameLogEntry } from "../../features/local-game/gameLogRenderer";
 
 function putCardInHand(
   state: GameState,
@@ -178,7 +179,7 @@ describe("SO2_LEAK status window", () => {
       expect(state.players[1].hp).toBe(10);
       expect(state.players[1].statuses).toHaveLength(0);
       expect(state.discardPile.filter((cardId) => cardId === handlerCardId)).toHaveLength(1);
-      expect(state.log.some((entry) => entry.message.includes("碱性吸收"))).toBe(true);
+      expect(state.log.some((entry) => entry.eventKey === "reaction")).toBe(true);
       expectCardZonesToBeConsistent(state);
     },
   );
@@ -226,7 +227,7 @@ describe("SO2_LEAK status window", () => {
     expect(state.players[1]).toMatchObject({ hp: 0, eliminated: true });
     expect(state.winnerPlayerId).toBe(state.players[0].id);
     expect(state.pendingStatusHandling).toBeUndefined();
-    expect(state.log.some((entry) => entry.message.includes("被淘汰"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("被淘汰"))).toBe(true);
     expectCardZonesToBeConsistent(state);
   });
 
@@ -309,7 +310,7 @@ describe("SO2_LEAK status window", () => {
 
     expect(state.players[1].statuses).toHaveLength(1);
     expect(state.players[1].statuses[0].id).toBe(originalStatusId);
-    expect(state.log.some((entry) => entry.message.includes("SO2_LEAK 已刷新/重复施加"))).toBe(true);
+    expect(state.log.some((entry) => renderGameLogEntry(entry).includes("SO2 泄漏 已刷新/重复施加"))).toBe(true);
 
     state = engineReducer(state, {
       type: "PASS_STATUS_HANDLING",
@@ -346,8 +347,8 @@ describe("SO2_LEAK status window", () => {
       playerId: startingPlayer.id,
       statusInstanceId: "status_test_so2",
     });
-    expect(state.log.filter((entry) => entry.message.includes("实验周期结束"))).toHaveLength(1);
-    expect(state.log.filter((entry) => entry.message.includes("进入第 2 实验周期"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("实验周期结束"))).toHaveLength(1);
+    expect(state.log.filter((entry) => renderGameLogEntry(entry).includes("进入第 2 实验周期"))).toHaveLength(1);
 
     state = putCardInHand(state, startingPlayer.id, "ion_oh_01");
     state = engineReducer(state, {
