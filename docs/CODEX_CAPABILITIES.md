@@ -95,3 +95,46 @@ engine modules → game/data definitions → typed GameState / GameAction
 ## 仍未取得的证据
 
 本快照不包含当前测试/构建通过结论、漏洞扫描结果、Firefox、Safari 或真实 iOS 结果，也不构成广泛跨浏览器兼容性结论。Alpha.3 的公开发布、标签、GitHub Release、Pages 部署和简略公开页面验收按本轮权威发布记录已完成；后续报告仍必须逐项标记实际执行与未验证项。
+
+## Phase 17 审计快照（2026-08-15）
+
+### 审计基线与范围
+- 审计日期：2026-08-15
+- 审计分支：`feat/phase17-brand-identity-sync`
+- 审计 HEAD：`4f0e87eafedcac94201ceaf03a07576e4cb50026`（基于集成分支 `release/phase15-alpha5-web-playtest-alpha1`）
+- 本轮工作树：`/Users/a0000/Documents/reaction-field-phase17-identity-sync`
+- 目标范围：Phase 17C Pre-rename 内部身份同步、中英文 README 定位与已发布事实对齐、MVP 规划更新。
+- 保护边界：零游戏规则变化、保护应用内 live 仓库与 live Pages 链接、保护不可变历史文档与已发布 tags。
+
+### 平台与仓库已确认事实（基于只读 CLI/API 查询）
+- 远端仓库 Slug：`9947447-alt/Chemistry-online-Card-Game`
+- 远端仓库 URL：`https://github.com/9947447-alt/Chemistry-online-Card-Game`
+- 活跃 GitHub Pages URL：`https://9947447-alt.github.io/Chemistry-online-Card-Game/`
+- 已发布最高里程碑：`Reaction Field Alpha 6`（Pre-release，技术版本 `0.16.0-alpha.1`，不可变标签 `web-playtest-v0.16.0-alpha.1`，发布于 2026-08-15T04:34:15Z）。
+- 规划目标身份（Target / Planned）：仓库 slug `reaction-field`、Pages URL `https://9947447-alt.github.io/reaction-field/`、包名 `reaction-field`。
+
+### Phase 17 审计支持的能力与工作流事实
+1. **仓库与平台只读审计（Read-only Repository & Platform Audit）**：
+   - 能够通过 `git` 和 `gh` 只读指令精确核验远端分支 HEAD、已发布 Release、不可变标签、Pages 状态及仓库元数据。
+   - 能够严格区分当前线上生效事实（Live Facts）与规划目标（Target State），防止提前切流导致链接失效。
+2. **发布契约与 Diff 审查（Release-Contract & Diff Review）**：
+   - 能够按白名单限制修改范围（`package.json`、`README.md`、`README.zh-CN.md`、`docs/MVP_PLAN.md`、`docs/CODEX_CAPABILITIES.md`），确保核心规则、测试断言与 live 链接零变更。
+   - 能够执行 `git diff --check` 及人工逐行 diff review。
+3. **后期审查发现项检测（Late Review Finding Detection）**：
+   - 在实际协作工作流中观察到：能够在审查中识别跨文件事实冲突、未授权写操作风险及文档状态陈旧，并给出结构化修改方案。
+   - *注：此项为工作流行为观察记录，不作为任意场景下无遗漏的永久能力保证。*
+4. **授权边界纪律（Authorization-Boundary Discipline）**：
+   - 严格遵循多阶段授权门禁（本地修改 → 申请 commit 授权 → 本地 commit → 申请 push 授权 → push → PR → 改名授权 → Tag 创建授权 → Tag 推送授权 → Release 创建授权）。
+   - 禁止在未授权情况下自动执行 commit、push、tag 创建/推送或 GitHub Release。
+
+### Phase 17 验证命令集
+- 构建与类型检查：`pnpm run build`
+- 单元与集成测试：`pnpm run test:run`、`pnpm run test:shuffle`
+- 独立与生产端 E2E：`pnpm run test:e2e`、`pnpm run test:e2e:production`
+- 生产产物与体积门限：`pnpm run check:production`、`pnpm run check:size`
+- 差异与空白检查：`git diff --check`
+- *注：工作树存在合法未提交修改时，不执行 `pnpm run check:tracked-clean`，严禁通过 stash/reset 隐藏修改。*
+
+### 仍未取得的证据（Phase 17C）
+- 本快照不包含 Phase 17D 仓库改名后真实网络重定向与 Pages 访问表现的实测数据（需待 Phase 17D/17E 实际执行）。
+- 本快照不包含 Firefox、Safari 或真实 iOS 的新运行数据。

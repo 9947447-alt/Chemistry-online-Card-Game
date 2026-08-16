@@ -2,13 +2,13 @@
 
 # 反应域
 
-**反应域（REACTION FIELD）** 当前公开版本是 Reaction Field Alpha 5 / `0.15.0-alpha.1`；Phase 16 已合入 `main`，本分支仅准备 Alpha 6 / `0.16.0-alpha.1` 候选。规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
+**反应域（REACTION FIELD）** 是一款基于化学主题的开源本地同屏双人策略卡牌游戏，当前以公开 Web Playtest Alpha 分发。当前公开版本为 Reaction Field Alpha 6 / `0.16.0-alpha.1`，发布标签为 `web-playtest-v0.16.0-alpha.1`，规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
 ## 核心规则书 — 扩展桌面规则参考
 
 - [核心规则书](https://1drv.ms/w/c/c8f765bca077d05c/IQCSnB79Sf12Qr23WokLeoXFASUzet25LWZcJu6Lyr1pwZ0)
 
-外部《核心规则书》仅作为扩展桌面规则参考，不是当前 Web Playtest 的规则权威。当前网页试玩以仓库内适用的规则冻结文件、已实现行为和游戏内反馈为准。本发布候选未重新独立验证所链接的 OneDrive 在线内容。
+外部《核心规则书》仅作为扩展桌面规则参考，不是当前 Web Playtest 的规则权威。当前网页试玩以仓库内适用的规则冻结文件、已实现行为和游戏内反馈为准。本次发布未重新独立验证所链接的 OneDrive 在线内容。
 
 ## 当前能力
 
@@ -30,7 +30,16 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 ## 公开试玩地址与本轮状态
 
-公开试玩入口为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。当前公开发布事实为：对外阶段 Reaction Field Alpha 5，技术版本 `0.15.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.15.0-alpha.1`；在新标签部署前，公开 Pages 继续运行该版本，但这不等同于广泛跨浏览器兼容性验收。`web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；其 Pages workflow 因 production E2E 对旧 commit 的固定断言失败，alpha.2 未成功部署。所有历史标签保持不可变。
+- 公开试玩入口：[https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
+- 当前公开发布阶段：**Reaction Field Alpha 6**
+- 当前发布技术版本：`0.16.0-alpha.1`
+- 当前公开发布标签：`web-playtest-v0.16.0-alpha.1`
+- 规则版本：`MVP0-P10`
+- GitHub Release：[Reaction Field Alpha 6](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.16.0-alpha.1)
+- 规划迁移目标仓库：`https://github.com/9947447-alt/reaction-field`
+- 规划迁移目标 Pages：`https://9947447-alt.github.io/reaction-field/`
+
+当前公开发布事实为：对外阶段 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.1`。公开试玩入口在完成仓库改名和新部署切流前，继续由当前 live 地址 `https://9947447-alt.github.io/Chemistry-online-Card-Game/` 提供。历史标签 `web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；所有历史标签保持不可变。
 
 ## 国际化试玩与双语游戏日志状态
 
@@ -44,9 +53,9 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 - 正式 Reaction 与 DIY UI 路径已具备正式 E2E 覆盖。
 - 生产 JavaScript bundle 已压缩优化，确保在 Node 24 下具有充裕余量通过冻结的体积门限。
 
-## Alpha 6 / Phase 16 候选状态
+## Alpha 6 / Phase 16 发布状态
 
-Phase 16 已实现并合入 `main`；本分支只准备 Alpha 6 的版本身份、发布文档和精确测试契约。`web-playtest-v0.16.0-alpha.1` 尚未创建，Alpha 6 尚未部署、尚未执行公开 URL 验收，也未创建 GitHub Release。它不代表完整教程、在线多人、完整移动端兼容或 iOS Firefox 修复。
+Phase 16 完整双语游戏日志已实现并作为 Reaction Field Alpha 6（`0.16.0-alpha.1`，标签 `web-playtest-v0.16.0-alpha.1`）正式发布。Alpha 6 支持强类型结构化双语游戏日志、伤害与状态本地化展示及生产端测试覆盖。Alpha 6 是公开试玩版本，不代表完整教程、在线多人、账号、存档、完整移动端兼容或 iOS Firefox 修复。
 
 ## Feedback / 反馈
 
@@ -139,7 +148,7 @@ Commit：<短 SHA 或 dev/unknown>
 - 真实金属卡池及实验反击金属选项、方程式、沉淀、响应 DIY、多人、联网、账号、存档和回放均延期。
 - 当前公开发布使用 GitHub Pages；本地开发与验证不执行部署。
 - Tauri、Electron、PWA、service worker、APP / DMG / EXE / MSI、签名、公证和自动更新均未实现，也不在本阶段范围。
-- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。本次 Alpha 6 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+- 已知兼容性边界：在 iOS 27 beta 的 Firefox 中，打开帮助或重开确认框可能进入 `ROOT_RUNTIME_FAILED`。此前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支；Safari 与已测试的 Edge 路径正常只是已有真机/浏览器记录，不构成所有版本的普遍保证。Alpha 6 不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
 发布、标签、回滚与停止公开试玩说明见 [`docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md`](docs/PHASE12_REACTION_FIELD_WEB_PLAYTEST_FREEZE.md)。Phase 11 是历史稳定性基线；规则边界继续由 [`docs/MVP0_RULE_FREEZE.md`](docs/MVP0_RULE_FREEZE.md)、[`docs/PHASE8_CHARACTER_RULE_FREEZE.md`](docs/PHASE8_CHARACTER_RULE_FREEZE.md)、[`docs/PHASE9_DEBUG_UI_RULE_FREEZE.md`](docs/PHASE9_DEBUG_UI_RULE_FREEZE.md) 和 [`docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md`](docs/PHASE10_REACTION_EVENT_RULE_FREEZE.md) 冻结；阶段总览见 [`docs/MVP_PLAN.md`](docs/MVP_PLAN.md)。
 

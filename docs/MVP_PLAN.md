@@ -18,10 +18,11 @@
 - `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`：Phase 13 新玩家首局引导的展示、可访问性、测试与发布边界；不改写现有规则冻结。
 - `docs/PHASE15_FIRST_GAME_CONVERSION_FREEZE.md`：Phase 15 配置页信息层级、静态示例、非模态成功反应提示和 GitHub 入口边界；不改写现有规则冻结。
 - `docs/PHASE16_BILINGUAL_GAME_LOG_FREEZE.md`：Phase 16 双语结构化游戏日志冻结合同；不改写现有规则冻结。
+- `docs/PHASE17_BRAND_IDENTITY_FREEZE.md`：Phase 17 反应域品牌统一与仓库身份迁移冻结方案；不改写现有规则冻结。
 
-## Phase 16 完整双语游戏日志（实现已合并；Alpha 6 未发布候选）
+## Phase 16 完整双语游戏日志（已公开发布；Reaction Field Alpha 6）
 
-Phase 16 将普通引擎正式日志从内嵌中文字符串升级为基于强类型结构化事件与单一权威载荷的双语渲染，支持简体中文与英文。实现已通过 PR #9 合入 `main`。规则版本保持 `MVP0-P10`，默认实验室老师 / 化工厂 CEO 阵容不变，不新增媒体或外部请求，不修改 engine 核心规则、data、game tests、reaction definitions、Forms 或 size gate。当前分支只准备 Alpha 6 / `0.16.0-alpha.1` 的版本身份、发布文档和精确测试契约，不改变 Phase 16 产品实现。
+Phase 16 将普通引擎正式日志从内嵌中文字符串升级为基于强类型结构化事件与单一权威载荷的双语渲染，支持简体中文与英文。实现已合入并通过 `web-playtest-v0.16.0-alpha.1` 标签发布为 Reaction Field Alpha 6。规则版本保持 `MVP0-P10`，默认实验室老师 / 化工厂 CEO 阵容不变，不新增媒体或外部请求，不修改 engine 核心规则、data、game tests、reaction definitions、Forms 或 size gate。
 
 ## Phase 12 发布边界
 
@@ -33,7 +34,7 @@ Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`�
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前候选应用版本为 `0.16.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 5 / `0.15.0-alpha.1`，公开标签为 `web-playtest-v0.15.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.16.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 6 / `0.16.0-alpha.1`，公开标签为 `web-playtest-v0.16.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
 
 ## 0.13.0-alpha.3 已公开发布（Reaction Field Alpha 2）
 
@@ -47,11 +48,31 @@ Alpha 4 的简体中文与 English 展示层、页面内语言切换和 Microsof
 
 Phase 15 调整配置页信息层级、默认折叠的双语三步示例、消费既有 `GameLogEntry.reaction` 的约两秒非模态成功反应提示，以及 About / `gameOver` 的静态 GitHub 仓库链接。已公开发布为 Reaction Field Alpha 5，技术版本 `0.15.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.15.0-alpha.1`。
 
-## 0.16.0-alpha.1 发布候选（Reaction Field Alpha 6）
+## 0.16.0-alpha.1 已公开发布（Reaction Field Alpha 6）
 
-Phase 16 已实现并合入 `main`。当前分支仅准备 Alpha 6 的版本身份、发布文档和精确测试契约；预定标签 `web-playtest-v0.16.0-alpha.1` 尚未创建，Alpha 6 尚未部署、尚未执行公开 URL 验收，也未创建 GitHub Release。普通引擎正式游戏日志现已支持简体中文与英文，使用强类型结构化事件与单一权威载荷；出牌、响应、反应、DIY 虚拟攻击、状态处理、提示与角色相关流程支持本地化渲染；英文模式下碱性伤害展示为 `alkaline`（内部规则标识保持 `base`）；生产 Reaction 与 DIY UI 路径建立正式 E2E 覆盖；生产 JS bundle 经压缩优化以充裕余量通过 Node 24 体积门限。
+Phase 16 已公开发布为 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.1`。普通引擎正式游戏日志现已支持简体中文与英文，使用强类型结构化事件与单一权威载荷；出牌、响应、反应、DIY 虚拟攻击、状态处理、提示与角色相关流程支持本地化渲染；英文模式下碱性伤害展示为 `alkaline`（内部规则标识保持 `base`）；生产 Reaction 与 DIY UI 路径建立正式 E2E 覆盖；生产 JS bundle 经压缩优化以充裕余量通过 Node 24 体积门限。
 
-已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 6 候选不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 6 发布不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
+
+## Phase 17 反应域品牌与仓库身份迁移（Phase 17C 进行中）
+
+Phase 17 正式启动 Reaction Field 品牌统一与仓库身份迁移，方案由 `docs/PHASE17_BRAND_IDENTITY_FREEZE.md` 冻结。
+
+实施子阶段与路线图状态：
+- **Phase 17A（品牌与仓库身份审计）**：已完成。核实中英文正式品牌、UI 装饰大写、包名、仓库 slug、Pages URL、公开元数据及全量代码/文档引用点。
+- **Phase 17B（方案冻结与合并后修复）**：已完成。产出 `docs/PHASE17_BRAND_IDENTITY_FREEZE.md`，确立 9 阶段确定性发布状态机与双重授权门禁。
+- **Phase 17C（Pre-rename 内部身份与安全文档准备）**：当前进行中 / 本分支实施。修改 `package.json` 中的 `"name": "reaction-field"`，同步中英文 README 定位与 Alpha 6 发布事实，更新路线图与审计快照；严禁提前修改 live 仓库与 live Pages 链接。
+- **Phase 17D（GitHub 仓库改名与设置）**：尚未执行，仍需独立外部授权。
+- **Post-rename（代码库链接正式切换 Cutover）**：尚未执行。
+- **Release Preparation / Tag / Pages 部署 / Phase 17E 公网验收 / GitHub Release**：尚未执行。
+
+身份与 URL 映射（严格区分目标规划与当前真实公开事实）：
+- **当前真实 Live 仓库**：`https://github.com/9947447-alt/Chemistry-online-Card-Game`
+- **当前真实 Live Pages 试玩**：`https://9947447-alt.github.io/Chemistry-online-Card-Game/`
+- **目标仓库 Slug**：`reaction-field`（备用：`reaction-field-card-game`）
+- **目标仓库 URL**：`https://github.com/9947447-alt/reaction-field`（规划 target，非当前 live）
+- **目标 Pages URL**：`https://9947447-alt.github.io/reaction-field/`（规划 target，非当前 live）
+- **包名目标 / Phase 17C 内部身份**：`reaction-field`（`package.json`）
 
 ## MVP 0 定案范围
 
