@@ -1,11 +1,6 @@
 import { cardDefinitions } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
-import type {
-  GameAction,
-  ResolveExperimentCounterattackAction,
-} from "./actions";
 import {
-  getLegalCharacterSkillActions,
   validateCharacterSkillAction,
 } from "./characterSkills";
 import { analyzeDIYSelection } from "./diy";
@@ -44,30 +39,15 @@ function getOtherAlivePlayers(state: GameState, sourcePlayerId: PlayerId): Playe
   );
 }
 
+const registeredDiyComponentSizes = [2, 3] as const;
+
 function getCombinations<T>(items: readonly T[], k: number): T[][] {
-  if (k === 0) {
-    return [[]];
-  }
-  if (items.length < k) {
-    return [];
-  }
-  if (items.length === k) {
-    return [[...items]];
-  }
-
+  if (k === 0) return [[]];
+  if (items.length < k) return [];
+  if (items.length === k) return [[...items]];
   const [head, ...tail] = items;
-  const withHead = getCombinations(tail, k - 1).map((combo) => [head, ...combo]);
-  const withoutHead = getCombinations(tail, k);
-  return [...withHead, ...withoutHead];
+  return [...getCombinations(tail, k - 1).map((c) => [head, ...c]), ...getCombinations(tail, k)];
 }
-
-const registeredDiyComponentSizes: readonly number[] = Array.from(
-  new Set(
-    diyRecipes.map((recipe) =>
-      recipe.requiredComponents.reduce((sum, req) => sum + req.count, 0),
-    ),
-  ),
-).sort((a, b) => a - b);
 
 export function validatePlayDiySelectionAction(
   state: GameState,
@@ -154,6 +134,99 @@ export function validateGameAction(state: GameState, action: GameAction): boolea
       return exhaustiveAction;
     }
   }
+}
+
+import type {
+  ActivateCharacterSkillAction,
+  GameAction,
+  ResolveExperimentCounterattackAction,
+} from "./actions";
+
+export function getLegalCharacterSkillActions(
+  state: GameState,
+  playerId: PlayerId,
+): readonly ActivateCharacterSkillAction[] {
+  if (state.phase !== "mainAction" || state.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player || player.eliminated) {
+    return [];
+  }
+
+  const legalActions: ActivateCharacterSkillAction[] = [];
+
+  switch (player.characterId) {
+    case "laboratory_teacher": {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId: "extra_lesson",
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+      break;
+    }
+    case "chemical_factory_ceo": {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId: "emergency_supply",
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+      break;
+    }
+    case "caustic_soda_captain": {
+      for (const cardInstanceId of player.hand) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId: "alkali_recovery",
+          cardInstanceId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    case "sulfuric_acid_factory_director": {
+      for (const opponent of getOtherAlivePlayers(state, playerId)) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId: "exhaust_discharge",
+          targetPlayerId: opponent.id,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    case "clumsy_party_secretary": {
+      const skills = ["exhaust_leak", "lab_fire", "exothermic_accident"] as const;
+      for (const skillId of skills) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return legalActions;
 }
 
 export function getLegalActions(state: GameState, playerId: PlayerId): GameAction[] {

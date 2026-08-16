@@ -142,104 +142,52 @@ export function validateCharacterSkillAction(
   }
 }
 
-export function getLegalCharacterSkillActions(
-  state: GameState,
-  playerId: PlayerId,
-): readonly ActivateCharacterSkillAction[] {
-  if (state.phase !== "mainAction" || state.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  if (!player || player.eliminated) {
-    return [];
-  }
-
-  const legalActions: ActivateCharacterSkillAction[] = [];
-
-  switch (player.characterId) {
-    case "laboratory_teacher": {
-      const action: ActivateCharacterSkillAction = {
-        type: "ACTIVATE_CHARACTER_SKILL",
-        playerId,
-        skillId: "extra_lesson",
-      };
-      if (validateCharacterSkillAction(state, action)) {
-        legalActions.push(action);
-      }
-      break;
-    }
-    case "chemical_factory_ceo": {
-      const action: ActivateCharacterSkillAction = {
-        type: "ACTIVATE_CHARACTER_SKILL",
-        playerId,
-        skillId: "emergency_supply",
-      };
-      if (validateCharacterSkillAction(state, action)) {
-        legalActions.push(action);
-      }
-      break;
-    }
-    case "caustic_soda_captain": {
-      for (const cardInstanceId of player.hand) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId: "alkali_recovery",
-          cardInstanceId,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    case "sulfuric_acid_factory_director": {
-      for (const targetPlayerId of getOtherAlivePlayerIds(state, playerId)) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId: "exhaust_discharge",
-          targetPlayerId,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    case "clumsy_party_secretary": {
-      const skills: readonly ["exhaust_leak", "lab_fire", "exothermic_accident"] = [
-        "exhaust_leak",
-        "lab_fire",
-        "exothermic_accident",
-      ];
-      for (const skillId of skills) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    default:
-      break;
-  }
-
-  return legalActions;
-}
-
 export function canActivateCharacterSkill(
   state: GameState,
   playerId: PlayerId,
   skillId: CharacterSkillId,
 ): boolean {
-  const actions = getLegalCharacterSkillActions(state, playerId);
-  return actions.some((action) => action.skillId === skillId);
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player || player.eliminated || state.phase !== "mainAction" || state.activePlayerId !== playerId) {
+    return false;
+  }
+  if (
+    skillId === "extra_lesson" ||
+    skillId === "emergency_supply" ||
+    skillId === "exhaust_leak" ||
+    skillId === "lab_fire" ||
+    skillId === "exothermic_accident"
+  ) {
+    return validateCharacterSkillAction(state, {
+      type: "ACTIVATE_CHARACTER_SKILL",
+      playerId,
+      skillId,
+    } as any);
+  }
+  if (skillId === "alkali_recovery") {
+    return player.hand.some((cardInstanceId) =>
+      validateCharacterSkillAction(state, {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId,
+        cardInstanceId,
+      }),
+    );
+  }
+  if (skillId === "exhaust_discharge") {
+    return state.players.some(
+      (candidate) =>
+        candidate.id !== playerId &&
+        !candidate.eliminated &&
+        validateCharacterSkillAction(state, {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+          targetPlayerId: candidate.id,
+        }),
+    );
+  }
+  return false;
 }
 
 function markSkillUsed(

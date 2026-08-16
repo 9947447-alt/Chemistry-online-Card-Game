@@ -3,9 +3,9 @@ import { identityShuffle } from "../../shared/random";
 import { createInitialGame } from "../engine/createInitialGame";
 import {
   canActivateCharacterSkill,
-  getLegalCharacterSkillActions,
   validateCharacterSkillAction,
 } from "../engine/characterSkills";
+import { getLegalCharacterSkillActions } from "../engine/legalActions";
 import { engineReducer } from "../engine/reducer";
 import type { GameState } from "../engine/types";
 

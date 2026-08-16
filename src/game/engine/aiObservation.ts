@@ -96,17 +96,11 @@ export type AIObservation = Readonly<{
 
 export function cloneCardDefinition(def: CardDefinition): CardDefinition {
   return {
-    id: def.id,
-    name: def.name,
-    type: def.type,
-    formula: def.formula,
+    ...def,
     elements: def.elements ? [...def.elements] : undefined,
-    elementCategory: def.elementCategory,
     ionsProvided: def.ionsProvided ? [...def.ionsProvided] : undefined,
     tags: [...def.tags],
-    baseDamage: def.baseDamage,
     allowedTimings: [...def.allowedTimings],
-    rulesText: def.rulesText,
   };
 }
 
