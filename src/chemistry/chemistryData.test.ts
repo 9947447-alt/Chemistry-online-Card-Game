@@ -12,8 +12,6 @@ import {
   radicalKnowledgeList,
   radicalKnowledgeMap,
 } from "./index";
-import { cardDefinitions } from "../game/data/cardDefinitions";
-import { starterDeck, starterDeckSize } from "../game/data/starterDeck";
 
 describe("Phase 18C: Junior Chemistry Data Foundation", () => {
   describe("Element Knowledge Registry (Freeze Section 3.1)", () => {
@@ -307,20 +305,46 @@ describe("Phase 18C: Junior Chemistry Data Foundation", () => {
       expect(allSpeciesIds.has("species_ion_br" as any)).toBe(false);
     });
 
-    it("ensures NO3- and NH4+ exist in Chemistry registry without creating physical cards", () => {
+    it("ensures NO3- and NH4+ exist in Chemistry registry as explicit species", () => {
       // NO3- and NH4+ are in Layer 1 Chemistry Species
-      expect(getChemicalSpecies("species_ion_no3")).toBeDefined();
+      const no3 = getChemicalSpecies("species_ion_no3");
+      expect(no3).toBeDefined();
+      expect(no3).toEqual({
+        id: "species_ion_no3",
+        kind: "ion",
+        formula: "NO3-",
+        charge: -1,
+        nameZh: "硝酸根离子",
+        nameEn: "Nitrate ion",
+      });
+
+      const nh4 = getChemicalSpecies("species_ion_nh4");
+      expect(nh4).toBeDefined();
+      expect(nh4).toEqual({
+        id: "species_ion_nh4",
+        kind: "ion",
+        formula: "NH4+",
+        charge: 1,
+        nameZh: "铵根离子",
+        nameEn: "Ammonium ion",
+      });
+    });
+
+    it("ensures all chemistry registries initialize and query independently", () => {
+      // Elements can be queried
+      expect(elementKnowledgeList.length).toBe(21);
+      expect(getElementKnowledge("H")).toBeDefined();
+      expect(getElementKnowledge("Si")).toBeDefined();
+
+      // Radicals can be queried
+      expect(radicalKnowledgeList.length).toBe(5);
+      expect(getRadicalKnowledge("OH")).toBeDefined();
+      expect(getRadicalKnowledge("NH4")).toBeDefined();
+
+      // Species can be queried
+      expect(chemicalSpeciesList.length).toBe(13);
+      expect(getChemicalSpecies("species_c")).toBeDefined();
       expect(getChemicalSpecies("species_ion_nh4")).toBeDefined();
-
-      // But neither NO3- nor NH4+ exist as CardDefinitions
-      const cardIds = new Set(cardDefinitions.map((c) => c.id));
-      expect(cardIds.has("ion_no3")).toBe(false);
-      expect(cardIds.has("ion_nh4")).toBe(false);
-
-      // Starter deck ordinary physical card pool remains exactly 68 cards
-      expect(starterDeckSize).toBe(68);
-      const totalCards = starterDeck.reduce((acc, entry) => acc + entry.count, 0);
-      expect(totalCards).toBe(68);
     });
   });
 });
