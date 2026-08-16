@@ -2,7 +2,7 @@
 
 # 反应域
 
-**反应域（REACTION FIELD）** 是一款基于化学主题的开源本地同屏双人策略卡牌游戏，当前以公开 Web Playtest Alpha 分发。当前公开版本为 Reaction Field Alpha 6 / `0.16.0-alpha.1`，发布标签为 `web-playtest-v0.16.0-alpha.1`，规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
+**反应域（REACTION FIELD）** 是一款基于化学主题的开源本地同屏双人策略卡牌游戏，当前以公开 Web Playtest Alpha 分发。当前公开版本为 Reaction Field Alpha 6 / `0.16.0-alpha.2`，发布标签为 `web-playtest-v0.16.0-alpha.2`，规则版本严格保持 `MVP0-P10`，不增加任何游戏规则。这是一个基于 React、TypeScript、Vite、Vitest 与 Playwright 的本地同屏双人公开试玩版本，不是正式发行版。
 
 ## 核心规则书 — 扩展桌面规则参考
 
@@ -32,13 +32,13 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 - 公开试玩入口：[https://9947447-alt.github.io/reaction-field/](https://9947447-alt.github.io/reaction-field/)
 - 当前公开发布阶段：**Reaction Field Alpha 6**
-- 当前发布技术版本：`0.16.0-alpha.1`
-- 当前公开发布标签：`web-playtest-v0.16.0-alpha.1`
+- 当前发布技术版本：`0.16.0-alpha.2`
+- 当前公开发布标签：`web-playtest-v0.16.0-alpha.2`
 - 规则版本：`MVP0-P10`
-- GitHub Release：[Reaction Field Alpha 6](https://github.com/9947447-alt/reaction-field/releases/tag/web-playtest-v0.16.0-alpha.1)
+- GitHub Release：[Reaction Field Alpha 6 — v0.16.0-alpha.2](https://github.com/9947447-alt/reaction-field/releases/tag/web-playtest-v0.16.0-alpha.2)
 - 官方仓库：[https://github.com/9947447-alt/reaction-field](https://github.com/9947447-alt/reaction-field)
 
-当前公开发布事实为：对外阶段 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.1`。随着 GitHub 仓库重命名完成，公开试玩入口已迁移至当前 live 地址 `https://9947447-alt.github.io/reaction-field/`。历史标签 `web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；所有历史标签保持不可变。
+当前公开发布事实为：对外阶段 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.2`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.2`。随着 GitHub 仓库重命名与 Phase 17 发布部署完成，公开试玩入口已迁移并由新标签部署至当前 live 地址 `https://9947447-alt.github.io/reaction-field/`。历史标签 `web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；所有历史标签保持不可变。
 
 ## 国际化试玩与双语游戏日志状态
 
@@ -52,9 +52,9 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 - 正式 Reaction 与 DIY UI 路径已具备正式 E2E 覆盖。
 - 生产 JavaScript bundle 已压缩优化，确保在 Node 24 下具有充裕余量通过冻结的体积门限。
 
-## Alpha 6 / Phase 16 发布状态
+## Alpha 6 / Phase 16 & Phase 17 发布状态
 
-Phase 16 完整双语游戏日志已实现并作为 Reaction Field Alpha 6（`0.16.0-alpha.1`，标签 `web-playtest-v0.16.0-alpha.1`）正式发布。Alpha 6 支持强类型结构化双语游戏日志、伤害与状态本地化展示及生产端测试覆盖。Alpha 6 是公开试玩版本，不代表完整教程、在线多人、账号、存档、完整移动端兼容或 iOS Firefox 修复。
+Phase 16 完整双语游戏日志与 Phase 17 仓库身份迁移已实现并作为 Reaction Field Alpha 6（`0.16.0-alpha.2`，标签 `web-playtest-v0.16.0-alpha.2`）正式发布。Alpha 6 支持强类型结构化双语游戏日志、伤害与状态本地化展示、统一的 `9947447-alt/reaction-field` 仓库与 Pages 身份及生产端测试覆盖。Alpha 6 是公开试玩版本，不代表完整教程、在线多人、账号、存档、完整移动端兼容或 iOS Firefox 修复。
 
 ## Feedback / 反馈
 
@@ -132,7 +132,7 @@ fatal 页面可复制的本地安全诊断只包含：
 
 ```text
 名称：反应域
-应用版本：0.16.0-alpha.1
+应用版本：0.16.0-alpha.2
 规则版本：MVP0-P10
 Commit：<短 SHA 或 dev/unknown>
 错误码：<稳定错误码>
