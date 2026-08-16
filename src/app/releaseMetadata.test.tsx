@@ -12,6 +12,6 @@ describe("Alpha 6 release-candidate metadata", () => {
       rulesVersion: "MVP0-P10",
       commit: expect.stringMatching(/^(?:[0-9a-f]{12}|dev\/unknown)$/u),
     });
-    expect(packageMetadata.version).toBe("0.16.0-alpha.1");
+    expect(packageMetadata.version).toBe("0.16.0-alpha.2");
   });
 });
