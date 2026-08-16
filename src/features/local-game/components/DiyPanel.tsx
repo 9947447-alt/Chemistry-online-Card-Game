@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocale } from "../../../app/locale";
 import type { GameAction } from "../../../game/engine/actions";
 import { analyzeDIYSelection } from "../../../game/engine/diy";
@@ -39,7 +40,6 @@ export function DiyPanel({
     return null;
   }
 
-  const t = (en: string, zh: string) => (isEnglish ? en : zh);
   const targets = getOpponentTargets(game, activePlayer.id);
 
   const analysis = analyzeDIYSelection(
@@ -48,6 +48,15 @@ export function DiyPanel({
     selectedCardIds,
     targetPlayerId,
   );
+
+  useEffect(() => {
+    if (
+      analysis.status === "MATCHED_NOT_EXECUTABLE" &&
+      analysis.blockerCode === "UNEXPECTED_TARGET"
+    ) {
+      onTargetPlayerChange(undefined);
+    }
+  }, [analysis.status, "blockerCode" in analysis ? analysis.blockerCode : undefined, onTargetPlayerChange]);
 
   const canExecute = analysis.status === "EXECUTABLE";
   const needsTargetSelect =
@@ -62,40 +71,42 @@ export function DiyPanel({
         <div>
           <p className="debug-kicker">
             {diyMode
-              ? t("Select component cards directly from hand", "直接在手牌中多选组件卡牌")
-              : t("Enter DIY mode to select component cards from hand", "进入选牌模式后直接在手牌中选择")}
+              ? (isEnglish ? "Select component cards directly from hand" : "直接在手牌中多选组件卡牌")
+              : (isEnglish ? "Enter DIY mode to select component cards from hand" : "进入选牌模式后直接在手牌中选择")}
           </p>
-          <h2 id="diy-title">{t("Active DIY", "主动 DIY")}</h2>
+          <h2 id="diy-title">{isEnglish ? "Active DIY" : "主动 DIY"}</h2>
         </div>
         <span className={activePlayer.usedDIYThisCycle ? "warn-pill" : "ok-pill"}>
           {activePlayer.usedDIYThisCycle
-            ? t("Used this cycle", "本周期已用")
-            : t("Available this cycle", "本周期可用")}
+            ? (isEnglish ? "Used this cycle" : "本周期已用")
+            : (isEnglish ? "Available this cycle" : "本周期可用")}
         </span>
       </div>
 
       <details className="debug-details">
-        <summary>{t("Debug details", "调试详情")}</summary>
+        <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
         <p>PLAY_DIY_SELECTION</p>
-        <p>diyMode: {diyMode ? "true" : "false"}</p>
+        <p>diyMode: {String(diyMode)}</p>
         <p>status: {analysis.status}</p>
         {"recipeId" in analysis ? <p>recipeId: {analysis.recipeId}</p> : null}
         {"blockerCode" in analysis ? <p>blockerCode: {analysis.blockerCode}</p> : null}
         <p>selectedCount: {selectedCardIds.length}</p>
-        <p>targetPlayerId: {targetPlayerId ?? t("not selected", "未选择")}</p>
+        <p>targetPlayerId: {targetPlayerId ?? (isEnglish ? "not selected" : "未选择")}</p>
       </details>
 
       {!diyMode ? (
         <div className="diy-entry-controls">
           <p className="panel-note">
-            {t("Click below to enter DIY Selection mode and select cards from your hand.", "点击下方按钮进入 DIY 选牌模式，直接在手牌中多选组件卡牌。")}
+            {isEnglish
+              ? "Click below to enter DIY Selection mode and select cards from your hand."
+              : "点击下方按钮进入 DIY 选牌模式，直接在手牌中多选组件卡牌。"}
           </p>
           <button
             className="secondary-button"
             onClick={onEnterDiyMode}
             type="button"
           >
-            {t("Enter DIY Selection", "进入 DIY 选牌")}
+            {isEnglish ? "Enter DIY Selection" : "进入 DIY 选牌"}
           </button>
         </div>
       ) : (
@@ -106,7 +117,7 @@ export function DiyPanel({
               onClick={onCancelDiyMode}
               type="button"
             >
-              {t("Cancel / Exit DIY", "取消 / 退出 DIY 选牌")}
+              {isEnglish ? "Cancel / Exit DIY" : "取消 / 退出 DIY 选牌"}
             </button>
             <span className="selection-count">
               {isEnglish
@@ -115,37 +126,31 @@ export function DiyPanel({
             </span>
           </div>
 
-          <div className="diy-preview-area" aria-label={t("DIY Preview", "DIY 预览")}>
+          <div className="diy-preview-area" aria-label={isEnglish ? "DIY Preview" : "DIY 预览"}>
             {analysis.status === "INVALID_SELECTION" ? (
               <div className="diy-preview is-invalid">
-                <strong>{t("Invalid Selection", "非法选择")}</strong>
-                <p>{t("Selection contains invalid or non-component cards.", "所选卡牌包含无效卡牌或非组件卡牌。")}</p>
+                <strong>{isEnglish ? "Invalid Selection" : "非法选择"}</strong>
+                <p>{isEnglish ? "Selection contains invalid or non-component cards." : "所选卡牌包含无效卡牌或非组件卡牌。"}</p>
               </div>
             ) : analysis.status === "NO_RECIPE_MATCH" ? (
               <div className="diy-preview is-no-match">
-                <strong>
-                  {selectedCardIds.length === 0
-                    ? t("No Cards Selected", "尚未选择材料")
-                    : t("No Recipe Match", "未匹配到配方")}
-                </strong>
+                <strong>{selectedCardIds.length === 0 ? (isEnglish ? "No Cards Selected" : "尚未选择材料") : (isEnglish ? "No Recipe Match" : "未匹配到配方")}</strong>
                 <p>
                   {selectedCardIds.length === 0
-                    ? t(
-                        "Click component cards in your hand (e.g. H+, OH-, Cl-, C, O) to form a DIY recipe.",
-                        "请在当前手牌中点击组件牌（如 H+、OH-、Cl-、C、O 等）以匹配 DIY 配方。",
-                      )
-                    : t(
-                        "Current card combination does not match any valid DIY recipe.",
-                        "当前所选手牌组合未匹配任何有效 DIY 配方。",
-                      )}
+                    ? (isEnglish
+                        ? "Click component cards in your hand (e.g. H+, OH-, Cl-, C, O) to form a DIY recipe."
+                        : "请在当前手牌中点击组件牌（如 H+、OH-、Cl-、C、O 等）以匹配 DIY 配方。")
+                    : (isEnglish
+                        ? "Current card combination does not match any valid DIY recipe."
+                        : "当前所选手牌组合未匹配任何有效 DIY 配方。")}
                 </p>
               </div>
             ) : (
-              <div className={`diy-preview ${analysis.status === "EXECUTABLE" ? "is-executable" : "is-blocked"}`}>
+              <div className={`diy-preview ${canExecute ? "is-executable" : "is-blocked"}`}>
                 <div className="diy-recipe-name">
                   <strong>{getDiyRecipeDisplayName(analysis.recipeId, analysis.recipeId, locale)}</strong>
                 </div>
-                {analysis.status === "EXECUTABLE" ? (
+                {canExecute ? (
                   <p className="diy-outcome-preview">
                     {getDiyOutcomeDescription(analysis.recipeId, analysis.outcome, locale, game.logPresentationContext)}
                   </p>
@@ -160,7 +165,7 @@ export function DiyPanel({
 
           {needsTargetSelect ? (
             <label className="field-row">
-              <span>{t("DIY target", "DIY 目标")}</span>
+              <span>{isEnglish ? "DIY target" : "DIY 目标"}</span>
               <select
                 onChange={(event) =>
                   onTargetPlayerChange(
@@ -169,7 +174,7 @@ export function DiyPanel({
                 }
                 value={targetPlayerId ?? ""}
               >
-                <option value="">{t("Select target", "请选择目标")}</option>
+                <option value="">{isEnglish ? "Select target" : "请选择目标"}</option>
                 {targets.map((target) => (
                   <option key={target.id} value={target.id}>
                     {getPlayerDisplayName(target, locale)}
@@ -177,13 +182,6 @@ export function DiyPanel({
                 ))}
               </select>
             </label>
-          ) : null}
-
-          {analysis.status === "MATCHED_NOT_EXECUTABLE" &&
-          analysis.blockerCode === "UNEXPECTED_TARGET" ? (
-            <p className="empty-note">
-              {t("This recipe does not require a target.", "此配方不需要选择目标。")}
-            </p>
           ) : null}
 
           <button
@@ -204,7 +202,7 @@ export function DiyPanel({
             }}
             type="button"
           >
-            {t("Play DIY", "执行 DIY")}
+            {isEnglish ? "Play DIY" : "执行 DIY"}
           </button>
         </>
       )}

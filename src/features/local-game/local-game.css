@@ -793,8 +793,7 @@ select {
 
 .primary-button,
 .secondary-button,
-.danger-button,
-.recipe-chip {
+.danger-button {
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;

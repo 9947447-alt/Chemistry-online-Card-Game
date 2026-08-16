@@ -667,12 +667,15 @@ describe("Phase 18E — DIY Hand-Selection Preview UI", () => {
       });
 
       // Outside DIY mode, substance card is enabled for normal selection
-      expect(cardBtn?.disabled).toBe(false);
+      const activeCardBtn = container.querySelector<HTMLButtonElement>(
+        ".player-panel[aria-labelledby='player_1-title'] .debug-card__select",
+      );
+      expect(activeCardBtn?.disabled).toBe(false);
       act(() => {
-        cardBtn?.click();
+        activeCardBtn?.click();
       });
       // Normal card is selected
-      expect(cardBtn?.closest(".debug-card")?.classList.contains("is-selected")).toBe(true);
+      expect(activeCardBtn?.closest(".debug-card")?.classList.contains("is-selected")).toBe(true);
     });
   });
 
@@ -716,6 +719,144 @@ describe("Phase 18E — DIY Hand-Selection Preview UI", () => {
       expect(container.textContent).toContain("Produces the virtual product dilute HCl");
       expect(container.textContent).toContain("the base acid damage value to Player B is 1");
       expect(container.textContent).toContain("Play DIY");
+    });
+  });
+
+  describe("6. Finding 2 Closure: Stale Target Auto-Recovery & Authoritative Legality", () => {
+    it("auto-clears stale target and evaluates OWN_FIRE_REQUIRED without exiting DIY mode when switching from target-required (H+ + Cl-) to H2O (H+ + OH-)", () => {
+      let game = createGame();
+      game = setHandCards(game, "player_1", [
+        { id: "inst_h_1", definitionId: "ion_h" },
+        { id: "inst_cl_1", definitionId: "ion_cl" },
+        { id: "inst_oh_1", definitionId: "ion_oh" },
+      ]);
+
+      let targetPlayerId: PlayerId | undefined = "player_2";
+      const onTargetPlayerChange = vi.fn((newTarget: PlayerId | undefined) => {
+        targetPlayerId = newTarget;
+      });
+
+      // Render with H+ + Cl- and target player_2 (EXECUTABLE)
+      render(
+        <DiyPanel
+          diyMode={true}
+          dispatchGameAction={vi.fn()}
+          game={game}
+          onCancelDiyMode={() => {}}
+          onEnterDiyMode={() => {}}
+          onTargetPlayerChange={onTargetPlayerChange}
+          selectedCardIds={["inst_h_1", "inst_cl_1"]}
+          targetPlayerId={targetPlayerId}
+        />,
+      );
+
+      expect(container.querySelector(".diy-preview.is-executable")).not.toBeNull();
+      expect(container.textContent).toContain("生成虚拟产品 稀 HCl");
+
+      // Switch selection to H+ + OH- while preserving targetPlayerId = player_2 in parent state
+      // useEffect in DiyPanel fires on UNEXPECTED_TARGET and calls onTargetPlayerChange(undefined)
+      act(() => {
+        root.render(
+          <DiyPanel
+            diyMode={true}
+            dispatchGameAction={vi.fn()}
+            game={game}
+            onCancelDiyMode={() => {}}
+            onEnterDiyMode={() => {}}
+            onTargetPlayerChange={onTargetPlayerChange}
+            selectedCardIds={["inst_h_1", "inst_oh_1"]}
+            targetPlayerId={targetPlayerId}
+          />,
+        );
+      });
+
+      // onTargetPlayerChange(undefined) was called to clear stale target
+      expect(onTargetPlayerChange).toHaveBeenCalledWith(undefined);
+
+      // Re-render with cleared target
+      act(() => {
+        root.render(
+          <DiyPanel
+            diyMode={true}
+            dispatchGameAction={vi.fn()}
+            game={game}
+            onCancelDiyMode={() => {}}
+            onEnterDiyMode={() => {}}
+            onTargetPlayerChange={onTargetPlayerChange}
+            selectedCardIds={["inst_h_1", "inst_oh_1"]}
+            targetPlayerId={undefined}
+          />,
+        );
+      });
+
+      // Authoritative evaluation: player_1 has no FIRE, so OWN_FIRE_REQUIRED blocker is shown (not UNEXPECTED_TARGET)
+      expect(container.querySelector(".diy-preview.is-blocked")).not.toBeNull();
+      expect(container.textContent).toContain("需要自身处于火情状态");
+      expect(container.textContent).not.toContain("此配方不需要选择目标");
+    });
+
+    it("auto-clears stale target and evaluates EXECUTABLE when player has FIRE status on CO2 switch", () => {
+      let game = createGame();
+      // Add FIRE status to player_1 with proper PlayerStatus fields
+      game = {
+        ...game,
+        players: game.players.map((p) =>
+          p.id === "player_1"
+            ? { ...p, statuses: [{ id: "fire_1", statusId: "FIRE" as const, createdAt: 0 }] }
+            : p,
+        ),
+      };
+      game = setHandCards(game, "player_1", [
+        { id: "inst_h_1", definitionId: "ion_h" },
+        { id: "inst_cl_1", definitionId: "ion_cl" },
+        { id: "inst_c_1", definitionId: "element_c" },
+        { id: "inst_o_1", definitionId: "element_o" },
+        { id: "inst_o_2", definitionId: "element_o" },
+      ]);
+
+      let targetPlayerId: PlayerId | undefined = "player_2";
+      const onTargetPlayerChange = vi.fn((newTarget: PlayerId | undefined) => {
+        targetPlayerId = newTarget;
+      });
+
+      // Switch selection to C + O + O with stale target
+      act(() => {
+        render(
+          <DiyPanel
+            diyMode={true}
+            dispatchGameAction={vi.fn()}
+            game={game}
+            onCancelDiyMode={() => {}}
+            onEnterDiyMode={() => {}}
+            onTargetPlayerChange={onTargetPlayerChange}
+            selectedCardIds={["inst_c_1", "inst_o_1", "inst_o_2"]}
+            targetPlayerId={targetPlayerId}
+          />,
+        );
+      });
+
+      expect(onTargetPlayerChange).toHaveBeenCalledWith(undefined);
+
+      // Re-render with cleared target
+      act(() => {
+        root.render(
+          <DiyPanel
+            diyMode={true}
+            dispatchGameAction={vi.fn()}
+            game={game}
+            onCancelDiyMode={() => {}}
+            onEnterDiyMode={() => {}}
+            onTargetPlayerChange={onTargetPlayerChange}
+            selectedCardIds={["inst_c_1", "inst_o_1", "inst_o_2"]}
+            targetPlayerId={undefined}
+          />,
+        );
+      });
+
+      // With FIRE status, CO2 is EXECUTABLE
+      expect(container.querySelector(".diy-preview.is-executable")).not.toBeNull();
+      expect(container.textContent).toContain("生成 CO2 并移除自身火情");
+      expect(container.querySelector<HTMLButtonElement>(".diy-execute-button")?.disabled).toBe(false);
     });
   });
 });

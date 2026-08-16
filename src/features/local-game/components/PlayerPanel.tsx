@@ -88,11 +88,10 @@ export function PlayerPanel({
       <div className="hand-grid">
         {player.hand.map((cardInstanceId) => {
           const isDiyCardDisabled =
-            !diyMode
-              ? handSelectionDisabled
-              : handSelectionDisabled ||
-                player.id !== game.activePlayerId ||
-                !getCardDefinition(game, cardInstanceId)?.allowedTimings.includes("diy-component");
+            handSelectionDisabled ||
+            (diyMode &&
+              (player.id !== game.activePlayerId ||
+                !getCardDefinition(game, cardInstanceId)?.allowedTimings.includes("diy-component")));
 
           const isSelected =
             !isDiyCardDisabled &&
