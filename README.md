@@ -2,24 +2,25 @@ English | [简体中文](./README.zh-CN.md)
 
 # Reaction Field / 反应域
 
-**Reaction Field** is an experimental, same-screen card game for two local players, built with React and TypeScript and currently distributed as a public Web Playtest Alpha.
+**Reaction Field** is an open-source chemistry-themed local two-player card game with tactical reactions and emergent strategy, built with React and TypeScript and currently distributed as a public Web Playtest Alpha.
 
 ## Core Rulebook — Extended Tabletop Reference
 
 - [Core Rulebook](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
 
-The external Core Rulebook is an extended tabletop reference, not the authoritative rules for the current Web Playtest. The current Web Playtest follows the applicable rule-freeze documents in this repository, the implemented behavior, and in-game feedback. The linked OneDrive content has not been independently revalidated for this release candidate.
+The external Core Rulebook is an extended tabletop reference, not the authoritative rules for the current Web Playtest. The current Web Playtest follows the applicable rule-freeze documents in this repository, the implemented behavior, and in-game feedback. The linked OneDrive content has not been independently revalidated for this release.
 
 ## Try the Web Playtest
 
-- Play: [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
-- Current public milestone: **Reaction Field Alpha 4**
-- Current published technical version: `0.14.0-alpha.1`
-- Current public tag: `web-playtest-v0.14.0-alpha.1`
-- Alpha 5 release-candidate version: `0.15.0-alpha.1`
+- Play: [https://9947447-alt.github.io/reaction-field/](https://9947447-alt.github.io/reaction-field/)
+- Current public milestone: **Reaction Field Alpha 6**
+- Current published technical version: `0.16.0-alpha.2`
+- Current public tag: `web-playtest-v0.16.0-alpha.2`
 - Rules version: `MVP0-P10`
+- GitHub Release: [Reaction Field Alpha 6 — v0.16.0-alpha.2](https://github.com/9947447-alt/reaction-field/releases/tag/web-playtest-v0.16.0-alpha.2)
+- Repository: [https://github.com/9947447-alt/reaction-field](https://github.com/9947447-alt/reaction-field)
 
-The Alpha 4 international playtest is the current public build. Phase 15 has been merged into `main`, and this branch only prepares the Alpha 5 / `0.15.0-alpha.1` release candidate. The planned `web-playtest-v0.15.0-alpha.1` tag does not exist; Alpha 5 has not been deployed, publicly accepted, or published as a GitHub Release. Until a new tag is deployed, the public URL continues to serve Alpha 4 / `0.14.0-alpha.1`.
+The current public release is Reaction Field Alpha 6 (`0.16.0-alpha.2`) with rules version `MVP0-P10` and public tag `web-playtest-v0.16.0-alpha.2`. The live playtest URL is served from `https://9947447-alt.github.io/reaction-field/` following the repository rename and Phase 17 release deployment.
 
 ## What Is Reaction Field?
 
@@ -49,21 +50,25 @@ This is an alpha playtest, not a stable release.
 
 ## Alpha Status
 
-The current public release is Reaction Field Alpha 4, technical version `0.14.0-alpha.1`, rules version `MVP0-P10`, and tag `web-playtest-v0.14.0-alpha.1`. Its public Pages build remains active until a later tag is deployed; this is not evidence of broad cross-browser compatibility.
+The current public release is Reaction Field Alpha 6, technical version `0.16.0-alpha.2`, rules version `MVP0-P10`, and tag `web-playtest-v0.16.0-alpha.2`. Its public Pages build is served from the live URL; this is not evidence of broad cross-browser compatibility.
 
 The earlier `web-playtest-v0.13.0-alpha.2` tag remains unchanged at `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`. Its Pages workflow failed because a production E2E assertion was pinned to an older commit, so alpha.2 was not deployed successfully. Historical tags remain immutable.
 
-## Alpha 4 International Playtest Status
+## International Playtest and Bilingual Game Log Status
 
-Alpha 4 is implemented, merged, and publicly available as `0.14.0-alpha.1`. It provides Simplified Chinese and English presentation layers without changing game state or rules.
+The international presentation layer provides Simplified Chinese and English modes without changing game state or rules.
 
 - The display language is suggested from browser language preferences and can be switched in the page.
 - The selection is held only for the current React page lifecycle. It is not persisted; after a refresh, the suggestion is evaluated again from the browser language.
-- Ordinary formal game-log messages remain in Simplified Chinese in English mode. Some structured reaction presentation is localized, but the game must not be described as having a fully English game log.
+- Ordinary engine-generated game logs now support Simplified Chinese and English through typed structured events and one authoritative payload.
+- Card play, responses, reactions, DIY virtual attacks, status handling, notices, and character-related flows support localized rendering.
+- English alkaline damage is displayed as `alkaline` while the internal rule identifier remains `base`.
+- Production Reaction and DIY UI paths have formal E2E coverage.
+- The production JavaScript bundle was reduced to pass the frozen Node 24 size gate with reliable headroom.
 
-## Alpha 5 / Phase 15 Candidate Status
+## Alpha 6 / Phase 16 & Phase 17 Release Status
 
-Phase 15 is implemented and merged into `main`. This branch only prepares its Alpha 5 version identity, release documentation, and exact test contracts. Alpha 5 is not a complete tutorial, a fully English game log, online multiplayer, complete mobile compatibility, or an iOS Firefox fix. The `web-playtest-v0.15.0-alpha.1` tag, Pages deployment, public URL acceptance, and GitHub Release have not occurred.
+Phase 16 full bilingual game log and Phase 17 repository identity migration are implemented and published as Reaction Field Alpha 6 (`0.16.0-alpha.2`) under tag `web-playtest-v0.16.0-alpha.2`. Alpha 6 provides bilingual structured logs, localized damage and status rendering, migrated repository and Pages identity under `9947447-alt/reaction-field`, and production test coverage. Alpha 6 is an alpha playtest; it does not include online multiplayer, accounts, persistence, complete mobile compatibility, or an iOS Firefox fix.
 
 ## Feedback
 
