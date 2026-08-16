@@ -360,6 +360,26 @@ describe("Phase 18D — Authoritative DIY Selection Resolver V1", () => {
       });
     });
 
+    it("returns UNEXPECTED_TARGET before OWN_FIRE_REQUIRED for no-target recipes", () => {
+      let state = createMvp0TestGame({ shuffle: identityShuffle });
+      const [actor, opponent] = state.players;
+      state = putCardInHand(state, actor.id, "ion_h_01");
+      state = putCardInHand(state, actor.id, "ion_oh_01");
+
+      const result = analyzeDIYSelection(
+        state,
+        actor.id,
+        ["ion_h_01", "ion_oh_01"],
+        opponent.id,
+      );
+
+      expect(result).toEqual({
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: "diy_h2o_from_h_oh",
+        blockerCode: "UNEXPECTED_TARGET",
+      });
+    });
+
     it("returns TARGET_PLAYER_REQUIRED when targeted recipe missing target", () => {
       let state = createMvp0TestGame({ shuffle: identityShuffle });
       const [actor] = state.players;
@@ -479,7 +499,7 @@ describe("Phase 18D — Authoritative DIY Selection Resolver V1", () => {
         blockerCode: "DIY_ALREADY_USED_THIS_CYCLE",
       });
 
-      // 4. Active player + mainAction + not used DIY + CO2 + no FIRE + target provided: OWN_FIRE_REQUIRED wins
+      // 4. Target semantics are authoritative for no-target recipes, even without FIRE.
       state = updatePlayer(state, actor.id, (p) => ({ ...p, usedDIYThisCycle: false }));
       const res4 = analyzeDIYSelection(
         state,
@@ -490,7 +510,7 @@ describe("Phase 18D — Authoritative DIY Selection Resolver V1", () => {
       expect(res4).toEqual({
         status: "MATCHED_NOT_EXECUTABLE",
         recipeId: "diy_co2_from_c_o_o",
-        blockerCode: "OWN_FIRE_REQUIRED",
+        blockerCode: "UNEXPECTED_TARGET",
       });
     });
   });
@@ -706,6 +726,41 @@ describe("Phase 18D — Authoritative DIY Selection Resolver V1", () => {
       const signatures = diyRecipes.map(getNormalizedComponentSignature);
       expect(new Set(signatures).size).toBe(diyRecipes.length);
     });
+
+    it.each(["damageKind", "damageAmount", "displayName"] as const)(
+      "rejects a VIRTUAL_ATTACK recipe missing %s instead of inventing gameplay defaults",
+      (missingField) => {
+        const attackRecipe = diyRecipes.find((recipe) => recipe.id === "diy_hcl_from_h_cl");
+        if (!attackRecipe || attackRecipe.result !== "VIRTUAL_ATTACK") {
+          throw new Error("Missing HCl DIY recipe fixture");
+        }
+
+        const originalAttackMetadata = {
+          damageKind: attackRecipe.damageKind,
+          damageAmount: attackRecipe.damageAmount,
+          displayName: attackRecipe.displayName,
+        };
+
+        Reflect.deleteProperty(attackRecipe, missingField);
+        try {
+          let state = createMvp0TestGame({ shuffle: identityShuffle });
+          const [actor, opponent] = state.players;
+          state = putCardInHand(state, actor.id, "ion_h_01");
+          state = putCardInHand(state, actor.id, "ion_cl_01");
+
+          expect(() =>
+            analyzeDIYSelection(
+              state,
+              actor.id,
+              ["ion_h_01", "ion_cl_01"],
+              opponent.id,
+            ),
+          ).toThrow(/Registry invariant violation.*VIRTUAL_ATTACK.*metadata/);
+        } finally {
+          Object.assign(attackRecipe, originalAttackMetadata);
+        }
+      },
+    );
 
     it("matching is order-independent with respect to component card order", () => {
       let state = createMvp0TestGame({ shuffle: identityShuffle });

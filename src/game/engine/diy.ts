@@ -1,5 +1,5 @@
 import { cardDefinitions } from "../data/cardDefinitions";
-import { diyRecipes, type DIYRecipe } from "../data/diyRecipes";
+import { diyRecipes } from "../data/diyRecipes";
 import { createDIYDamageContext } from "./damageContext";
 import type {
   CardDefinition,
@@ -232,6 +232,21 @@ export function analyzeDIYSelection(
 
   const matchedRecipe = matchingRecipes[0]!;
 
+  if (matchedRecipe.result === "VIRTUAL_ATTACK") {
+    const hasValidDamageKind =
+      matchedRecipe.damageKind === "acid" || matchedRecipe.damageKind === "base";
+    const hasValidDamageAmount =
+      Number.isFinite(matchedRecipe.damageAmount) && matchedRecipe.damageAmount > 0;
+    const hasDisplayName =
+      typeof matchedRecipe.displayName === "string" && matchedRecipe.displayName.length > 0;
+
+    if (!hasValidDamageKind || !hasValidDamageAmount || !hasDisplayName) {
+      throw new Error(
+        `Registry invariant violation: VIRTUAL_ATTACK DIY recipe ${matchedRecipe.id} has invalid attack metadata`,
+      );
+    }
+  }
+
   if (!player || player.eliminated || state.activePlayerId !== playerId) {
     return {
       status: "MATCHED_NOT_EXECUTABLE",
@@ -260,19 +275,19 @@ export function analyzeDIYSelection(
     matchedRecipe.result === "CO2_REMOVE_OWN_FIRE" ||
     matchedRecipe.result === "H2O_REMOVE_OWN_FIRE"
   ) {
+    if (targetPlayerId !== undefined) {
+      return {
+        status: "MATCHED_NOT_EXECUTABLE",
+        recipeId: matchedRecipe.id,
+        blockerCode: "UNEXPECTED_TARGET",
+      };
+    }
     const hasFire = player.statuses.some((status) => status.statusId === "FIRE");
     if (!hasFire) {
       return {
         status: "MATCHED_NOT_EXECUTABLE",
         recipeId: matchedRecipe.id,
         blockerCode: "OWN_FIRE_REQUIRED",
-      };
-    }
-    if (targetPlayerId !== undefined) {
-      return {
-        status: "MATCHED_NOT_EXECUTABLE",
-        recipeId: matchedRecipe.id,
-        blockerCode: "UNEXPECTED_TARGET",
       };
     }
     return {
@@ -330,8 +345,8 @@ export function analyzeDIYSelection(
       outcome: {
         kind: "VIRTUAL_ATTACK",
         targetPlayerId: target.id,
-        damageKind: matchedRecipe.damageKind ?? "acid",
-        damageAmount: matchedRecipe.damageAmount ?? 1,
+        damageKind: matchedRecipe.damageKind,
+        damageAmount: matchedRecipe.damageAmount,
       },
     };
   }
