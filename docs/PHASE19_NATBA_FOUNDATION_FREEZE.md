@@ -11,10 +11,10 @@
 - **仓库标识**：`9947447-alt/reaction-field`
 - **Canonical Trunk**：`main`
 - **基线提交 SHA**：`93468c9e3eb4e17f6e56353df9b848360bf3acbb`
-- **当前实体卡池总数**：68 张（严格冻结，不可更改）
-- **当前活跃主动 DIY 配方数**：8 个（严格冻结，行为完全等价）
-- **真实单质金属卡池**：ABSENT（缺失，当前不引入）
-- **响应 DIY（Response DIY）**：DISABLED（已关闭，当前不开放）
+- **当前实体卡池基线 `[KNOWN CURRENT STATE]`**：68 张实体卡（当前基线现状，Phase 19 Foundation 不修改卡池；未来卡池调整需经由独立规则冻结阶段授权）。
+- **当前活跃主动 DIY 配方集合 `[KNOWN CURRENT STATE]`**：8 个配方（当前基线现状，Phase 19 Foundation 不修改配方；未来新增或调整配方需经由独立规则冻结阶段授权）。
+- **真实单质金属卡池 `[KNOWN CURRENT STATE]`**：ABSENT（缺失，当前不引入）。
+- **响应 DIY（Response DIY） `[KNOWN CURRENT STATE]`**：DISABLED（已关闭，当前不开放）。
 - **Phase 18E PR #21 状态**：独立处于 BLOCKED 状态，其 UI 代码与分支不进入本任务基线，亦不构成 Phase 19 引擎依赖。
 - **性质**：纯文档架构与技术契约冻结，不包含生产代码、测试代码、依赖配置或规则执行变更。
 
@@ -25,7 +25,7 @@
 本文档作为 Phase 19 的基础契约，对以下 12 个核心问题提供权威且具约束力的冻结答案：
 
 1. **NATBA 是什么？**
-   - 答：Reaction Field 的本地、离线、可测试、可解释、可逐步增强的确定性游戏决策系统。
+   - 答：Reaction Field 的本地、离线可用、可测试、可解释、可逐步增强的游戏决策系统（确定性重现与仿真基础设施将于 Phase 19B 正式补全）。
 2. **NATBA 的第一代训练 / 演进方法是什么？**
    - 答：遵循“先合法、再有价值、后考虑未来”的三阶段思想，基于确定性自对弈（Self-play）、启发式权重调优与统计回归进行演进，非默认引入神经网络或强化学习。
 3. **谁负责游戏规则合法性？**
@@ -53,14 +53,14 @@
 
 ## 2. NATBA 身份与设计定位（Official Identity）
 
-### 2.1 正式名称与命名规范
+### 2.1 正式名称与命名规范 `[FROZEN]`
 
 - **唯一正式产品与工程全称**：
   $$\text{\textbf{NATBA — Nulledge's Artificial Tactician, Built by AI}}$$
 - **历史说明（Naming History Note）**：
   早期探讨中曾使用带有文字梗性质的短语（如 *Nulledge's AI Trained By AI*），该表述现已正式废止。自 Phase 19 起，所有文档、代码注释、UI 呈现与测试用例中，唯一正式名称严格使用 **Nulledge's Artificial Tactician, Built by AI**。
 
-### 2.2 明确否定与技术边界（What NATBA Is Not）
+### 2.2 明确否定与技术边界（What NATBA Is Not） `[FROZEN]`
 
 为避免概念混淆与过度工程，明确界定 NATBA 的否定属性：
 - **NATBA 不是大语言模型（LLM Agent）**：运行时不包含 LLM 提示词工程、不调用自然语言生成。
@@ -69,15 +69,15 @@
 - **NATBA 不是化学真理机（Chemistry Oracle）**：不基于现实化学常识推断规则，其一切行为严格受限于权威 Engine 规则白名单。
 - **“Built by AI”的含义**：描述的是该决策系统的开发与工程构建方式（由 AI 协作设计与实现），而非运行时的外部依赖。
 
-### 2.3 正式定位（What NATBA Is）
+### 2.3 正式定位（What NATBA Is） `[FROZEN]`
 
-NATBA 是为 Reaction Field 卡牌对战系统量身打造的**本地（Local）、离线可用（Offline-capable）、全覆测试（Testable）、逻辑可解释（Explainable）、分层解耦且可逐步增强的游戏决策系统**。
+NATBA 是为 Reaction Field 卡牌对战系统量身打造的**本地（Local）、离线可用（Offline-capable）、可测试（Testable）、逻辑可解释（Explainable）、分层解耦且可逐步增强的游戏决策系统**。
 
 ---
 
 ## 3. 训练与演进哲学（Training / Evolution Philosophy）
 
-### 3.1 阶段演进三原则
+### 3.1 阶段演进三原则 `[FROZEN]`
 
 NATBA 的发展严格遵循以下核心思想梯次推进：
 1. **第一阶段：永远做合法的事（Always Legal）** —— 确保 100% 的决策符合引擎权威规则，杜绝非法 Action 与状态机死锁。
@@ -107,7 +107,7 @@ Future: Advanced Search / Evaluators
 (深度搜索 / 进阶策略探索)
 ```
 
-### 3.3 初期“训练（Training）”的精确定义
+### 3.3 初期“训练（Training）”的精确定义 `[FROZEN]`
 
 在 Phase 19 基础契约中，“训练”具有明确且受限的工程定义：
 - **包含**：
@@ -125,7 +125,7 @@ Future: Advanced Search / Evaluators
 
 ## 4. 权威分层体系与职责边界（Authority Model）
 
-### 4.1 核心架构数据流与边界
+### 4.1 核心架构数据流与边界 `[FROZEN]`
 
 系统架构严格遵循下图所示的单向控制与数据流：
 
@@ -169,7 +169,7 @@ Future: Advanced Search / Evaluators
                     +-----------------------------+
 ```
 
-### 4.2 五大核心职责严格分离
+### 4.2 五大核心职责严格分离 `[FROZEN]`
 
 | 模块角色 | 核心问题 | 职责定义 | 权限边界 |
 | :--- | :--- | :--- | :--- |
@@ -183,7 +183,7 @@ Future: Advanced Search / Evaluators
 
 ## 5. 决策上下文模型（Decision Context Model）
 
-### 5.1 架构纠偏：禁止全量物化万能 Action 数组
+### 5.1 架构纠偏：禁止全量物化万能 Action 数组 `[FROZEN]`
 
 在 Phase 19-0 审计中曾探讨过统一提供 `enumerateLegalActions(state, playerId): readonly GameAction[]` 的接口。**本冻结文档正式纠正该方案**：
 
@@ -195,7 +195,7 @@ Future: Advanced Search / Evaluators
 - **正式契约**：
   决策系统必须正式拆分为**有限行动空间（Finite Action Space）**与**结构化决策空间（Structured Decision Space）**。
 
-### 5.2 决策上下文抽象契约（Conceptual Decision Context Contract）
+### 5.2 决策上下文抽象契约（Conceptual Decision Context Contract） `[FROZEN]`
 
 系统应提供统一的高层决策上下文判定接口（例如概念函数 `getDecisionContext(state)`），其输出分为以下明确类别：
 
@@ -221,7 +221,7 @@ export type DecisionContext =
 
 ---
 
-## 6. 有限行动决策空间（Finite Action Decision Space）
+## 6. 有限行动决策空间（Finite Action Decision Space） `[FROZEN]`
 
 有限行动决策空间适用于所有能够在一个紧凑（bounded）数组中完整枚举全部合法 Action 的游戏阶段：
 
@@ -231,20 +231,20 @@ export type DecisionContext =
   - `PLAY_CARD`：手牌中具备 `main-action` 时点的物质牌打出（附带合法目标玩家）；
   - `PLAY_REFERENCE_CARD`：手牌中与桌面基准牌匹配的卡牌打出；
   - `PLAY_DIY_SELECTION`：手牌组件子集经 Layer 3 `analyzeDIYSelection` 判定为 `EXECUTABLE` 的 DIY 动作；
-  - `ACTIVATE_CHARACTER_SKILL`：满足角色技能前置条件的主动技能释放；
-  - `PASS_ACTION`：合法的回合放弃保底动作。
+  - `ACTIVATE_CHARACTER_SKILL`：满足角色技能前置条件的主动技能释放（含参数化校验）；
+  - `PASS_ACTION`：当前存活活跃玩家的回合放弃保底动作。
 
 ### 6.2 响应窗口阶段（`responseWindow`）
 - 当前 `pendingResponse.responderId` 的玩家进行决策；
 - 合法行动集合包含：
   - `RESPOND_WITH_CARD`：手牌中符合响应时点与中和/吸收标签的卡牌；
-  - `PASS_RESPONSE`：放弃响应并承受后续伤害/效果的保底动作。
+  - `PASS_RESPONSE`：当前响应玩家放弃响应并承受后续伤害/效果的保底动作。
 
 ### 6.3 状态处理窗口阶段（`statusWindow`）
-- 当前 `pendingStatusHandling.playerId` 的玩家进行决策；
+- 当前 `pendingStatusHandling.playerId` 的玩家针对当前具体的 `pendingStatusHandling.statusInstanceId` 进行决策；
 - 合法行动集合包含：
   - `HANDLE_STATUS_WITH_CARD`：针对 `FIRE` 状态使用灭火牌（如 $\text{CO}_2$ 或水系）进行消除；
-  - `PASS_STATUS_HANDLING`：放弃处理并承受状态伤害/效果的保底动作。
+  - `PASS_STATUS_HANDLING`：当前状态处理玩家放弃处理并承受状态伤害/效果的保底动作。
 
 ### 6.4 实验反击窗口阶段（`experimentCounterattackWindow`）
 - 化学爱好者（Chemistry Enthusiast）特有响应窗口，当前 `pendingExperimentCounterattack.responderPlayerId` 进行决策；
@@ -259,7 +259,7 @@ export type DecisionContext =
 
 结构化决策空间适用于参数空间较大、需要结构化约束表达的特殊决策场景：
 
-### 7.1 实验室老师备课阶段（`preparationSelection`）
+### 7.1 实验室老师备课阶段（`preparationSelection`） `[FROZEN]`
 - **触发条件**：`phase === "preparationSelection"` 且存在 `pendingLaboratoryPreparation`；
 - **决策约束**：
   - 候选牌池：`candidateCardInstanceIds`（精确包含 20 张本次周期的候选卡牌实例）；
@@ -274,15 +274,20 @@ export type DecisionContext =
       keptCardInstanceIds: CardInstanceId[] // 长度必须严格等于 10 且均为 candidate 成员
     }
     ```
-- **引擎权威校验**：
-  - Engine 重新校验 `keptCardInstanceIds` 确实属于当前 `candidateCardInstanceIds` 且无重复、数量为 10；
-  - 校验通过后推进状态机进入 `actionStart`，未保留的 10 张卡牌自动移入 `discardPile`。
+- **引擎权威校验与状态转移契约（Authoritative Validation & Transition Contract）**：
+  - Engine 重新校验 `keptCardInstanceIds` 确实属于当前 `candidateCardInstanceIds` 且无重复、数量严格为 10；
+  - 校验通过后，未保留的 10 张卡牌自动移入 `discardPile`，并按以下真实规则推进状态机：
+    1. **若仍有后续待备课玩家**（`pendingLaboratoryPreparation.remainingSelections` 存在下一项）：保持 `phase === "preparationSelection"`，并将 `pendingLaboratoryPreparation` 切换至下一名玩家的备课选择上下文；
+    2. **若所有待备课玩家均已确认完成**（`remainingSelections` 为空）：清除 `pendingLaboratoryPreparation`，并为当前周期的起始行动玩家（`resolved.startingPlayerId`）调用 `beginActionForPlayer`：
+       - 若该起始玩家存在待结算状态（如 `FIRE`）：推进至 `phase = "statusWindow"` 并初始化 `pendingStatusHandling`；
+       - 若该起始玩家无待结算状态：直接推进至 `phase = "mainAction"`。
+  - *(注：`GamePhase` 枚举中虽然包含 `actionStart`，但引擎真实执行流中不使用该状态，备课完成后直接根据状态结算进入 `statusWindow` 或 `mainAction`。)*
 
 ---
 
 ## 8. Action Surface 权威总表与废弃隔离
 
-### 8.1 完整 GameAction Surface 状态
+### 8.1 完整 GameAction Surface 状态 `[FROZEN]`
 
 | Action 类型 | 当前引擎支持状态 | NATBA 决策支持状态 | 决策空间归属 |
 | :--- | :--- | :--- | :--- |
@@ -299,7 +304,7 @@ export type DecisionContext =
 | `PLAY_DIY_SELECTION` | SUPPORTED | **SUPPORTED** (唯一 DIY 路径) | Finite Action |
 | `START_ACTIVE_DIY` | LEGACY COMPAT | **STRICTLY EXCLUDED** (严禁使用) | N/A (排除) |
 
-### 8.2 `START_ACTIVE_DIY` 排除契约
+### 8.2 `START_ACTIVE_DIY` 排除契约 `[FROZEN]`
 
 - `START_ACTIVE_DIY` 仅作为 Phase 18 迁移期的历史兼容入口，依赖显式 `recipeId`，破坏选牌驱动设计。
 - **严格冻结契约**：NATBA 的决策生成器、策略实现、无头测试与集成对战中，**绝对不得生成 `START_ACTIVE_DIY` Action**。所有主动 DIY 决策必须唯一使用 `PLAY_DIY_SELECTION`。
@@ -308,7 +313,7 @@ export type DecisionContext =
 
 ## 9. DIY 权威性与枚举边界（DIY Authority）
 
-### 9.1 权威语义分析器（Layer 3 Authority）
+### 9.1 权威语义分析器（Layer 3 Authority） `[FROZEN]`
 
 - `analyzeDIYSelection(state, playerId, componentCardInstanceIds, targetPlayerId)` 是 Phase 18D 建立的 Layer 3 唯一权威语义分析器。
 - **NATBA 的使用规则**：
@@ -321,7 +326,7 @@ export type DecisionContext =
   - NATBA 严禁根据化学式合成逻辑或化学常识假定某组合合法；
   - NATBA 严禁将 `recipeId` 作为出牌合法性凭据。
 
-### 9.2 候选组合生成与卡牌实例身份
+### 9.2 候选组合生成与卡牌实例身份 `[FROZEN]`
 
 - **实例身份不变量**：手牌中若存在多张同名卡牌（例如两张 `ion_h`），它们具有不同的 `CardInstanceId`。生成候选时必须保留具体实例身份。
 - **组合范围契约**：当前 8 个配方的组件规模为 $k \in [2, 3]$。但在契约层面，**不硬编码“只枚举 2~3 张”**作为永恒上限。契约定义为：*“候选组合生成必须是有界的（bounded），且所有候选的合法性最终由 `analyzeDIYSelection` 判定”*。
@@ -331,34 +336,56 @@ export type DecisionContext =
 
 ## 10. 角色技能引擎契约差距（Character Skill Authority Gap）
 
-### 10.1 现状与 Material Engine Gap 记录
+### 10.1 现状与 Material Engine Gap 记录 `[KNOWN GAP]`
 
 当前代码库中存在以下已知架构差距：
 - **现状**：主动角色技能（如补课 `extra_lesson`、紧急物资 `emergency_supply`、强碱回收 `alkali_recovery`、尾气排放 `exhaust_discharge`、尾气泄漏 `exhaust_leak`、实验室起火 `lab_fire`、放热事故 `exothermic_accident`）的前置条件判断、合法性校验与消耗逻辑分散在 `src/game/engine/characterSkills.ts` 的执行器内部。
-- **差距（Gap）**：引擎层缺乏统一、公开、只读的技能合法性判定接口（如 `canActivateCharacterSkill`）与技能合法动作生成器。
+- **参数化动作多样性**：
+  - 无参技能：`extra_lesson`, `emergency_supply`, `exhaust_leak`, `lab_fire`, `exothermic_accident`；
+  - 带卡牌参数技能：`alkali_recovery`（需合法手牌强碱物质卡 `cardInstanceId`）；
+  - 带目标参数技能：`exhaust_discharge`（需合法存活对手 `targetPlayerId`）。
+- **差距（Gap）**：引擎层缺乏统一、公开、只读的完整技能合法性判定接口与合法技能 Action 生成器。单个 `canActivateCharacterSkill(state, playerId, skillId)` 仅能判断技能级可用资格（Skill-level Eligibility），无法对携带具体 `cardInstanceId` 或 `targetPlayerId` 的参数化 Action 进行完整合法性判定。
 - **风险**：若 UI、AI 与 Engine 各自维护一套技能前置判定条件，将产生三方逻辑漂移与潜在回归。
 
-### 10.2 Phase 19A 修复契约
+### 10.2 Phase 19A 修复契约 `[FROZEN]`
 
-- **Phase 19A 必须消除该 Gap**：在 Phase 19A 中，必须在 Engine 层提供统一的只读角色技能合法性分析器与合法技能 Action 生成逻辑。
-- **建议 API 方向（Suggested API，具体名称由 Phase 19A 落地）**：
+- **二元判定能力需求**：Phase 19A 必须在 Engine Authority 层同时提供：
+  1. **完整参数化动作合法性校验**（Full Action Legality）：校验具体 `ActivateCharacterSkillAction`（含参数合法性）是否可被合法执行；
+  2. **合法技能动作全量生成器**（Legal Skill Action Generation）：为当前玩家枚举并生成所有完全合法的 `ActivateCharacterSkillAction` 列表。
+- **建议 API 方向（Suggested API，具体名称由 Phase 19A 落地） `[SUGGESTED API]`**：
   ```ts
   // 建议接口形态，供 Phase 19A 参考
-  export function canActivateCharacterSkill(state: GameState, playerId: PlayerId, skillId: CharacterSkillId): boolean;
-  export function getLegalCharacterSkillActions(state: GameState, playerId: PlayerId): readonly ActivateCharacterSkillAction[];
+  // 1. 完整参数化技能 Action 合法性判定
+  export function analyzeCharacterSkillAction(
+    state: GameState,
+    action: ActivateCharacterSkillAction,
+  ): boolean;
+
+  // 2. 当前玩家合法技能 Action 列表生成
+  export function getLegalCharacterSkillActions(
+    state: GameState,
+    playerId: PlayerId,
+  ): readonly ActivateCharacterSkillAction[];
+
+  // 3. 可选：技能级可用资格辅助查询（仅表示该技能是否存在至少一种合法激活可能）
+  export function canActivateCharacterSkill(
+    state: GameState,
+    playerId: PlayerId,
+    skillId: CharacterSkillId,
+  ): boolean;
   ```
-- **不变量**：AI Policy 严禁在策略内部硬编码复制角色技能的私有前置规则。
+- **核心不变量**：AI Policy 严禁在策略内部硬编码复制角色技能的私有前置规则与参数校验逻辑，全部委托 Engine Authority。
 
 ---
 
 ## 11. 公平 AI 观测模型（Fair AI Observation Model）
 
-### 11.1 产品决策唯一冻结（Frozen Product Decision）
+### 11.1 产品决策唯一冻结（Frozen Product Decision） `[FROZEN]`
 
 本项为正式产品决策，不再作为未决项：
 $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格公平的非全知 AI（Fair / Non-Omniscient）。}}$$
 
-### 11.2 信息可见性与隔离边界
+### 11.2 信息可见性与隔离边界 `[FROZEN]`
 
 | 信息类别 | NATBA Policy 可见性 | 说明 |
 | :--- | :--- | :--- |
@@ -377,7 +404,7 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 | **牌堆未来抽牌顺序** | **严格隐藏** | **禁止**策略预读牌堆数组后续元素的排列。 |
 | **其他未来隐藏信息** | **严格隐藏** | 包括未触发的随机洗牌结果等。 |
 
-### 11.3 引擎权限 vs 策略可见性解耦
+### 11.3 引擎权限 vs 策略可见性解耦 `[FROZEN]`
 
 - **Engine Authority 的全知性**：Engine 在计算合法动作空间（如评估是否有人需要响应）时可以使用完整 `GameState`，这属于规则裁决，不属于 AI 作弊。
 - **Policy 的受限性**：真正进行价值权衡、偏好挑选与启发式打分的 NATBA Policy，只能消费经由 `Observation Projector` 投影后的 `AIObservation`。
@@ -387,7 +414,7 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 
 ## 12. 仿真与 Reducer 契约纠偏（Simulation & Reducer Contract）
 
-### 12.1 重要架构纠偏：Reducer 当前非完全确定性模拟器
+### 12.1 重要架构纠偏：Reducer 当前非完全确定性模拟器 `[FROZEN]`
 
 在 Phase 19-0 审计中曾将 `engineReducer` 称为“纯确定性 Rollout 模拟器”。**本冻结文档正式纠正该表述**：
 
@@ -400,7 +427,7 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 - **约束要求**：
   在 Phase 19B 完成确定性 RNG 与洗牌依赖注入前，不得声称所有 rollout 完全可重放，亦不得将当前公共 `engineReducer` 直接用作无约束的确定性前瞻搜索模拟器。
 
-### 12.2 Reducer 不是合法性判定 API（Reducer is NOT the Legality API）
+### 12.2 Reducer 不是合法性判定 API（Reducer is NOT the Legality API） `[FROZEN]`
 
 - **重要原则**：
   禁止将 `engineReducer(state, action) !== state`（即“执行后状态引用是否发生改变”）作为运行期判定 Action 合法性的手段。
@@ -414,14 +441,14 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 
 ## 13. 随机性与确定性契约（Randomness & Determinism）
 
-### 13.1 当前代码库随机性现状记录
+### 13.1 当前代码库随机性现状记录 `[KNOWN CURRENT STATE]`
 
 1. `createInitialGame` 已支持可选传入注入的 `ShuffleFunction`；
 2. `src/shared/random.ts` 中已实现 `identityShuffle` 与带可插拔随机源的 `fisherYatesShuffle`；
 3. `drawCardsForPlayer` 与 `turnFlow` 内部函数已支持接收 `ShuffleFunction` 参数；
 4. 公共入口 `engineReducer` 当前硬编码传递默认 `fisherYatesShuffle`（依赖 `Math.random`）。
 
-### 13.2 Phase 19B 确定性目标
+### 13.2 Phase 19B 确定性目标 `[FROZEN]`
 
 - **目标**：为 Headless Simulation 与未来搜索提供 100% 可重现的 Seeded Execution 路径。
 - **重现契约**：
@@ -432,18 +459,20 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 
 ## 14. 循环与死锁防护（Loop & Deadlock Safety）
 
-### 14.1 窗口保底与死锁防护机制
+### 14.1 窗口保底与死锁防护机制 `[FROZEN]`
 
-为了保障 NATBA-0 及后续策略在任何合法可达状态下绝不发生死锁，冻结以下兜底机制：
+为了保障 NATBA-0 及后续策略在任何合法可达状态下绝不发生死锁，冻结以下上下文安全（Context-Safe）的保底机制：
 
-1. **主行动保底**：`PASS_ACTION` 在 `phase === "mainAction"` 时永远合法，确保无法出牌或无利可图时能安全推进轮次。
-2. **响应窗口保底**：`PASS_RESPONSE` 在 `phase === "responseWindow"` 时永远合法，确保不响应时伤害正常结算。
-3. **状态处理保底**：`PASS_STATUS_HANDLING` 在 `phase === "statusWindow"` 时永远合法，确保放弃处理时状态伤害正常结算。
+1. **主行动保底**：在正常可达的 `mainAction` 决策上下文中，当前存活的活跃玩家（`activePlayerId`）恒拥有合法的 `PASS_ACTION` 选项，确保无法出牌或无利可图时能安全推进轮次。
+2. **响应窗口保底**：在正常可达的 `responseWindow` 决策上下文中，当前合法的待响应玩家（`pendingResponse.responderId`）恒拥有合法的 `PASS_RESPONSE` 选项，确保放弃响应时伤害与后续效果正常按规则结算。
+3. **状态处理保底**：在正常可达的 `statusWindow` 决策上下文中，当前合法的待处理玩家（`pendingStatusHandling.playerId`）针对当前具体的 `statusInstanceId` 恒拥有合法的 `PASS_STATUS_HANDLING` 选项，确保放弃处理时状态伤害正常结算。
 4. **实验反击窗口安全**：`experimentCounterattackWindow` 仅在当前 Engine 判定存在合法选项（如 `recover` 或 `acid-base-pursuit`）时开启，且处理后立即恢复原响应链路。
 5. **金属反击休眠安全**：
    - 当前 `metal-counterattack` 在 `experimentCounterattack.ts` 执行器中直接返回原状态（未实现）；
    - 当前 68 张实体卡池中无金属单质卡牌，`legalMetalCardInstanceIds` 恒为空；
    - 契约冻结：**NATBA 严禁生成 `metal-counterattack`**。在未来 Phase 18G/金属规则正式落地前，该风险保持休眠。
+
+*(注：保底 Action 的合法性严格绑定于当前上下文所指定的特定合法决策者与待处理实例 ID，非任意玩家或任意 payload 均盲目合法。)*
 
 ---
 
@@ -451,17 +480,16 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
 
 以下内容列入引擎已知技术债清单（Known Engine Robustness Debt），不阻断 Phase 19A，但在后续必须审慎对待：
 
-### 15.1 实验室老师发牌退化 Gap（Setup Fallback Gap）
+### 15.1 实验室老师发牌退化 Gap（Setup Fallback Gap） `[KNOWN GAP]`
 - **现象**：在 `src/game/engine/turnFlow.ts` 的 `dealCycleStartHands` 中，若因牌堆+弃牌堆总牌数不足导致发牌后 `candidateCardInstanceIds.length !== 20`，代码将直接把 `phase` 置为 `"setup"`，且未设置 `pendingLaboratoryPreparation`。
-- **影响**：进入 `"setup"` 阶段后，当前状态机没有定义玩家动作可以继续推进游戏。
-- **定位**：在标准 68 张卡牌双人对战中，正常循环极难触发该极限状态。
-- **处理契约**：本问题不属于 Phase 19A 的即时阻断项，**严禁在 Phase 19A 中擅自修改发牌规则**。若在 Phase 19C 的海量 Headless 自对弈中实际触发了该状态，则在单独的修复 PR 中冻结恢复语义并修复。
+- **影响与定位**：进入 `"setup"` 阶段后，当前状态机没有定义玩家动作可以继续推进游戏。目前尚未通过大规模 Headless 仿真确认该极限状态在正常长局中的实际可达频率。
+- **处理契约**：本问题属于已知引擎健壮性技术债（Known Engine Robustness Debt），**Phase 19A 严禁擅自修改发牌规则**。若在 Phase 19C 或后续批量仿真中证实该状态确实可达，则在独立的修复 PR 中冻结恢复语义并进行修复。
 
 ---
 
 ## 16. NATBA-0 核心契约与验收标准（NATBA-0 Contract）
 
-### 16.1 NATBA-0 角色与定位
+### 16.1 NATBA-0 角色与定位 `[FROZEN]`
 
 - **角色定位**：**Random Legal Bot（随机合法决策机器人）**。
 - **目标价值**：
@@ -474,7 +502,7 @@ $$\text{\textbf{默认单人对战（Solo vs AI）中的 NATBA 必须是严格�
   - 在结构化备课空间中：以确定性受控随机源从 20 张候选中选择满足 `keepCount === 10` 的一组卡牌。
   - **不冻结复杂启发式**：不强制要求 NATBA-0 “绝不 PASS” 或进行贪心选择，保持其作为纯随机合法 Bot 的测试基线纯洁性。
 
-### 16.2 功能性验收标准（Functional Acceptance Gates）
+### 16.2 功能性验收标准（Functional Acceptance Gates） `[FROZEN]`
 
 NATBA-0 必须满足以下全部功能性标准，方可通过验收：
 
@@ -493,7 +521,7 @@ NATBA-0 必须满足以下全部功能性标准，方可通过验收：
 
 ## 17. 自对弈数据与工程指标契约（Self-Play / Telemetry Contract）
 
-### 17.1 本地工程指标收集项
+### 17.1 本地工程指标收集项 `[FROZEN]`
 
 在无头批量自对弈中，框架至少应支持统计以下结构化工程与平衡性数据：
 
@@ -505,7 +533,7 @@ NATBA-0 必须满足以下全部功能性标准，方可通过验收：
 - **响应与状态**：响应窗口触发率与通过率、状态处理选择偏好；
 - **异常事件**：非法动作尝试拦截计数（应恒为 0）、死锁告警计数（应恒为 0）。
 
-### 17.2 零网络依赖声明
+### 17.2 零网络依赖声明 `[FROZEN]`
 
 上述数据纯粹为本地测试与平衡性分析产物，**严禁引入任何向外部服务器上传数据的网络遥测逻辑**。所有指标收集与分析必须在本地内存及本地测试断言中完成。
 
@@ -533,7 +561,7 @@ Phase 19 推荐按照以下清晰解耦的小步 PR 路线推进：
 +---------------------------------------------------------------+
 | Phase 19A: Decision Context & Authoritative Rule Layer        |
 | 落地 DecisionContext 类型与决策生成器                           |
-| 落地角色技能只读合法性判定接口                                  |
+| 落地角色技能只读合法性判定接口（含参数化校验）                  |
 | 落地公平 AIObservation 投影契约                                |
 | 排除 START_ACTIVE_DIY                                         |
 +-------------------------------+-------------------------------+
@@ -570,19 +598,19 @@ Phase 19 推荐按照以下清晰解耦的小步 PR 路线推进：
 
 ---
 
-## 19. 明确未完成与非目标声明（Non-Goals）
+## 19. 明确未完成与非目标声明（Non-Goals） `[NON-GOAL]`
 
 为严格防范范围蔓延，本 Freeze 文档明确声明以下内容**不属于当前授权范围**：
 
 - **禁止编写 AI 决策逻辑实现代码**；
 - **禁止修改任何 `src/` 源码、测试或配置文件**；
 - **禁止修改前端 UI 或 Phase 18E 的任何代码**；
-- **禁止引入新的化学规则或修改现有 8 个 DIY 配方**；
-- **禁止引入金属卡牌、金属置换或启用金属反击**；
+- **禁止引入未经独立规则授权的新化学规则或修改现有 8 个 DIY 配方**（Phase 19 保持当前基线配方不变；未来调整需独立规则冻结）；
+- **禁止引入未经独立规则授权的金属卡牌、金属置换或启用金属反击**（留待 Phase 18G/金属规则独立冻结）；
 - **禁止引入沉淀生成（Precipitation）或方程式自动配平算法**；
 - **禁止引入多人联机、网络对战或云端 AI 推理**；
 - **禁止引入神经网络、深度学习或强化学习运行时**；
-- **禁止调整卡牌数值、卡池构成或角色技能数值**。
+- **禁止在未授权阶段调整卡牌数值、卡池构成或角色技能数值**。
 
 ---
 
