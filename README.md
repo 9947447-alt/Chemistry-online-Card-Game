@@ -8,7 +8,7 @@ English | [简体中文](./README.zh-CN.md)
 
 - [Core Rulebook](https://1drv.ms/w/c/c8f765bca077d05c/IQARVQbFTILtQowJ0BLUq5V2AWHW1TuJcgOQwLIgWzi7qEo)
 
-The external Core Rulebook is an extended tabletop reference, not the authoritative rules for the current Web Playtest. The current Web Playtest follows the applicable rule-freeze documents in this repository, the implemented behavior, and in-game feedback. The linked OneDrive content has not been independently revalidated for this release candidate.
+The external Core Rulebook is an extended tabletop reference, not the authoritative rules for the current Web Playtest. The current Web Playtest follows the applicable rule-freeze documents in this repository, the implemented behavior, and in-game feedback. The linked OneDrive content has not been independently revalidated for this release.
 
 ## Try the Web Playtest
 
