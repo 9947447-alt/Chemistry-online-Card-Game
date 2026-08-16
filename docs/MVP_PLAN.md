@@ -34,7 +34,7 @@ Phase 13 的权威实现边界见 `docs/PHASE13_NEW_PLAYER_GUIDANCE_FREEZE.md`�
 
 - 配置阶段位于角色选择操作之前；playing 阶段位于 preparation、main action、response、status、counterattack 与 game over 操作区之前。窄屏保持正常文档流，不使用浮层、遮罩、sticky coach mark 或 modal。
 - 阶段文案覆盖配置、备课、主行动、响应、状态处理、实验反击与对局结束；不复制合法性、卡牌匹配、伤害、反应或出牌建议，不 dispatch `GameAction`，不增加任何规则表。
-- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.16.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 6 / `0.16.0-alpha.1`，公开标签为 `web-playtest-v0.16.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)。
+- 保持 `MVP0-P10`、68 张普通实体卡池、角色和冻结规则不变；Phase 13 引导实现已在 alpha.1 基线完成，`web-playtest-v0.13.0-alpha.1` 标签永久保持不变。当前应用版本为 `0.16.0-alpha.1`，由 `package.json` 作为唯一真值来源，`releaseMetadata` 继续读取构建注入的版本。当前公开版本是 Reaction Field Alpha 6 / `0.16.0-alpha.1`，公开标签为 `web-playtest-v0.16.0-alpha.1`；公开试玩地址为 [https://9947447-alt.github.io/reaction-field/](https://9947447-alt.github.io/reaction-field/)。
 
 ## 0.13.0-alpha.3 已公开发布（Reaction Field Alpha 2）
 
@@ -54,25 +54,27 @@ Phase 16 已公开发布为 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.
 
 已知兼容性边界：iOS 27 beta 的 Firefox 在打开帮助或重开确认框时可能进入 `ROOT_RUNTIME_FAILED`；先前的 `requestAnimationFrame` 聚焦实验未解决该问题，未进入稳定分支。Safari 与已测试的 Edge 路径正常属于已有真机/浏览器记录，不代表所有版本的普遍保证。本次 Alpha 6 发布不修复也不声称修复 iOS Firefox beta；失败热修复分支 `fix/ios-firefox-modal-focus-alpha2` 不复制、不合并、不修改。
 
-## Phase 17 反应域品牌与仓库身份迁移（Phase 17C 进行中）
+## Phase 17 反应域品牌与仓库身份迁移（Post-rename 代码链接切换进行中）
 
 Phase 17 正式启动 Reaction Field 品牌统一与仓库身份迁移，方案由 `docs/PHASE17_BRAND_IDENTITY_FREEZE.md` 冻结。
 
 实施子阶段与路线图状态：
 - **Phase 17A（品牌与仓库身份审计）**：已完成。核实中英文正式品牌、UI 装饰大写、包名、仓库 slug、Pages URL、公开元数据及全量代码/文档引用点。
-- **Phase 17B（方案冻结与合并后修复）**：已完成。产出 `docs/PHASE17_BRAND_IDENTITY_FREEZE.md`，确立 9 阶段确定性发布状态机与双重授权门禁。
-- **Phase 17C（Pre-rename 内部身份与安全文档准备）**：当前进行中 / 本分支实施。修改 `package.json` 中的 `"name": "reaction-field"`，同步中英文 README 定位与 Alpha 6 发布事实，更新路线图与审计快照；严禁提前修改 live 仓库与 live Pages 链接。
-- **Phase 17D（GitHub 仓库改名与设置）**：尚未执行，仍需独立外部授权。
-- **Post-rename（代码库链接正式切换 Cutover）**：尚未执行。
-- **Release Preparation / Tag / Pages 部署 / Phase 17E 公网验收 / GitHub Release**：尚未执行。
+- **Phase 17B（方案冻结与合并后修复）**：已完成。产出 `docs/PHASE17_BRAND_IDENTITY_FREEZE.md` 及合并后修复文档，确立 9 阶段确定性发布状态机与双重授权门禁。
+- **Phase 17C（Pre-rename 内部身份与安全文档准备）**：已完成。同步 `package.json` 中的 `"name": "reaction-field"`，同步中英文 README 定位与 Alpha 6 发布事实，更新路线图与审计快照。
+- **Phase 17D（GitHub 仓库改名与设置）**：已完成。GitHub 仓库成功重命名为 `9947447-alt/reaction-field`，仓库数字身份（numeric ID）保持不变，Description、Topics 与 local remote 已更新。
+- **Post-rename（代码库链接与 Live Pages 切换 Cutover）**：当前进行中 / 本分支实施。正式将应用内静态仓库链接 `src/app/projectRepository.tsx`、测试断言及 README 切换至 `9947447-alt/reaction-field`；记录并同步真实 live Pages URL 到 `https://9947447-alt.github.io/reaction-field/`。
+- **Release Preparation / Tag / Pages 部署 / Phase 17E 公网验收 / GitHub Release**：尚未执行。后续仍需在独立发布授权下完成版本准备、创建新不可变标签与部署，使线上产物正式包含 post-rename 代码链接变更。
 
-身份与 URL 映射（严格区分目标规划与当前真实公开事实）：
-- **当前真实 Live 仓库**：`https://github.com/9947447-alt/Chemistry-online-Card-Game`
-- **当前真实 Live Pages 试玩**：`https://9947447-alt.github.io/Chemistry-online-Card-Game/`
-- **目标仓库 Slug**：`reaction-field`（备用：`reaction-field-card-game`）
-- **目标仓库 URL**：`https://github.com/9947447-alt/reaction-field`（规划 target，非当前 live）
-- **目标 Pages URL**：`https://9947447-alt.github.io/reaction-field/`（规划 target，非当前 live）
-- **包名目标 / Phase 17C 内部身份**：`reaction-field`（`package.json`）
+身份与 URL 映射及平台真实行为：
+- **当前活跃仓库（Active Repository）**：`https://github.com/9947447-alt/reaction-field`（仓库 numeric ID 不变）
+- **当前活跃包名（Package Name）**：`reaction-field`（`package.json`）
+- **当前真实 Live Pages 试玩**：`https://9947447-alt.github.io/reaction-field/`
+- **平台 Pages 行为实测记录**：
+  - 仓库重命名后，原旧 Pages URL（`https://9947447-alt.github.io/Chemistry-online-Card-Game/`）返回 HTTP 404；
+  - 新 Pages URL（`https://9947447-alt.github.io/reaction-field/`）返回 HTTP 200 并正常提供 Alpha 6 静态站点；
+  - 因此当前 live Pages identity 已实际迁移至 `reaction-field` 路径；
+  - 注意：当前 200 响应属于平台在 rename 后的自动路径迁移行为，并非新的不可变 release tag 部署；后续仍需完成 Release Preparation 与新版本/标签部署以正式收口线上产物。
 
 ## MVP 0 定案范围
 

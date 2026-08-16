@@ -12,16 +12,15 @@ The external Core Rulebook is an extended tabletop reference, not the authoritat
 
 ## Try the Web Playtest
 
-- Play: [https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
+- Play: [https://9947447-alt.github.io/reaction-field/](https://9947447-alt.github.io/reaction-field/)
 - Current public milestone: **Reaction Field Alpha 6**
 - Current published technical version: `0.16.0-alpha.1`
 - Current public tag: `web-playtest-v0.16.0-alpha.1`
 - Rules version: `MVP0-P10`
-- GitHub Release: [Reaction Field Alpha 6](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.16.0-alpha.1)
-- Planned migration target repository: `https://github.com/9947447-alt/reaction-field`
-- Planned migration target Pages URL: `https://9947447-alt.github.io/reaction-field/`
+- GitHub Release: [Reaction Field Alpha 6](https://github.com/9947447-alt/reaction-field/releases/tag/web-playtest-v0.16.0-alpha.1)
+- Repository: [https://github.com/9947447-alt/reaction-field](https://github.com/9947447-alt/reaction-field)
 
-The current public release is Reaction Field Alpha 6 (`0.16.0-alpha.1`) with rules version `MVP0-P10` and public tag `web-playtest-v0.16.0-alpha.1`. The live playtest URL continues to be served from `https://9947447-alt.github.io/Chemistry-online-Card-Game/` until repository rename and new deployment cutover are completed.
+The current public release is Reaction Field Alpha 6 (`0.16.0-alpha.1`) with rules version `MVP0-P10` and public tag `web-playtest-v0.16.0-alpha.1`. The live playtest URL is served from `https://9947447-alt.github.io/reaction-field/` following the repository rename.
 
 ## What Is Reaction Field?
 

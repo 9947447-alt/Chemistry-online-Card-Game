@@ -30,16 +30,15 @@ Web Playtest Alpha 公开双方手牌、牌堆数量、状态与完整日志。�
 
 ## 公开试玩地址与本轮状态
 
-- 公开试玩入口：[https://9947447-alt.github.io/Chemistry-online-Card-Game/](https://9947447-alt.github.io/Chemistry-online-Card-Game/)
+- 公开试玩入口：[https://9947447-alt.github.io/reaction-field/](https://9947447-alt.github.io/reaction-field/)
 - 当前公开发布阶段：**Reaction Field Alpha 6**
 - 当前发布技术版本：`0.16.0-alpha.1`
 - 当前公开发布标签：`web-playtest-v0.16.0-alpha.1`
 - 规则版本：`MVP0-P10`
-- GitHub Release：[Reaction Field Alpha 6](https://github.com/9947447-alt/Chemistry-online-Card-Game/releases/tag/web-playtest-v0.16.0-alpha.1)
-- 规划迁移目标仓库：`https://github.com/9947447-alt/reaction-field`
-- 规划迁移目标 Pages：`https://9947447-alt.github.io/reaction-field/`
+- GitHub Release：[Reaction Field Alpha 6](https://github.com/9947447-alt/reaction-field/releases/tag/web-playtest-v0.16.0-alpha.1)
+- 官方仓库：[https://github.com/9947447-alt/reaction-field](https://github.com/9947447-alt/reaction-field)
 
-当前公开发布事实为：对外阶段 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.1`。公开试玩入口在完成仓库改名和新部署切流前，继续由当前 live 地址 `https://9947447-alt.github.io/Chemistry-online-Card-Game/` 提供。历史标签 `web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；所有历史标签保持不可变。
+当前公开发布事实为：对外阶段 Reaction Field Alpha 6，技术版本 `0.16.0-alpha.1`，规则版本 `MVP0-P10`，标签 `web-playtest-v0.16.0-alpha.1`。随着 GitHub 仓库重命名完成，公开试玩入口已迁移至当前 live 地址 `https://9947447-alt.github.io/reaction-field/`。历史标签 `web-playtest-v0.13.0-alpha.2` 保持不变，指向 `57550f70856d5d5e27ac3fcb0fa508cd698d3be6`；所有历史标签保持不可变。
 
 ## 国际化试玩与双语游戏日志状态
 

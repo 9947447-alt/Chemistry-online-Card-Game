@@ -602,7 +602,7 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   const gameOverRepository = page.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
   await expect(gameOverRepository).toHaveAttribute(
     "href",
-    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+    "https://github.com/9947447-alt/reaction-field",
   );
   await expect(gameOverRepository).toHaveAttribute("target", "_blank");
   await expect(gameOverRepository).toHaveAttribute("rel", "noopener noreferrer");
@@ -612,7 +612,7 @@ test("gameOver 后重开和返回角色选择均无需确认，帮助仍可访�
   const aboutRepository = about.getByRole("link", { name: "在新标签页打开反应域 GitHub 仓库" });
   await expect(aboutRepository).toHaveAttribute(
     "href",
-    "https://github.com/9947447-alt/Chemistry-online-Card-Game",
+    "https://github.com/9947447-alt/reaction-field",
   );
   await expect(aboutRepository).toHaveAttribute("target", "_blank");
   await expect(aboutRepository).toHaveAttribute("rel", "noopener noreferrer");
