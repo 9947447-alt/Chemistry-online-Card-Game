@@ -5,16 +5,36 @@ export type ComponentRequirement = {
   count: number;
 };
 
-export type DIYRecipe = {
+type DIYRecipeBase = {
   id: string;
   name: string;
   requiredComponents: ComponentRequirement[];
-  requiresTarget: boolean;
-  result: "CO2_REMOVE_OWN_FIRE" | "SO2_APPLY_LEAK" | "H2O_REMOVE_OWN_FIRE" | "VIRTUAL_ATTACK";
-  damageKind?: "acid" | "base";
-  damageAmount?: number;
-  displayName?: string;
 };
+
+export type DIYRecipe = DIYRecipeBase &
+  (
+    | {
+        requiresTarget: false;
+        result: "CO2_REMOVE_OWN_FIRE" | "H2O_REMOVE_OWN_FIRE";
+        damageKind?: never;
+        damageAmount?: never;
+        displayName?: never;
+      }
+    | {
+        requiresTarget: true;
+        result: "SO2_APPLY_LEAK";
+        damageKind?: never;
+        damageAmount?: never;
+        displayName?: never;
+      }
+    | {
+        requiresTarget: true;
+        result: "VIRTUAL_ATTACK";
+        damageKind: "acid" | "base";
+        damageAmount: number;
+        displayName: string;
+      }
+  );
 
 export const diyRecipes = [
   {

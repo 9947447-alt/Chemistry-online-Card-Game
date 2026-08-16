@@ -1,7 +1,7 @@
 import type { GameAction } from "./actions";
 import type { GameState } from "./types";
 import { fisherYatesShuffle } from "../../shared/random";
-import { startActiveDIY } from "./diy";
+import { playDIYSelection, startActiveDIY } from "./diy";
 import { activateCharacterSkill } from "./characterSkills";
 import { resolveExperimentCounterattack } from "./experimentCounterattack";
 import {
@@ -84,6 +84,14 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
         state,
         action.playerId,
         action.statusInstanceId,
+        fisherYatesShuffle,
+      );
+    case "PLAY_DIY_SELECTION":
+      return playDIYSelection(
+        state,
+        action.playerId,
+        action.componentCardInstanceIds,
+        action.targetPlayerId,
         fisherYatesShuffle,
       );
     case "START_ACTIVE_DIY":
