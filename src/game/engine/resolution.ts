@@ -33,7 +33,7 @@ import type {
 import { advanceTurnFromReducer, finishGameIfResolved, type ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
 
-function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
+export function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
 }
 
@@ -64,22 +64,18 @@ function setTableReference(
   };
 }
 
-function getCardHolder(state: GameState, cardInstanceId: CardInstanceId): Player | undefined {
-  return state.players.find((player) => player.hand.includes(cardInstanceId));
-}
-
-function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player): GameState {
+export function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player): GameState {
   return {
     ...state,
     players: state.players.map((player) => (player.id === playerId ? nextPlayer : player)),
   };
 }
 
-function moveCardFromHandToDiscard(
+export function moveCardFromHandToDiscard(
   state: GameState,
   cardInstanceId: CardInstanceId,
 ): GameState | undefined {
-  const holder = getCardHolder(state, cardInstanceId);
+  const holder = state.players.find((player) => player.hand.includes(cardInstanceId));
   const instance = state.cardInstances[cardInstanceId];
 
   if (!holder || !instance) {
@@ -206,7 +202,7 @@ function enterNextStatusWindowOrMainAction(
   );
 }
 
-function addStatusIfMissing(
+export function addStatusIfMissing(
   state: GameState,
   targetPlayerId: PlayerId,
   sourcePlayerId: PlayerId,

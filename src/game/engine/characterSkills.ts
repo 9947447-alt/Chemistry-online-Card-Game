@@ -19,6 +19,11 @@ import {
   type ShuffleFunction,
 } from "./turnFlow";
 import { appendEvent } from "./logEvents";
+import {
+  addStatusIfMissing,
+  moveCardFromHandToDiscard,
+  replacePlayer,
+} from "./resolution";
 
 type ActiveSkillId = ActivateCharacterSkillAction["skillId"];
 
@@ -223,49 +228,6 @@ function markSkillUsed(
   };
 }
 
-function replacePlayer(state: GameState, playerId: PlayerId, player: Player): GameState {
-  return {
-    ...state,
-    players: state.players.map((candidate) => (candidate.id === playerId ? player : candidate)),
-  };
-}
-
-function addStatusIfMissing(
-  state: GameState,
-  targetPlayerId: PlayerId,
-  sourcePlayerId: PlayerId,
-  statusId: PlayerStatus["statusId"],
-): GameState {
-  const target = state.players.find((player) => player.id === targetPlayerId);
-  if (!target) {
-    return state;
-  }
-
-  if (target.statuses.some((status) => status.statusId === statusId)) {
-    return appendEvent(state, {
-      eventKey: "status_refreshed",
-      params: { playerId: target.id, statusId },
-    });
-  }
-
-  const status: PlayerStatus = {
-    id: `status_${String(state.log.length + 1).padStart(3, "0")}_${target.id}_${statusId}`,
-    statusId,
-    sourcePlayerId,
-    createdAt: state.log.length + 1,
-  };
-
-  return appendEvent(
-    replacePlayer(state, target.id, {
-      ...target,
-      statuses: [...target.statuses, status],
-    }),
-    {
-      eventKey: "status_gained",
-      params: { playerId: target.id, statusId },
-    },
-  );
-}
 
 function activateDrawSkill(
   state: GameState,
@@ -302,36 +264,21 @@ function activateAlkaliRecovery(
 ): GameState {
   const instance = state.cardInstances[action.cardInstanceId];
   const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
+  const withDiscarded = moveCardFromHandToDiscard(state, action.cardInstanceId);
 
-  if (!instance || !definition) {
+  if (!definition || !withDiscarded) {
     return state;
   }
 
   const healedHp = Math.min(player.maxHp, player.hp + 2);
-  const withCostDiscarded: GameState = {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === player.id
-        ? {
-            ...candidate,
-            hp: healedHp,
-            hand: candidate.hand.filter((cardId) => cardId !== action.cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [action.cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, action.cardInstanceId],
-  };
+  const updatedPlayer = withDiscarded.players.find((p) => p.id === player.id)!;
+  const withHealing = replacePlayer(withDiscarded, player.id, {
+    ...updatedPlayer,
+    hp: healedHp,
+  });
   const loggedState = appendEvent(
     markSkillUsed(
-      withCostDiscarded,
+      withHealing,
       player.id,
       activeSkillSpecs.alkali_recovery.usageKey,
     ),

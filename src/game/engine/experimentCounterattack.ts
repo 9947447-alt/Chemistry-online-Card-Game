@@ -4,6 +4,7 @@ import { applyDamage } from "./damage";
 import { createExperimentCounterattackPursuitDamageContext } from "./damageContext";
 import { canRecoverHp } from "./recovery";
 import { resumeResponseContinuation } from "./responseContinuation";
+import { moveCardFromHandToDiscard } from "./resolution";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -204,46 +205,6 @@ function markCounterattackUsed(state: GameState, playerId: PlayerId): GameState 
   };
 }
 
-function discardOwnedHandCard(
-  state: GameState,
-  playerId: PlayerId,
-  cardInstanceId: CardInstanceId,
-): GameState | undefined {
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  const instance = state.cardInstances[cardInstanceId];
-  if (
-    !player ||
-    !player.hand.includes(cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== player.id ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== player.id
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === player.id
-        ? {
-            ...candidate,
-            hand: candidate.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, cardInstanceId],
-  };
-}
-
 export function getValidPendingExperimentCounterattack(
   state: GameState,
   playerId: PlayerId,
@@ -393,9 +354,8 @@ export function resolveExperimentCounterattack(
     return state;
   }
 
-  const withCardDiscarded = discardOwnedHandCard(
+  const withCardDiscarded = moveCardFromHandToDiscard(
     state,
-    responder.id,
     action.cardInstanceId,
   );
   if (!withCardDiscarded) {

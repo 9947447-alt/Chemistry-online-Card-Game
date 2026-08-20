@@ -9,6 +9,7 @@ import {
   createImmediateSo2AbsorptionReactionEvent,
   recordSuccessfulReaction,
 } from "./reactions";
+import { moveCardFromHandToDiscard } from "./resolution";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -59,47 +60,6 @@ export function isAlkalineAbsorptionDefinition(definition: CardDefinition): bool
     definition.allowedTimings.includes("status-window") &&
     definition.tags.includes("alkaline-absorb")
   );
-}
-
-function discardResponseCard(
-  state: GameState,
-  playerId: PlayerId,
-  cardInstanceId: CardInstanceId,
-): GameState | undefined {
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  const instance = state.cardInstances[cardInstanceId];
-
-  if (
-    !player ||
-    !player.hand.includes(cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== playerId ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== playerId
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === playerId
-        ? {
-            ...candidate,
-            hand: candidate.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, cardInstanceId],
-  };
 }
 
 export function getValidMultiTargetPendingResponse(
@@ -159,7 +119,7 @@ export function respondToMultiTargetDamage(
     return state;
   }
 
-  const withCardDiscarded = discardResponseCard(state, playerId, cardInstanceId);
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
   if (!withCardDiscarded) {
     return state;
   }
