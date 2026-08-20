@@ -1,4 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { ResolveExperimentCounterattackAction } from "./actions";
 import { applyDamage } from "./damage";
 import { createExperimentCounterattackPursuitDamageContext } from "./damageContext";
@@ -18,10 +18,6 @@ import type {
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 function getSourcePlayerId(source: DamageSource): PlayerId | null {
   return source.kind === "status" ? null : source.sourcePlayerId;
@@ -83,7 +79,7 @@ function getOwnedHandCardIds(
 ): CardInstanceId[] {
   return player.hand.filter((cardInstanceId) => {
     const instance = state.cardInstances[cardInstanceId];
-    const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+    const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
     return Boolean(
       instance &&
         instance.ownerId === player.id &&
@@ -340,9 +336,10 @@ export function validateExperimentCounterattackAction(
       return false;
     }
     const instance = state.cardInstances[action.cardInstanceId];
-    const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+    const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
     return Boolean(
       instance &&
+      responder.hand.includes(action.cardInstanceId) &&
       instance.ownerId === responder.id &&
       instance.zone.type === "hand" &&
       instance.zone.playerId === responder.id &&
@@ -391,7 +388,7 @@ export function resolveExperimentCounterattack(
   }
 
   const instance = state.cardInstances[action.cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
   if (!definition) {
     return state;
   }

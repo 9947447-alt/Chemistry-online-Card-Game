@@ -127,6 +127,41 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
       expect(engineReducer(state, invalidAction)).toBe(state);
     });
 
+    it("rejects injected event instance as a reference card", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+      const eventCardInstanceId = "event_lab_fire_injected";
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [eventCardInstanceId]: {
+            id: eventCardInstanceId,
+            definitionId: "event_lab_fire",
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, hand: [eventCardInstanceId] }, state.players[1]],
+      };
+      const action = {
+        type: "PLAY_REFERENCE_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: eventCardInstanceId,
+      };
+
+      expect(validateGameAction(state, action)).toBe(false);
+      expect(
+        getLegalActions(state, p1.id).some(
+          (candidate) =>
+            candidate.type === "PLAY_REFERENCE_CARD" &&
+            candidate.cardInstanceId === eventCardInstanceId,
+        ),
+      ).toBe(false);
+      expect(engineReducer(state, action)).toBe(state);
+    });
+
     it("aligns RESPOND_WITH_CARD and PASS_RESPONSE validator and executor", () => {
       let state = createReadyMainGameState();
       const p1 = state.players[0];
@@ -353,6 +388,35 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
             a.targetPlayerId === p1.id,
         ),
       ).toBe(true);
+    });
+
+    it("rejects O2 recovery without an explicit self target", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+      const o2CardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_o2",
+      )!;
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [o2CardId]: {
+            ...state.cardInstances[o2CardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, hp: 10, maxHp: 15, hand: [o2CardId] }, state.players[1]],
+      };
+      const action = {
+        type: "PLAY_CARD" as const,
+        playerId: p1.id,
+        cardInstanceId: o2CardId,
+      };
+
+      expect(validateGameAction(state, action)).toBe(false);
+      expect(engineReducer(state, action)).toBe(state);
     });
   });
 
@@ -649,6 +713,58 @@ describe("Phase 19A — LegalActions & Legality Validation", () => {
           cardInstanceId: "metal_card_01",
         }),
       ).toBe(false);
+    });
+
+    it("does not generate acid-base pursuit for a pending card absent from responder hand", () => {
+      let state = createReadyMainGameState();
+      const responder = {
+        ...state.players[0],
+        characterId: "chemistry_enthusiast" as const,
+        hp: 15,
+        maxHp: 15,
+        hand: [],
+      };
+      const attacker = state.players[1];
+      const pursuitCardInstanceId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_hcl_dilute",
+      )!;
+
+      state = {
+        ...state,
+        phase: "experimentCounterattackWindow",
+        players: [responder, attacker],
+        cardInstances: {
+          ...state.cardInstances,
+          [pursuitCardInstanceId]: {
+            ...state.cardInstances[pursuitCardInstanceId],
+            ownerId: responder.id,
+            zone: { type: "hand", playerId: responder.id },
+          },
+        },
+        pendingExperimentCounterattack: {
+          responderPlayerId: responder.id,
+          attackerPlayerId: attacker.id,
+          originalDamageContext: {
+            targetPlayerId: responder.id,
+            baseAmount: 1,
+            source: {
+              kind: "card",
+              sourcePlayerId: attacker.id,
+              cardInstanceId: "card_attack_01",
+              cardDefinitionId: "substance_hcl_dilute",
+            },
+            tags: ["acid"],
+            responsePolicy: "acid-base",
+          },
+          responseType: "acid-base",
+          legalOptions: ["acid-base-pursuit"],
+          legalMetalCardInstanceIds: [],
+          legalPursuitCardInstanceIds: [pursuitCardInstanceId],
+          continuation: { kind: "single-response" },
+        },
+      };
+
+      expect(getLegalActions(state, responder.id)).toEqual([]);
     });
   });
 });

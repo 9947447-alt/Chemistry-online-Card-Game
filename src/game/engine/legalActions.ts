@@ -1,6 +1,6 @@
-import { cardDefinitions } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
 import {
+  getLegalCharacterSkillActions,
   validateCharacterSkillAction,
 } from "./characterSkills";
 import { analyzeDIYSelection } from "./diy";
@@ -17,17 +17,7 @@ import {
   validateRespondWithCard,
 } from "./resolution";
 import { isValidLaboratoryPreparationConfirmation } from "./turnFlow";
-import type {
-  CardDefinition,
-  CardInstanceId,
-  GameState,
-  Player,
-  PlayerId,
-} from "./types";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
+import type { CardInstanceId, GameState, Player, PlayerId } from "./types";
 
 function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
@@ -39,7 +29,11 @@ function getOtherAlivePlayers(state: GameState, sourcePlayerId: PlayerId): Playe
   );
 }
 
-const registeredDiyComponentSizes = [2, 3] as const;
+const registeredDiyComponentSizes = [...new Set(
+  diyRecipes.map((recipe) =>
+    recipe.requiredComponents.reduce((total, component) => total + component.count, 0),
+  ),
+)].sort((left, right) => left - right);
 
 function getCombinations<T>(items: readonly T[], k: number): T[][] {
   if (k === 0) return [[]];
@@ -65,6 +59,7 @@ export function validatePlayDiySelectionAction(
 }
 
 export {
+  getLegalCharacterSkillActions,
   validatePassAction,
   validatePlayReferenceCard as validatePlayReferenceCardAction,
   validatePlayMainActionCard as validatePlayCardAction,
@@ -136,98 +131,7 @@ export function validateGameAction(state: GameState, action: GameAction): boolea
   }
 }
 
-import type {
-  ActivateCharacterSkillAction,
-  GameAction,
-  ResolveExperimentCounterattackAction,
-} from "./actions";
-
-export function getLegalCharacterSkillActions(
-  state: GameState,
-  playerId: PlayerId,
-): readonly ActivateCharacterSkillAction[] {
-  if (state.phase !== "mainAction" || state.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  if (!player || player.eliminated) {
-    return [];
-  }
-
-  const legalActions: ActivateCharacterSkillAction[] = [];
-
-  switch (player.characterId) {
-    case "laboratory_teacher": {
-      const action: ActivateCharacterSkillAction = {
-        type: "ACTIVATE_CHARACTER_SKILL",
-        playerId,
-        skillId: "extra_lesson",
-      };
-      if (validateCharacterSkillAction(state, action)) {
-        legalActions.push(action);
-      }
-      break;
-    }
-    case "chemical_factory_ceo": {
-      const action: ActivateCharacterSkillAction = {
-        type: "ACTIVATE_CHARACTER_SKILL",
-        playerId,
-        skillId: "emergency_supply",
-      };
-      if (validateCharacterSkillAction(state, action)) {
-        legalActions.push(action);
-      }
-      break;
-    }
-    case "caustic_soda_captain": {
-      for (const cardInstanceId of player.hand) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId: "alkali_recovery",
-          cardInstanceId,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    case "sulfuric_acid_factory_director": {
-      for (const opponent of getOtherAlivePlayers(state, playerId)) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId: "exhaust_discharge",
-          targetPlayerId: opponent.id,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    case "clumsy_party_secretary": {
-      const skills = ["exhaust_leak", "lab_fire", "exothermic_accident"] as const;
-      for (const skillId of skills) {
-        const action: ActivateCharacterSkillAction = {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId,
-        };
-        if (validateCharacterSkillAction(state, action)) {
-          legalActions.push(action);
-        }
-      }
-      break;
-    }
-    default:
-      break;
-  }
-
-  return legalActions;
-}
+import type { GameAction, ResolveExperimentCounterattackAction } from "./actions";
 
 export function getLegalActions(state: GameState, playerId: PlayerId): GameAction[] {
   if (state.phase === "gameOver" || state.phase === "preparationSelection") {
@@ -251,35 +155,20 @@ export function getLegalActions(state: GameState, playerId: PlayerId): GameActio
     }
 
     const aliveOpponents = getOtherAlivePlayers(state, playerId);
+    const candidateTargetPlayerIds = [
+      undefined,
+      ...state.players.filter((candidate) => !candidate.eliminated).map((candidate) => candidate.id),
+    ];
 
     for (const cardInstanceId of player.hand) {
-      const instance = state.cardInstances[cardInstanceId];
-      const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
-      if (!definition) {
-        continue;
-      }
-
-      if (definition.allowedTimings.includes("main-action")) {
-        if (definition.id === "substance_o2") {
-          if (validatePlayMainActionCard(state, playerId, cardInstanceId, playerId)) {
-            legalActions.push({
-              type: "PLAY_CARD",
-              playerId,
-              cardInstanceId,
-              targetPlayerId: playerId,
-            });
-          }
-        } else {
-          for (const opponent of aliveOpponents) {
-            if (validatePlayMainActionCard(state, playerId, cardInstanceId, opponent.id)) {
-              legalActions.push({
-                type: "PLAY_CARD",
-                playerId,
-                cardInstanceId,
-                targetPlayerId: opponent.id,
-              });
-            }
-          }
+      for (const targetPlayerId of candidateTargetPlayerIds) {
+        if (validatePlayMainActionCard(state, playerId, cardInstanceId, targetPlayerId)) {
+          legalActions.push({
+            type: "PLAY_CARD",
+            playerId,
+            cardInstanceId,
+            ...(targetPlayerId === undefined ? {} : { targetPlayerId }),
+          });
         }
       }
 

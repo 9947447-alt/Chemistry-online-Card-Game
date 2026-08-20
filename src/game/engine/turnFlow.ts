@@ -213,34 +213,44 @@ export function isValidLaboratoryPreparationSelection(
   );
 }
 
-export function isValidLaboratoryPreparationConfirmation(
+export function getValidLaboratoryPreparationContext(
   state: GameState,
-  playerId: PlayerId,
-  keptCardInstanceIds: CardInstanceId[],
-): boolean {
+): NonNullable<GameState["pendingLaboratoryPreparation"]> | undefined {
   const pending = state.pendingLaboratoryPreparation;
-
   if (
     state.phase !== "preparationSelection" ||
     !pending ||
     !Array.isArray(pending.remainingSelections) ||
     pending.keepCount !== 10 ||
-    pending.playerId !== playerId ||
     !isValidLaboratoryPreparationSelection(state, pending)
   ) {
-    return false;
+    return undefined;
   }
 
-  const remainingPlayerIds = pending.remainingSelections.map((selection) => selection.playerId);
-  const uniqueRemainingPlayerIds = new Set(remainingPlayerIds);
-
+  const selectionPlayerIds = [
+    pending.playerId,
+    ...pending.remainingSelections.map((selection) => selection.playerId),
+  ];
   if (
-    uniqueRemainingPlayerIds.size !== remainingPlayerIds.length ||
-    uniqueRemainingPlayerIds.has(pending.playerId) ||
+    new Set(selectionPlayerIds).size !== selectionPlayerIds.length ||
     !pending.remainingSelections.every((selection) =>
       isValidLaboratoryPreparationSelection(state, selection),
     )
   ) {
+    return undefined;
+  }
+
+  return pending;
+}
+
+export function isValidLaboratoryPreparationConfirmation(
+  state: GameState,
+  playerId: PlayerId,
+  keptCardInstanceIds: CardInstanceId[],
+): boolean {
+  const pending = getValidLaboratoryPreparationContext(state);
+
+  if (!pending || pending.playerId !== playerId) {
     return false;
   }
 

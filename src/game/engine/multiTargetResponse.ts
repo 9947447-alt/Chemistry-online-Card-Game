@@ -1,4 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { applyDamage } from "./damage";
 import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
 import {
@@ -20,10 +20,6 @@ import type {
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 export function startExhaustLeakResponseSequence(
   state: GameState,
@@ -146,7 +142,7 @@ export function respondToMultiTargetDamage(
 ): GameState {
   const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
   const instance = state.cardInstances[cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
 
   if (!pendingResponse || !definition || !isAlkalineAbsorptionDefinition(definition)) {
     return state;

@@ -1,4 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
 import {
   reactionDefinitions,
@@ -170,9 +170,6 @@ function isStatusHandlingReactionEvent(
   return event.trigger.kind === "status-handling";
 }
 
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 const diyRecipesById = new Map(diyRecipes.map((recipe) => [recipe.id, recipe]));
 const sulfateIon = "SO4^2-";
 
@@ -332,7 +329,7 @@ function isValidCardSnapshotBeforeReaction(
       instance.ownerId === participant.playerId &&
       instance.zone.type === "hand" &&
       instance.zone.playerId === participant.playerId &&
-      definitionsById.has(participant.cardDefinitionId),
+      cardDefinitionsById.has(participant.cardDefinitionId),
   );
 }
 
@@ -430,7 +427,7 @@ function isAcidBaseEventValid(
   const pending = state.pendingResponse;
   const context = pending?.sourceEffect.context;
   const [attacker, responder] = event.participants;
-  const responseDefinition = definitionsById.get(responder.cardDefinitionId);
+  const responseDefinition = cardDefinitionsById.get(responder.cardDefinitionId);
   const sourceMatches = context?.source.kind === "card"
     ? attacker.kind === "card" &&
       !context.source.sourceSkillId &&
@@ -477,7 +474,7 @@ function isImmediateSo2EventValid(
   const pending = state.pendingResponse;
   const context = pending?.sourceEffect.context;
   const [skill, responder] = event.participants;
-  const responseDefinition = definitionsById.get(responder.cardDefinitionId);
+  const responseDefinition = cardDefinitionsById.get(responder.cardDefinitionId);
 
   return Boolean(
     state.phase === "responseWindow" &&
@@ -502,7 +499,7 @@ function isStatusHandlingEventValid(
   >,
 ): boolean {
   const [status, handler] = event.participants;
-  const definition = definitionsById.get(handler.cardDefinitionId);
+  const definition = cardDefinitionsById.get(handler.cardDefinitionId);
 
   return Boolean(
     state.phase === "statusWindow" &&
@@ -614,7 +611,7 @@ function getSulfateByproductPlayerIds(
     const player = stateBeforeReaction.players.find(
       (candidate) => candidate.id === participant.playerId,
     );
-    const definition = definitionsById.get(participant.cardDefinitionId);
+    const definition = cardDefinitionsById.get(participant.cardDefinitionId);
 
     return player &&
       !player.eliminated &&

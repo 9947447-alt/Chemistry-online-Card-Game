@@ -1,4 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { SuccessfulReactionEvent } from "./reactions";
 import type {
   CardDefinition,
@@ -12,10 +12,6 @@ import type {
   PlayerStatus,
   TableReference,
 } from "./types";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 export type AIObservationSelf = Readonly<{
   playerId: PlayerId;
@@ -93,16 +89,6 @@ export type AIObservation = Readonly<{
   winnerPlayerId?: PlayerId;
   isDraw?: boolean;
 }>;
-
-export function cloneCardDefinition(def: CardDefinition): CardDefinition {
-  return {
-    ...def,
-    elements: def.elements ? [...def.elements] : undefined,
-    ionsProvided: def.ionsProvided ? [...def.ionsProvided] : undefined,
-    tags: [...def.tags],
-    allowedTimings: [...def.allowedTimings],
-  };
-}
 
 function cloneCharacterUsage(usage: CharacterUsageState): CharacterUsageState {
   return {
@@ -216,6 +202,16 @@ function projectPendingContext(
   return { kind: "none" };
 }
 
+export function cloneCardDefinition(def: CardDefinition): CardDefinition {
+  return {
+    ...def,
+    elements: def.elements ? [...def.elements] : undefined,
+    ionsProvided: def.ionsProvided ? [...def.ionsProvided] : undefined,
+    tags: [...def.tags],
+    allowedTimings: [...def.allowedTimings],
+  };
+}
+
 export function getAIObservation(
   state: GameState,
   viewerPlayerId: PlayerId,
@@ -233,7 +229,7 @@ export function getAIObservation(
         handCards: viewerPlayer.hand
           .map((cardId) => {
             const instance = state.cardInstances[cardId];
-            return instance ? definitionsById.get(instance.definitionId) : undefined;
+            return instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
           })
           .filter((definition): definition is CardDefinition => definition !== undefined)
           .map(cloneCardDefinition),
@@ -274,7 +270,7 @@ export function getAIObservation(
   const discardPileCards: AIObservationDiscardCard[] = state.discardPile.map(
     (cardInstanceId) => {
       const instance = state.cardInstances[cardInstanceId];
-      const def = instance ? definitionsById.get(instance.definitionId) : undefined;
+      const def = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
       const definition = def
         ? cloneCardDefinition(def)
         : {

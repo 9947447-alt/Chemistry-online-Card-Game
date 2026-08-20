@@ -5,7 +5,8 @@ import {
   getValidMultiTargetPendingResponse,
   isMultiTargetPendingResponse,
 } from "./multiTargetResponse";
-import { isValidLaboratoryPreparationSelection } from "./turnFlow";
+import { getValidSinglePendingResponse } from "./resolution";
+import { getValidLaboratoryPreparationContext } from "./turnFlow";
 import type { CardInstanceId, GameState, PlayerId } from "./types";
 
 export type FiniteActionDecisionPhase =
@@ -41,12 +42,8 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
   }
 
   if (state.phase === "preparationSelection") {
-    const pending = state.pendingLaboratoryPreparation;
-    if (
-      !pending ||
-      pending.keepCount !== 10 ||
-      !isValidLaboratoryPreparationSelection(state, pending)
-    ) {
+    const pending = getValidLaboratoryPreparationContext(state);
+    if (!pending) {
       return undefined;
     }
     const player = state.players.find((candidate) => candidate.id === pending.playerId);
@@ -71,22 +68,10 @@ export function getAuthoritativeDecisionMaker(state: GameState): PlayerId | unde
       return validPending && responder && !responder.eliminated ? responder.id : undefined;
     }
 
-    const pending = state.pendingResponse;
-    if (!pending || !pending.responderId || !pending.sourceEffect) {
-      return undefined;
-    }
-    const damageContext = pending.sourceEffect.context;
-    if (!damageContext || damageContext.responsePolicy !== "acid-base") {
-      return undefined;
-    }
-    const responder = state.players.find((candidate) => candidate.id === pending.responderId);
-    const target = state.players.find((candidate) => candidate.id === damageContext.targetPlayerId);
-
-    if (!responder || responder.eliminated || !target || target.eliminated) {
-      return undefined;
-    }
-
-    return responder.id;
+    const responderId = state.pendingResponse?.responderId;
+    return responderId && getValidSinglePendingResponse(state, responderId)
+      ? responderId
+      : undefined;
   }
 
   if (state.phase === "statusWindow") {
@@ -129,12 +114,8 @@ export function getDecisionContext(state: GameState): DecisionContext {
   }
 
   if (state.phase === "preparationSelection") {
-    const pending = state.pendingLaboratoryPreparation;
-    if (
-      !pending ||
-      pending.keepCount !== 10 ||
-      !isValidLaboratoryPreparationSelection(state, pending)
-    ) {
+    const pending = getValidLaboratoryPreparationContext(state);
+    if (!pending) {
       return { kind: "none" };
     }
 

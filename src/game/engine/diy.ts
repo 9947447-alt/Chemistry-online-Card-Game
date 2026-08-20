@@ -1,8 +1,7 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
 import { createDIYDamageContext } from "./damageContext";
 import type {
-  CardDefinition,
   CardDefinitionId,
   CardInstanceId,
   DamageEffect,
@@ -15,10 +14,6 @@ import type {
 } from "./types";
 import { advanceTurnFromReducer, type ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
@@ -192,7 +187,7 @@ export function analyzeDIYSelection(
       recordInvalid(id);
       continue;
     }
-    const definition = definitionsById.get(instance.definitionId);
+    const definition = cardDefinitionsById.get(instance.definitionId);
     if (!definition || !definition.allowedTimings.includes("diy-component")) {
       recordInvalid(id);
     }

@@ -6,7 +6,7 @@ import {
   getDecisionContext,
 } from "../engine/decisionContext";
 import { engineReducer } from "../engine/reducer";
-import { validateGameAction } from "../engine/legalActions";
+import { getLegalActions, validateGameAction } from "../engine/legalActions";
 import type {
   CardInstanceId,
   GameState,
@@ -302,6 +302,26 @@ describe("Phase 19A — DecisionContext & Authoritative Decision Layer", () => {
       expect(getDecisionContext(state)).toEqual({ kind: "none" });
     });
 
+    it("fails closed when preparation candidates are valid but remainingSelections is missing", () => {
+      const state = createInitialGame({
+        characterIds: ["laboratory_teacher", "acid_king"],
+        shuffle: identityShuffle,
+      });
+      const malformedPending = {
+        ...state.pendingLaboratoryPreparation,
+      } as Record<string, unknown>;
+      delete malformedPending.remainingSelections;
+      const malformedState: GameState = {
+        ...state,
+        pendingLaboratoryPreparation: malformedPending as unknown as NonNullable<
+          GameState["pendingLaboratoryPreparation"]
+        >,
+      };
+
+      expect(getAuthoritativeDecisionMaker(malformedState)).toBeUndefined();
+      expect(getDecisionContext(malformedState)).toEqual({ kind: "none" });
+    });
+
     it("fails closed on malformed statusWindow state with non-existent statusInstanceId", () => {
       const p1 = createReadyMainGameState().players[0];
       const state: GameState = {
@@ -383,6 +403,46 @@ describe("Phase 19A — DecisionContext & Authoritative Decision Layer", () => {
       };
       expect(getAuthoritativeDecisionMaker(state)).toBeUndefined();
       expect(getDecisionContext(state)).toEqual({ kind: "none" });
+    });
+
+    it("fails closed when normal response responder differs from damage target", () => {
+      let state = createReadyMainGameState();
+      const p1 = state.players[0];
+      const p2 = state.players[1];
+      const hclCardId = Object.keys(state.cardInstances).find(
+        (id) => state.cardInstances[id].definitionId === "substance_hcl_dilute",
+      )!;
+
+      state = {
+        ...state,
+        tableReference: undefined,
+        cardInstances: {
+          ...state.cardInstances,
+          [hclCardId]: {
+            ...state.cardInstances[hclCardId],
+            ownerId: p1.id,
+            zone: { type: "hand", playerId: p1.id },
+          },
+        },
+        players: [{ ...p1, hand: [hclCardId] }, { ...p2, hand: [] }],
+      };
+      state = engineReducer(state, {
+        type: "PLAY_CARD",
+        playerId: p1.id,
+        cardInstanceId: hclCardId,
+        targetPlayerId: p2.id,
+      });
+      const malformedState: GameState = {
+        ...state,
+        pendingResponse: {
+          ...state.pendingResponse!,
+          responderId: p1.id,
+        },
+      };
+
+      expect(getAuthoritativeDecisionMaker(malformedState)).toBeUndefined();
+      expect(getDecisionContext(malformedState)).toEqual({ kind: "none" });
+      expect(getLegalActions(malformedState, p1.id)).toEqual([]);
     });
   });
 

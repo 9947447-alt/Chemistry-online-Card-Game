@@ -1,9 +1,5 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { CardDefinition, CardInstanceId, GameState, PlayerId } from "./types";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 // Current MVP mapping for ion-to-ion links that are not uniquely derivable from
 // card text alone. These pairs mirror the adopted DIY/response relationships.
@@ -31,7 +27,7 @@ function getDefinitionForCard(
   cardInstanceId: CardInstanceId,
 ): CardDefinition | undefined {
   const instance = state.cardInstances[cardInstanceId];
-  return instance ? definitionsById.get(instance.definitionId) : undefined;
+  return instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
 }
 
 function hasIntersection(left: readonly string[] | undefined, right: readonly string[] | undefined) {
@@ -124,7 +120,7 @@ export function canPlayCardAgainstTableReference(
 
   const player = state.players.find((candidate) => candidate.id === playerId);
   const candidateDefinition = getDefinitionForCard(state, cardInstanceId);
-  const referenceDefinition = definitionsById.get(tableReference.definitionId);
+  const referenceDefinition = cardDefinitionsById.get(tableReference.definitionId);
 
   if (!player || !player.hand.includes(cardInstanceId) || !candidateDefinition || !referenceDefinition) {
     return false;

@@ -1,10 +1,9 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { ActivateCharacterSkillAction } from "./actions";
 import { applyLoseHpBatch } from "./loseHp";
 import { startExhaustLeakResponseSequence } from "./multiTargetResponse";
 import { canRecoverHp } from "./recovery";
 import type {
-  CardDefinition,
   CharacterId,
   CharacterSkillId,
   CharacterUsageKey,
@@ -56,10 +55,6 @@ const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
     usageKey: "sulfuric_acid_factory_director_exhaust_discharge",
   },
 };
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 function getCommonSkillActor(
   state: GameState,
@@ -116,7 +111,7 @@ export function validateCharacterSkillAction(
       ) {
         return false;
       }
-      const definition = definitionsById.get(instance.definitionId);
+      const definition = cardDefinitionsById.get(instance.definitionId);
       return Boolean(
         definition &&
           definition.type === "substance" &&
@@ -142,52 +137,66 @@ export function validateCharacterSkillAction(
   }
 }
 
+export function getLegalCharacterSkillActions(
+  state: GameState,
+  playerId: PlayerId,
+): readonly ActivateCharacterSkillAction[] {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player) {
+    return [];
+  }
+
+  const legalActions: ActivateCharacterSkillAction[] = [];
+  const skillIds = (Object.keys(activeSkillSpecs) as ActiveSkillId[]).filter(
+    (skillId) => activeSkillSpecs[skillId].characterId === player.characterId,
+  );
+
+  for (const skillId of skillIds) {
+    if (skillId === "alkali_recovery") {
+      for (const cardInstanceId of player.hand) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+          cardInstanceId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+    } else if (skillId === "exhaust_discharge") {
+      for (const targetPlayerId of getOtherAlivePlayerIds(state, playerId)) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+          targetPlayerId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+    } else {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId,
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+    }
+  }
+
+  return legalActions;
+}
+
 export function canActivateCharacterSkill(
   state: GameState,
   playerId: PlayerId,
   skillId: CharacterSkillId,
 ): boolean {
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  if (!player || player.eliminated || state.phase !== "mainAction" || state.activePlayerId !== playerId) {
-    return false;
-  }
-  if (
-    skillId === "extra_lesson" ||
-    skillId === "emergency_supply" ||
-    skillId === "exhaust_leak" ||
-    skillId === "lab_fire" ||
-    skillId === "exothermic_accident"
-  ) {
-    return validateCharacterSkillAction(state, {
-      type: "ACTIVATE_CHARACTER_SKILL",
-      playerId,
-      skillId,
-    } as any);
-  }
-  if (skillId === "alkali_recovery") {
-    return player.hand.some((cardInstanceId) =>
-      validateCharacterSkillAction(state, {
-        type: "ACTIVATE_CHARACTER_SKILL",
-        playerId,
-        skillId,
-        cardInstanceId,
-      }),
-    );
-  }
-  if (skillId === "exhaust_discharge") {
-    return state.players.some(
-      (candidate) =>
-        candidate.id !== playerId &&
-        !candidate.eliminated &&
-        validateCharacterSkillAction(state, {
-          type: "ACTIVATE_CHARACTER_SKILL",
-          playerId,
-          skillId,
-          targetPlayerId: candidate.id,
-        }),
-    );
-  }
-  return false;
+  return getLegalCharacterSkillActions(state, playerId).some((action) => action.skillId === skillId);
 }
 
 function markSkillUsed(
@@ -292,7 +301,7 @@ function activateAlkaliRecovery(
   shuffle: ShuffleFunction,
 ): GameState {
   const instance = state.cardInstances[action.cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
 
   if (!instance || !definition) {
     return state;
