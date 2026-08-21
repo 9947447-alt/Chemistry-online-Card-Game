@@ -1,6 +1,6 @@
 import { starterDeck } from "../data/starterDeck";
 import { getCharacterDefinition } from "../data/characterDefinitions";
-import { fisherYatesShuffle } from "../../shared/random";
+import { createSeededShuffle, fisherYatesShuffle, type ShuffleFunction } from "../../shared/random";
 import type { CardInstance, CharacterId, GameState, Player } from "./types";
 import { createEmptyCharacterUsage } from "./characterUsage";
 import { beginActionForPlayer, dealCycleStartHands } from "./turnFlow";
@@ -10,7 +10,8 @@ export type CreateInitialGameOptions = {
   gameId?: string;
   playerNames?: [string, string];
   characterIds?: [CharacterId, CharacterId];
-  shuffle?: <T>(items: readonly T[]) => T[];
+  shuffle?: ShuffleFunction;
+  seed?: number;
 };
 
 const defaultPlayerNames: [string, string] = ["玩家 A", "玩家 B"];
@@ -38,7 +39,9 @@ export function createInitialGame(options: CreateInitialGameOptions = {}): GameS
     selectedCharacters[0].id,
     selectedCharacters[1].id,
   ];
-  const shuffle = options.shuffle ?? fisherYatesShuffle;
+  const shuffle =
+    options.shuffle ??
+    (options.seed !== undefined ? createSeededShuffle(options.seed) : fisherYatesShuffle);
   const cardInstances: Record<string, CardInstance> = {};
   const unshuffledDeck: string[] = [];
 
