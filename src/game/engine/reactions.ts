@@ -317,151 +317,68 @@ function isValidCardSnapshotBeforeReaction(
   state: GameState,
   participant: Extract<ReactionParticipant, { kind: "card" }>,
 ): boolean {
-  const player = state.players.find((candidate) => candidate.id === participant.playerId);
-  const instance = state.cardInstances[participant.cardInstanceId];
-
+  const p = state.players.find((c) => c.id === participant.playerId);
+  const i = state.cardInstances[participant.cardInstanceId];
   return Boolean(
-    player &&
-      !player.eliminated &&
-      player.hand.includes(participant.cardInstanceId) &&
-      instance &&
-      instance.definitionId === participant.cardDefinitionId &&
-      instance.ownerId === participant.playerId &&
-      instance.zone.type === "hand" &&
-      instance.zone.playerId === participant.playerId &&
-      cardDefinitionsById.has(participant.cardDefinitionId),
+    p && !p.eliminated && p.hand.includes(participant.cardInstanceId) &&
+    i && i.definitionId === participant.cardDefinitionId && i.ownerId === participant.playerId &&
+    i.zone.type === "hand" && i.zone.playerId === participant.playerId && cardDefinitionsById.has(participant.cardDefinitionId)
   );
 }
 
-function isValidParticipantBeforeReaction(
-  state: GameState,
-  participant: ReactionParticipant,
-): boolean {
-  if (participant.kind === "card") {
-    return isValidCardSnapshotBeforeReaction(state, participant);
-  }
-
+function isValidParticipantBeforeReaction(state: GameState, participant: ReactionParticipant): boolean {
+  if (participant.kind === "card") return isValidCardSnapshotBeforeReaction(state, participant);
   if (participant.kind === "diy") {
-    const player = state.players.find((candidate) => candidate.id === participant.playerId);
-    const recipe = diyRecipesById.get(participant.recipeId);
-    return Boolean(player && !player.eliminated && recipe?.result === "VIRTUAL_ATTACK");
+    const p = state.players.find((c) => c.id === participant.playerId);
+    return Boolean(p && !p.eliminated && diyRecipesById.get(participant.recipeId)?.result === "VIRTUAL_ATTACK");
   }
-
   if (participant.kind === "character-skill") {
-    const player = state.players.find(
-      (candidate) => candidate.id === participant.sourcePlayerId,
-    );
-    return Boolean(player && !player.eliminated && participant.skillId === "exhaust_leak");
+    const p = state.players.find((c) => c.id === participant.sourcePlayerId);
+    return Boolean(p && !p.eliminated && participant.skillId === "exhaust_leak");
   }
-
-  const player = state.players.find(
-    (candidate) => candidate.id === participant.targetPlayerId,
-  );
-  return Boolean(
-    player &&
-      !player.eliminated &&
-      participant.statusId === "SO2_LEAK" &&
-      player.statuses.some(
-        (status) =>
-          status.id === participant.statusInstanceId &&
-          status.statusId === participant.statusId,
-      ),
-  );
+  const p = state.players.find((c) => c.id === participant.targetPlayerId);
+  return Boolean(p && !p.eliminated && participant.statusId === "SO2_LEAK" && p.statuses.some((s) => s.id === participant.statusInstanceId && s.statusId === participant.statusId));
 }
 
 function isCardDiscardedExactlyOnce(
   state: GameState,
   participant: Extract<ReactionParticipant, { kind: "card" }>,
 ): boolean {
-  const instance = state.cardInstances[participant.cardInstanceId];
-  const discardOccurrences = state.discardPile.filter(
-    (cardId) => cardId === participant.cardInstanceId,
-  ).length;
-
-  return Boolean(
-    instance &&
-      instance.definitionId === participant.cardDefinitionId &&
-      instance.ownerId === undefined &&
-      instance.zone.type === "discard" &&
-      discardOccurrences === 1 &&
-      state.players.every(
-        (player) => !player.hand.includes(participant.cardInstanceId),
-      ),
-  );
+  const i = state.cardInstances[participant.cardInstanceId];
+  const cnt = state.discardPile.filter((id) => id === participant.cardInstanceId).length;
+  return Boolean(i && i.definitionId === participant.cardDefinitionId && !i.ownerId && i.zone.type === "discard" && cnt === 1 && state.players.every((p) => !p.hand.includes(participant.cardInstanceId)));
 }
 
-function isResponseDefinitionValid(
-  definition: CardDefinition | undefined,
-  expected: "acid" | "base" | "carbonate" | "alkaline-absorb",
-): boolean {
-  if (
-    !definition ||
-    (definition.type !== "ion" && definition.type !== "substance")
-  ) {
-    return false;
-  }
-
-  if (expected === "alkaline-absorb") {
-    return (
-      definition.allowedTimings.includes("status-window") &&
-      definition.tags.includes("alkaline-absorb")
-    );
-  }
-
-  if (!definition.allowedTimings.includes("response")) {
-    return false;
-  }
-
-  return expected === "carbonate"
-    ? definition.tags.includes("carbonate")
-    : definition.tags.includes(expected);
+function isResponseDefinitionValid(d: CardDefinition | undefined, expected: "acid" | "base" | "carbonate" | "alkaline-absorb"): boolean {
+  if (!d || (d.type !== "ion" && d.type !== "substance")) return false;
+  if (expected === "alkaline-absorb") return d.allowedTimings.includes("status-window") && d.tags.includes("alkaline-absorb");
+  return d.allowedTimings.includes("response") && (expected === "carbonate" ? d.tags.includes("carbonate") : d.tags.includes(expected));
 }
 
 function isAcidBaseEventValid(
   state: GameState,
-  event: Extract<
-    SuccessfulReactionEvent,
-    { definitionId: "acid_base_neutralization" | "acid_carbonate_co2" }
-  >,
+  event: Extract<SuccessfulReactionEvent, { definitionId: "acid_base_neutralization" | "acid_carbonate_co2" }>,
 ): boolean {
-  const pending = state.pendingResponse;
-  const context = pending?.sourceEffect.context;
+  const p = state.pendingResponse;
+  const ctx = p?.sourceEffect.context;
   const [attacker, responder] = event.participants;
-  const responseDefinition = cardDefinitionsById.get(responder.cardDefinitionId);
-  const sourceMatches = context?.source.kind === "card"
-    ? attacker.kind === "card" &&
-      !context.source.sourceSkillId &&
-      context.source.sourcePlayerId === attacker.playerId &&
-      context.source.cardInstanceId === attacker.cardInstanceId &&
-      context.source.cardDefinitionId === attacker.cardDefinitionId
-    : context?.source.kind === "diy" &&
-      attacker.kind === "diy" &&
-      context.source.sourcePlayerId === attacker.playerId &&
-      context.source.recipeId === attacker.recipeId;
+  const def = cardDefinitionsById.get(responder.cardDefinitionId);
+  const src = ctx?.source;
+  const sourceMatches = src?.kind === "card"
+    ? attacker.kind === "card" && !src.sourceSkillId && src.sourcePlayerId === attacker.playerId && src.cardInstanceId === attacker.cardInstanceId && src.cardDefinitionId === attacker.cardDefinitionId
+    : src?.kind === "diy" && attacker.kind === "diy" && src.sourcePlayerId === attacker.playerId && src.recipeId === attacker.recipeId;
 
-  if (
-    state.phase !== "responseWindow" ||
-    !pending ||
-    !context ||
-    context.responsePolicy !== "acid-base" ||
-    pending.responderId !== responder.playerId ||
-    context.targetPlayerId !== responder.playerId ||
-    !sourceMatches
-  ) {
+  if (state.phase !== "responseWindow" || !p || !ctx || ctx.responsePolicy !== "acid-base" || p.responderId !== responder.playerId || ctx.targetPlayerId !== responder.playerId || !sourceMatches) {
     return false;
   }
 
   if (event.definitionId === "acid_carbonate_co2") {
-    return (
-      context.tags.includes("acid") &&
-      isResponseDefinitionValid(responseDefinition, "carbonate")
-    );
+    return ctx.tags.includes("acid") && isResponseDefinitionValid(def, "carbonate");
   }
 
-  return context.tags.includes("acid")
-    ? isResponseDefinitionValid(responseDefinition, "base")
-    : context.tags.includes("base") &&
-        isResponseDefinitionValid(responseDefinition, "acid");
+  return ctx.tags.includes("acid")
+    ? isResponseDefinitionValid(def, "base")
+    : ctx.tags.includes("base") && isResponseDefinitionValid(def, "acid");
 }
 
 function isImmediateSo2EventValid(

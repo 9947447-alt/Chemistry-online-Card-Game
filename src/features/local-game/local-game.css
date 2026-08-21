@@ -281,7 +281,8 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.character-select-field {
+.character-select-field,
+.character-controller-field {
   background: #f7f9fb;
   border: 1px solid #e1e7ec;
   border-radius: 8px;

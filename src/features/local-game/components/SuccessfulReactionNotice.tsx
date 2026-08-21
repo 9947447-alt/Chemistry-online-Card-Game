@@ -17,29 +17,18 @@ export function SuccessfulReactionNotice({ game }: SuccessfulReactionNoticeProps
   const lastObservedReactionEntryRef = useRef<GameState["log"][number] | null>(null);
 
   useEffect(() => {
-    const previousLog = previousLogRef.current;
-    const latestReactionEntry = [...game.log].reverse().find((entry) => entry.reaction) ?? null;
+    const prev = previousLogRef.current;
+    const latest = [...game.log].reverse().find((e) => e.reaction) ?? null;
     previousLogRef.current = game.log;
 
-    if (
-      previousLog === null ||
-      previousLog.length > game.log.length ||
-      !previousLog.every((entry, index) => game.log[index] === entry)
-    ) {
-      lastObservedReactionEntryRef.current = latestReactionEntry;
+    if (!prev || prev.length > game.log.length || !prev.every((e, i) => game.log[i] === e)) {
+      lastObservedReactionEntryRef.current = latest;
       setActiveEntry(null);
       return;
     }
-
-    if (
-      latestReactionEntry === null ||
-      lastObservedReactionEntryRef.current === latestReactionEntry
-    ) {
-      return;
-    }
-
-    lastObservedReactionEntryRef.current = latestReactionEntry;
-    setActiveEntry(latestReactionEntry);
+    if (!latest || lastObservedReactionEntryRef.current === latest) return;
+    lastObservedReactionEntryRef.current = latest;
+    setActiveEntry(latest);
   }, [game.log]);
 
   useEffect(() => {

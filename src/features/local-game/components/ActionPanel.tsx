@@ -7,6 +7,7 @@ import type {
   GameState,
   PlayerId,
 } from "../../../game/engine/types";
+import type { PlayerControllerSelection } from "../localGameSession";
 import {
   canPlayAgainstCurrentTableReference,
   canExecuteMainActionEffect,
@@ -18,13 +19,15 @@ import {
   getOpponentTargets,
 } from "../localGameView";
 import {
-  getCardDisplayName,
+  getAiAutoActionNote,
+  getOptionalCardDisplayName,
   getPlayerDisplayName,
   getSkillDisplayName,
 } from "../presentationLocale";
 
 type ActionPanelProps = {
   game: GameState;
+  playerControllers?: PlayerControllerSelection;
   selectedCardId?: CardInstanceId;
   onSelectCard: (cardInstanceId: CardInstanceId | undefined) => void;
   dispatchGameAction: (action: GameAction) => void;
@@ -32,13 +35,24 @@ type ActionPanelProps = {
 
 type DrawSkillId = "extra_lesson" | "emergency_supply";
 
+function SkillRow({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div className="character-active-skill">
+      <div><strong>{title}</strong><span>{desc}</span></div>
+      <div className="candidate-grid">{children}</div>
+    </div>
+  );
+}
+
 function CharacterSkillActions({
   game,
   activePlayer,
+  disabled = false,
   dispatchGameAction,
 }: {
   game: GameState;
   activePlayer: NonNullable<ReturnType<typeof getActivePlayer>>;
+  disabled?: boolean;
   dispatchGameAction: (action: GameAction) => void;
 }) {
   const { locale } = useLocale();
@@ -46,111 +60,88 @@ function CharacterSkillActions({
   const targets = getOpponentTargets(game, activePlayer.id);
 
   if (activePlayer.characterId === "caustic_soda_captain") {
-    const used = Boolean(
-      activePlayer.characterUsage.perCycle.caustic_soda_captain_alkali_recovery,
-    );
+    const used = Boolean(activePlayer.characterUsage.perCycle.caustic_soda_captain_alkali_recovery);
     const cards = used ? [] : getAlkaliRecoveryCards(game, activePlayer);
     return (
-      <div className="character-active-skill">
-        <div>
-          <strong>{getSkillDisplayName("alkali_recovery", locale)}</strong>
-          <span>{isEnglish ? "Discard a physical strong-alkali substance card to recover 2 HP · once per cycle" : "弃置一张实体强碱物质牌，回复 2 HP · 每周期一次"}</span>
-        </div>
-        <div className="candidate-grid">
-          {cards.length > 0 ? cards.map((cardInstanceId) => (
-            <button
-              className="primary-button"
-              key={cardInstanceId}
-              onClick={() => dispatchGameAction({
-                type: "ACTIVATE_CHARACTER_SKILL",
-                playerId: activePlayer.id,
-                skillId: "alkali_recovery",
-                cardInstanceId,
-              })}
-              type="button"
-            >
-              {isEnglish ? "Use" : "使用"} {(() => {
-                const definition = getCardDefinition(game, cardInstanceId);
-                return definition
-                  ? getCardDisplayName(definition.id, definition.name, locale)
-                  : cardInstanceId;
-              })()}
-            </button>
-          )) : (
-            <button className="primary-button" disabled type="button">
-              {used ? (isEnglish ? "Used this cycle" : "本周期已用") : (isEnglish ? "Currently unavailable" : "当前不可发动")}
-            </button>
-          )}
-        </div>
-      </div>
+      <SkillRow
+        desc={isEnglish ? "Discard strong-alkali: +2 HP / cycle" : "弃置实体强碱牌回复 2 HP · 每周期一次"}
+        title={getSkillDisplayName("alkali_recovery", locale)}
+      >
+        {cards.length > 0 ? cards.map((cardInstanceId) => (
+          <button
+            className="primary-button"
+            disabled={disabled}
+            key={cardInstanceId}
+            onClick={() => dispatchGameAction({
+              type: "ACTIVATE_CHARACTER_SKILL",
+              playerId: activePlayer.id,
+              skillId: "alkali_recovery",
+              cardInstanceId,
+            })}
+            type="button"
+          >
+            {isEnglish ? "Use " : "使用 "}{getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
+          </button>
+        )) : (
+          <button className="primary-button" disabled type="button">
+            {used ? (isEnglish ? "Used this cycle" : "本周期已用") : (isEnglish ? "Currently unavailable" : "当前不可发动")}
+          </button>
+        )}
+      </SkillRow>
     );
   }
 
   if (activePlayer.characterId === "sulfuric_acid_factory_director") {
-    const used = Boolean(
-      activePlayer.characterUsage.perCycle.sulfuric_acid_factory_director_exhaust_discharge,
-    );
+    const used = Boolean(activePlayer.characterUsage.perCycle.sulfuric_acid_factory_director_exhaust_discharge);
     return (
-      <div className="character-active-skill">
-        <div>
-          <strong>{getSkillDisplayName("exhaust_discharge", locale)}</strong>
-          <span>{isEnglish ? "Give one other living player the Exhaust Leak status · once per cycle" : "使一名其他存活玩家获得尾气泄漏状态 · 每周期一次"}</span>
-        </div>
-        <div className="candidate-grid">
-          {targets.map((target) => (
-            <button
-              className="primary-button"
-              disabled={used}
-              key={target.id}
-              onClick={() => dispatchGameAction({
-                type: "ACTIVATE_CHARACTER_SKILL",
-                playerId: activePlayer.id,
-                skillId: "exhaust_discharge",
-                targetPlayerId: target.id,
-              })}
-              type="button"
-            >
-              {isEnglish ? "Activate against" : "对"} {getPlayerDisplayName(target, locale)} {isEnglish ? "" : "发动"}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SkillRow
+        desc={isEnglish ? "Give Exhaust Leak / cycle" : "使其他存活玩家获得尾气泄漏状态 · 每周期一次"}
+        title={getSkillDisplayName("exhaust_discharge", locale)}
+      >
+        {targets.map((target) => (
+          <button
+            className="primary-button"
+            disabled={disabled || used}
+            key={target.id}
+            onClick={() => dispatchGameAction({
+              type: "ACTIVATE_CHARACTER_SKILL",
+              playerId: activePlayer.id,
+              skillId: "exhaust_discharge",
+              targetPlayerId: target.id,
+            })}
+            type="button"
+          >
+            {isEnglish ? "Target " : "对 "}{getPlayerDisplayName(target, locale)}
+          </button>
+        ))}
+      </SkillRow>
     );
   }
 
   if (activePlayer.characterId === "clumsy_party_secretary") {
-    const used = Boolean(
-      activePlayer.characterUsage.perCycle.clumsy_party_secretary_shared_active,
-    );
-    const skills = [
-      "exhaust_leak",
-      "lab_fire",
-      "exothermic_accident",
-    ] as const;
+    const used = Boolean(activePlayer.characterUsage.perCycle.clumsy_party_secretary_shared_active);
+    const skills = ["exhaust_leak", "lab_fire", "exothermic_accident"] as const;
     return (
-      <div className="character-active-skill">
-        <div>
-          <strong>{isEnglish ? "Secretary shared active skills" : "书记共享主动技能"}</strong>
-          <span>{isEnglish ? "Three skills share once per cycle · current:" : "三项技能共享每周期一次 · 当前："}{used ? (isEnglish ? "used" : "已用") : (isEnglish ? "available" : "可用")}</span>
-        </div>
-        <div className="candidate-grid">
-          {skills.map((skillId) => (
-            <button
-              className="primary-button"
-              disabled={used || targets.length === 0}
-              key={skillId}
-              onClick={() => dispatchGameAction({
-                type: "ACTIVATE_CHARACTER_SKILL",
-                playerId: activePlayer.id,
-                skillId,
-              })}
-              type="button"
-            >
-              {isEnglish ? "Activate " : "发动"}{getSkillDisplayName(skillId, locale)}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SkillRow
+        desc={`${isEnglish ? "Three skills share once per cycle · " : "三项技能共享每周期一次 · "}${used ? (isEnglish ? "used" : "已用") : (isEnglish ? "available" : "可用")}`}
+        title={isEnglish ? "Shared skills" : "书记共享主动技能"}
+      >
+        {skills.map((skillId) => (
+          <button
+            className="primary-button"
+            disabled={disabled || used || targets.length === 0}
+            key={skillId}
+            onClick={() => dispatchGameAction({
+              type: "ACTIVATE_CHARACTER_SKILL",
+              playerId: activePlayer.id,
+              skillId,
+            })}
+            type="button"
+          >
+            {isEnglish ? "Activate " : "发动"}{getSkillDisplayName(skillId, locale)}
+          </button>
+        ))}
+      </SkillRow>
     );
   }
 
@@ -159,6 +150,7 @@ function CharacterSkillActions({
 
 export function ActionPanel({
   game,
+  playerControllers,
   selectedCardId,
   onSelectCard,
   dispatchGameAction,
@@ -166,6 +158,11 @@ export function ActionPanel({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const activePlayer = getActivePlayer(game);
+  const isAi = Boolean(
+    activePlayer &&
+      playerControllers &&
+      playerControllers[activePlayer.id === "player_1" ? 0 : 1] === "ai",
+  );
   const targets = activePlayer ? getOpponentTargets(game, activePlayer.id) : [];
   const [targetByCardId, setTargetByCardId] = useState<Record<CardInstanceId, PlayerId>>({});
   const activeCharacterSkill: {
@@ -202,28 +199,33 @@ export function ActionPanel({
     <section className="debug-section action-panel" aria-labelledby="main-action-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "It is the active player's main action" : "轮到当前玩家进行主行动"}</p>
+          <p className="debug-kicker">{isEnglish ? "Active player's turn" : "轮到当前玩家进行主行动"}</p>
           <h2 id="main-action-title">{isEnglish ? "Main action" : "主行动"}</h2>
         </div>
         <button
           className="secondary-button"
+          disabled={isAi}
           onClick={() => dispatchGameAction({ type: "PASS_ACTION", playerId: activePlayer.id })}
           type="button"
         >
           {isEnglish ? "End this action" : "结束本次行动"}
         </button>
       </div>
-      <p className="panel-note">{isEnglish ? "Active player" : "当前行动玩家"}：{getPlayerDisplayName(activePlayer, locale)}</p>
+      <p className="panel-note">
+        {isEnglish ? "Active player" : "当前行动玩家"}：{getPlayerDisplayName(activePlayer, locale)}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
+      </p>
       <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>PLAY_CARD / PLAY_REFERENCE_CARD / PASS_ACTION</p></details>
       {activeCharacterSkill ? (
         <div className="character-active-skill">
           <div>
             <strong>{getSkillDisplayName(activeCharacterSkill.id, locale)}</strong>
-            <span>{isEnglish ? "Hand of 4 or fewer · once per cycle · activation ends this action" : "手牌不超过 4 张 · 每周期一次 · 发动后结束行动"}</span>
+            <span>{isEnglish ? "Hand ≤4 · once / cycle · ends action" : "手牌不超过 4 张 · 每周期一次 · 发动后结束行动"}</span>
           </div>
           <button
             className="primary-button"
             disabled={
+              isAi ||
               activePlayer.hand.length > 4 ||
               Boolean(activePlayer.characterUsage.perCycle[activeCharacterSkill.usageKey]) ||
               game.deck.length + game.discardPile.length === 0
@@ -243,10 +245,11 @@ export function ActionPanel({
       ) : null}
       <CharacterSkillActions
         activePlayer={activePlayer}
+        disabled={isAi}
         dispatchGameAction={dispatchGameAction}
         game={game}
       />
-      <p className="empty-note">{isEnglish ? "A normal play needs no target and triggers no original effect; it only updates the table reference and advances one action." : "普通出牌不需要目标，不触发原有效果，只更新场面基准并推进一次行动。"}</p>
+      <p className="empty-note">{isEnglish ? "Play updates table reference." : "普通出牌只更新场面基准。"}</p>
       <div className="action-card-list">
         {activePlayer.hand.map((cardInstanceId) => {
           const definition = getCardDefinition(game, cardInstanceId);
@@ -274,15 +277,13 @@ export function ActionPanel({
               onClick={() => onSelectCard(cardInstanceId)}
             >
               <div>
-                <strong>{definition ? getCardDisplayName(definition.id, definition.name, locale) : (isEnglish ? "Unknown card" : "未知卡牌")}</strong>
+                <strong>{getOptionalCardDisplayName(definition, locale)}</strong>
                 <span className={`association-line${canAssociate ? " is-allowed" : " is-blocked"}`}>
                   {associationLabel}
                 </span>
-                <details className="debug-details" onClick={(event) => event.stopPropagation()}>
+                <details className="debug-details" onClick={(e) => e.stopPropagation()}>
                   <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-                  <span>{definition?.type ?? "unknown"} · {cardInstanceId}</span>
-                  <span>{isEnglish ? "Tags" : "标签"}：{formatList(definition?.tags ?? [])}</span>
-                  <span>{isEnglish ? "Timing" : "时机"}：{formatList(definition?.allowedTimings ?? [])}</span>
+                  <span>{cardInstanceId} · {formatList(definition?.tags ?? [])}</span>
                 </details>
               </div>
               {canExecute && !isOxygen ? (
@@ -307,43 +308,30 @@ export function ActionPanel({
                 </label>
               ) : null}
               <div className="action-card__actions">
-                {canExecute ? (
+                {canExecute && (
                   <button
                     className="primary-button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      dispatchGameAction({
-                        type: "PLAY_CARD",
-                        playerId: activePlayer.id,
-                        cardInstanceId,
-                        targetPlayerId,
-                      });
+                    disabled={isAi}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dispatchGameAction({ type: "PLAY_CARD", playerId: activePlayer.id, cardInstanceId, targetPlayerId });
                     }}
                     type="button"
                   >
                     {isEnglish ? "Run effect" : "执行效果"}
                   </button>
-                ) : null}
-                {canAssociate ? (
-                  <button
-                    className="secondary-button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      dispatchGameAction({
-                        type: "PLAY_REFERENCE_CARD",
-                        playerId: activePlayer.id,
-                        cardInstanceId,
-                      });
-                    }}
-                    type="button"
-                  >
-                    {isEnglish ? "Normal play" : "普通出牌"}
-                  </button>
-                ) : (
-                  <button className="secondary-button" disabled type="button">
-                    {isEnglish ? "Cannot play" : "不可出牌"}
-                  </button>
                 )}
+                <button
+                  className="secondary-button"
+                  disabled={isAi || !canAssociate}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dispatchGameAction({ type: "PLAY_REFERENCE_CARD", playerId: activePlayer.id, cardInstanceId });
+                  }}
+                  type="button"
+                >
+                  {canAssociate ? (isEnglish ? "Play" : "普通出牌") : (isEnglish ? "Cannot play" : "不可出牌")}
+                </button>
               </div>
             </article>
           );

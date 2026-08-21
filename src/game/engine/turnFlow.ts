@@ -12,57 +12,24 @@ export function getAvailableDrawCardCount(state: GameState): number {
   return state.deck.length + state.discardPile.length;
 }
 
-function replacePlayer(state: GameState, playerId: PlayerId, update: (player: GameState["players"][number]) => GameState["players"][number]): GameState {
-  return {
-    ...state,
-    players: state.players.map((player) => (player.id === playerId ? update(player) : player)),
-  };
+function replacePlayer(state: GameState, playerId: PlayerId, update: (p: Player) => Player): GameState {
+  return { ...state, players: state.players.map((p) => (p.id === playerId ? update(p) : p)) };
 }
 
 function moveCardToHand(state: GameState, cardId: CardInstanceId, playerId: PlayerId): GameState {
-  const card = state.cardInstances[cardId];
   return replacePlayer(
-    {
-      ...state,
-      cardInstances: {
-        ...state.cardInstances,
-        [cardId]: {
-          ...card,
-          ownerId: playerId,
-          zone: { type: "hand", playerId },
-        },
-      },
-    },
+    { ...state, cardInstances: { ...state.cardInstances, [cardId]: { ...state.cardInstances[cardId], ownerId: playerId, zone: { type: "hand", playerId } } } },
     playerId,
-    (player) => ({ ...player, hand: [...player.hand, cardId] }),
+    (p) => ({ ...p, hand: [...p.hand, cardId] }),
   );
 }
 
 function recycleDiscardIntoDeck(state: GameState, shuffle: ShuffleFunction): GameState {
-  if (state.deck.length > 0 || state.discardPile.length === 0) {
-    return state;
-  }
-
-  const recycledDeck = shuffle(state.discardPile);
+  if (state.deck.length > 0 || state.discardPile.length === 0) return state;
+  const deck = shuffle(state.discardPile);
   const cardInstances = { ...state.cardInstances };
-
-  for (const cardId of recycledDeck) {
-    cardInstances[cardId] = {
-      ...cardInstances[cardId],
-      ownerId: undefined,
-      zone: { type: "deck" },
-    };
-  }
-
-  return appendEvent(
-    {
-      ...state,
-      cardInstances,
-      deck: recycledDeck,
-      discardPile: [],
-    },
-    { eventKey: "recycle_discard_into_deck", params: {} },
-  );
+  for (const id of deck) cardInstances[id] = { ...cardInstances[id], ownerId: undefined, zone: { type: "deck" } };
+  return appendEvent({ ...state, cardInstances, deck, discardPile: [] }, { eventKey: "recycle_discard_into_deck", params: {} });
 }
 
 export function drawCardsForPlayer(

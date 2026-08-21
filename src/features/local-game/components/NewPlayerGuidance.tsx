@@ -81,7 +81,7 @@ export function NewPlayerGuidance({
     <section className="debug-section new-player-guidance" aria-labelledby={`${contentId}-title`}>
       <div className="panel-heading new-player-guidance__heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "First-game guidance · Current phase" : "首局提示 · 当前阶段"}</p>
+          <p className="debug-kicker">{isEnglish ? "Current phase" : "首局提示 · 当前阶段"}</p>
           <h2 id={`${contentId}-title`}>{isEnglish ? "New player guidance: " : "新手引导："}{guidance.title}</h2>
         </div>
         <button
@@ -110,7 +110,7 @@ export function NewPlayerGuidance({
               <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
             ))}
           </dl>
-          <p className="panel-note">{isEnglish ? "For complete rules guidance, use About & help in the header." : "需要完整规则说明时，请使用页面顶部“关于与帮助”。"}</p>
+          <p className="panel-note">{isEnglish ? "Use About & help for full rules." : "完整规则见顶部“关于与帮助”。"}</p>
           <button
             className="secondary-button new-player-guidance__skip"
             onClick={() => onVisibleChange(false)}

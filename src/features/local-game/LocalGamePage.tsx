@@ -6,6 +6,8 @@ import { ProjectRepositoryLink } from "../../app/projectRepository";
 import { releaseMetadata } from "../../app/releaseMetadata";
 import type { GameAction } from "../../game/engine/actions";
 import type { CardInstanceId } from "../../game/engine/types";
+import type { NATBAPolicy } from "../../game/natba/types";
+import type { RandomSource } from "../../shared/random";
 import { ActionPanel } from "./components/ActionPanel";
 import { AboutDialog } from "./components/AboutDialog";
 import { CharacterSelectionPanel } from "./components/CharacterSelectionPanel";
@@ -56,7 +58,7 @@ function PlayingGame({
   onGuidanceCollapsedChange,
   onRequestSessionExit,
 }: PlayingGameProps) {
-  const { game, error } = session;
+  const { game, error, playerControllers } = session;
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const [selectedCardId, setSelectedCardId] = useState<CardInstanceId | undefined>();
@@ -75,6 +77,7 @@ function PlayingGame({
       <GameSummary
         error={error ?? undefined}
         game={game}
+        playerControllers={playerControllers}
         onRestart={(trigger) => onRequestSessionExit("restart", trigger)}
         onReturnToCharacterSelection={(trigger) => onRequestSessionExit("return", trigger)}
       />
@@ -82,8 +85,9 @@ function PlayingGame({
       <div className="debug-layout">
         <div className="debug-main">
           <div className="players-grid">
-            {game.players.map((player) => (
+            {game.players.map((player, index) => (
               <PlayerPanel
+                controller={playerControllers[index as 0 | 1]}
                 game={game}
                 handSelectionDisabled={game.phase !== "mainAction"}
                 key={player.id}
@@ -106,11 +110,16 @@ function PlayingGame({
             visible={guidanceVisible}
           />
           {game.phase === "preparationSelection" ? (
-            <PreparationPanel dispatchGameAction={dispatchGameAction} game={game} />
+            <PreparationPanel
+              dispatchGameAction={dispatchGameAction}
+              game={game}
+              playerControllers={playerControllers}
+            />
           ) : game.phase === "experimentCounterattackWindow" ? (
             <ExperimentCounterattackPanel
               dispatchGameAction={dispatchGameAction}
               game={game}
+              playerControllers={playerControllers}
             />
           ) : (
             <>
@@ -118,18 +127,31 @@ function PlayingGame({
                 dispatchGameAction={dispatchGameAction}
                 game={game}
                 onSelectCard={setSelectedCardId}
+                playerControllers={playerControllers}
                 selectedCardId={selectedCardId}
               />
-              <DiyPanel dispatchGameAction={dispatchGameAction} game={game} />
-              <ResponsePanel dispatchGameAction={dispatchGameAction} game={game} />
-              <StatusPanel dispatchGameAction={dispatchGameAction} game={game} />
+              <DiyPanel
+                dispatchGameAction={dispatchGameAction}
+                game={game}
+                playerControllers={playerControllers}
+              />
+              <ResponsePanel
+                dispatchGameAction={dispatchGameAction}
+                game={game}
+                playerControllers={playerControllers}
+              />
+              <StatusPanel
+                dispatchGameAction={dispatchGameAction}
+                game={game}
+                playerControllers={playerControllers}
+              />
             </>
           )}
           {game.phase === "gameOver" ? (
             <section className="debug-section">
               <h2>{isEnglish ? "Game over" : "对局结束"}</h2>
               <p className="panel-note">
-                {isEnglish ? "Review the full log, or use the header to restart with the current lineup or return to character selection." : "可以查看完整日志，或使用顶部“按当前阵容重开”“返回角色选择”。"}
+                {isEnglish ? "Use the header to restart or return to character selection." : "可查看日志，或用顶部重开/返回角色选择。"}
               </p>
               <ProjectRepositoryLink />
             </section>
@@ -149,16 +171,29 @@ export type LocalGamePageProps = Readonly<{
   createGame?: LocalGameFactory;
   reduceGame?: LocalGameEngineReducer;
   createSession?: LocalGameSessionInitializer;
+  policy?: NATBAPolicy;
+  aiDelayMs?: number;
+  random?: RandomSource;
 }>;
 
 export function LocalGamePage({
   createGame,
   reduceGame,
   createSession,
+  policy,
+  aiDelayMs,
+  random,
 }: LocalGamePageProps = {}) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
-  const [session, dispatch] = useLocalGameDebug(createGame, reduceGame, createSession);
+  const [session, dispatch] = useLocalGameDebug({
+    createGame,
+    reduceGame,
+    createSession,
+    policy,
+    aiDelayMs,
+    random,
+  });
   const [aboutOpen, setAboutOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<PendingSessionConfirmation | null>(null);
   const [guidanceVisible, setGuidanceVisible] = useState(true);
@@ -170,9 +205,7 @@ export function LocalGamePage({
 
   const restoreFocus = useCallback((target: HTMLElement | null) => {
     queueMicrotask(() => {
-      if (target?.isConnected) {
-        target.focus();
-      }
+      if (target?.isConnected) target.focus();
     });
   }, []);
 
@@ -191,20 +224,12 @@ export function LocalGamePage({
     kind: SessionConfirmationKind,
     trigger: HTMLButtonElement,
   ) => {
-    if (session.mode !== "playing") {
-      return;
-    }
-
+    if (session.mode !== "playing") return;
     setAboutOpen(false);
     if (!requiresSessionExitConfirmation(session.game)) {
-      dispatch({
-        type: kind === "restart"
-          ? "RESTART_CURRENT_LINEUP"
-          : "RETURN_TO_CHARACTER_SELECTION",
-      });
+      dispatch({ type: kind === "restart" ? "RESTART_CURRENT_LINEUP" : "RETURN_TO_CHARACTER_SELECTION" });
       return;
     }
-
     confirmationExecutedRef.current = false;
     setConfirmation({ kind, trigger });
   }, [dispatch, session]);
@@ -217,18 +242,11 @@ export function LocalGamePage({
   }, [confirmation, restoreFocus]);
 
   const confirmSessionExit = useCallback(() => {
-    if (!confirmation || confirmationExecutedRef.current) {
-      return;
-    }
-
+    if (!confirmation || confirmationExecutedRef.current) return;
     confirmationExecutedRef.current = true;
     const { kind, trigger } = confirmation;
     setConfirmation(null);
-    dispatch({
-      type: kind === "restart"
-        ? "RESTART_CURRENT_LINEUP"
-        : "RETURN_TO_CHARACTER_SELECTION",
-    });
+    dispatch({ type: kind === "restart" ? "RESTART_CURRENT_LINEUP" : "RETURN_TO_CHARACTER_SELECTION" });
     restoreFocus(trigger);
   }, [confirmation, dispatch, restoreFocus]);
 

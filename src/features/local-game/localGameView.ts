@@ -226,85 +226,41 @@ export function getActivePlayer(state: GameState) {
   return getPlayer(state, state.activePlayerId);
 }
 
-export function formatList(items: readonly string[]) {
-  return items.length > 0 ? items.join(", ") : "无";
+export const formatList = (items: readonly string[]): string =>
+  items.length > 0 ? items.join(", ") : "无";
+
+export function describeDamageSource(effect: DamageEffect): string {
+  const s = effect.context.source;
+  if (s.kind === "card") return cardDefinitionById.get(s.cardDefinitionId)?.name ?? "未知卡牌";
+  if (s.kind === "diy") return diyRecipes.find((r) => r.id === s.recipeId)?.displayName ?? "未知主动 DIY";
+  if (s.kind === "status") return s.statusId;
+  return s.skillId;
 }
 
-export function describeDamageSource(effect: DamageEffect) {
-  const source = effect.context.source;
-
-  switch (source.kind) {
-    case "card":
-      return cardDefinitionById.get(source.cardDefinitionId)?.name ?? "未知卡牌";
-    case "diy":
-      return diyRecipes.find((recipe) => recipe.id === source.recipeId)?.displayName ?? "未知主动 DIY";
-    case "status":
-      return source.statusId;
-    case "character-skill":
-      return source.skillId;
-    default: {
-      const exhaustiveSource: never = source;
-      return exhaustiveSource;
-    }
-  }
+export function describePendingResponse(state: GameState): string {
+  const p = state.pendingResponse;
+  if (!p) return "无";
+  const e = p.sourceEffect;
+  return `${getPlayerName(state, p.responderId)} 响应 ${describeDamageSource(e)}：${e.context.baseAmount} ${e.context.tags.join("+")} d${p.chainDepth}`;
 }
 
-export function describePendingResponse(state: GameState) {
-  const pendingResponse = state.pendingResponse;
-
-  if (!pendingResponse) {
-    return "无";
-  }
-
-  const effect = pendingResponse.sourceEffect;
-  return `${getPlayerName(state, pendingResponse.responderId)} 响应 ${describeDamageSource(
-    effect,
-  )}：${effect.context.baseAmount} 点 ${effect.context.tags.join("+")} 伤害，chainDepth ${pendingResponse.chainDepth}`;
+export function describePendingExperimentCounterattack(state: GameState): string {
+  const p = state.pendingExperimentCounterattack;
+  if (!p) return "无";
+  return `${getPlayerName(state, p.responderPlayerId)} 抵消 ${getPlayerName(state, p.attackerPlayerId)} ${describeDamageSource({ type: "DAMAGE", context: p.originalDamageContext })} ${p.responseType}`;
 }
 
-export function describePendingExperimentCounterattack(state: GameState) {
-  const pending = state.pendingExperimentCounterattack;
-  if (!pending) {
-    return "无";
-  }
-
-  const effect: DamageEffect = {
-    type: "DAMAGE",
-    context: pending.originalDamageContext,
-  };
-  return `${getPlayerName(state, pending.responderPlayerId)} 已抵消 ${getPlayerName(
-    state,
-    pending.attackerPlayerId,
-  )} 的 ${describeDamageSource(effect)}；原响应类型：${pending.responseType}`;
+export function describePendingStatusHandling(state: GameState): string {
+  const p = state.pendingStatusHandling;
+  if (!p) return "无";
+  const pl = getPlayer(state, p.playerId);
+  const st = pl?.statuses.find((c) => c.id === p.statusInstanceId);
+  return pl && st ? `${pl.name} 处理 ${st.statusId} (${st.id})` : `${p.playerId} 处理 ${p.statusInstanceId}`;
 }
 
-export function describePendingStatusHandling(state: GameState) {
-  const pendingStatusHandling = state.pendingStatusHandling;
-
-  if (!pendingStatusHandling) {
-    return "无";
-  }
-
-  const player = getPlayer(state, pendingStatusHandling.playerId);
-  const status = player?.statuses.find(
-    (candidate) => candidate.id === pendingStatusHandling.statusInstanceId,
-  );
-
-  if (!player || !status) {
-    return `${pendingStatusHandling.playerId} 处理 ${pendingStatusHandling.statusInstanceId}`;
-  }
-
-  return `${player.name} 处理 ${status.statusId} (${status.id})`;
-}
-
-export function describeTableReference(state: GameState) {
-  const tableReference = state.tableReference;
-
-  if (!tableReference) {
-    return "暂无场面基准牌";
-  }
-
-  return `${tableReference.displayName} · ${getPlayerName(state, tableReference.playedBy)} · 第 ${tableReference.cycle} 周期 / 第 ${tableReference.round} 轮`;
+export function describeTableReference(state: GameState): string {
+  const t = state.tableReference;
+  return t ? `${t.displayName} · ${getPlayerName(state, t.playedBy)} · ${t.cycle}/${t.round}` : "暂无场面基准牌";
 }
 
 export function isMainActionCard(definition: CardDefinition) {
@@ -392,63 +348,28 @@ function canCarbonateRespond(incomingDamageKind: "acid" | "base", responseDefini
 }
 
 export function getResponseCards(state: GameState, player: Player) {
-  const pendingResponse = state.pendingResponse;
-  const context = pendingResponse?.sourceEffect.context;
-
-  if (
-    state.phase !== "responseWindow" ||
-    !pendingResponse ||
-    pendingResponse.responderId !== player.id
-  ) {
-    return [];
+  const p = state.pendingResponse;
+  const ctx = p?.sourceEffect.context;
+  if (state.phase !== "responseWindow" || !p || p.responderId !== player.id) return [];
+  if (ctx?.responsePolicy === "alkali-absorption") {
+    return player.hand.filter((id) => inHand(state, player, id) && isAlkalineAbsorptionDefinition(getCardDefinition(state, id)!));
   }
-
-  if (context?.responsePolicy === "alkali-absorption") {
-    return player.hand.filter((cardInstanceId) => {
-      const instance = state.cardInstances[cardInstanceId];
-      const definition = getCardDefinition(state, cardInstanceId);
-      return Boolean(
-        instance &&
-          instance.ownerId === player.id &&
-          instance.zone.type === "hand" &&
-          instance.zone.playerId === player.id &&
-          definition &&
-          isAlkalineAbsorptionDefinition(definition),
-      );
-    });
-  }
-
-  const damageKind = context ? getAcidBaseDamageTag(context) : undefined;
-
-  if (context?.responsePolicy !== "acid-base" || !damageKind) {
-    return [];
-  }
-
-  return player.hand.filter((cardInstanceId) => {
-    const definition = getCardDefinition(state, cardInstanceId);
-    return Boolean(
-      definition && (canNeutralize(damageKind, definition) || canCarbonateRespond(damageKind, definition)),
-    );
+  const kind = ctx ? getAcidBaseDamageTag(ctx) : undefined;
+  if (ctx?.responsePolicy !== "acid-base" || !kind) return [];
+  return player.hand.filter((id) => {
+    const d = getCardDefinition(state, id);
+    return Boolean(d && (canNeutralize(kind, d) || canCarbonateRespond(kind, d)));
   });
 }
 
-export function getAlkaliRecoveryCards(state: GameState, player: Player) {
-  if (!canRecoverHp(player)) {
-    return [];
-  }
+const inHand = (s: GameState, p: Player, id: CardInstanceId): boolean => {
+  const i = s.cardInstances[id];
+  return Boolean(p.hand.includes(id) && i && i.ownerId === p.id && i.zone.type === "hand" && i.zone.playerId === p.id);
+};
 
-  return player.hand.filter((cardInstanceId) => {
-    const instance = state.cardInstances[cardInstanceId];
-    const definition = getCardDefinition(state, cardInstanceId);
-    return Boolean(
-      instance &&
-        instance.ownerId === player.id &&
-        instance.zone.type === "hand" &&
-        instance.zone.playerId === player.id &&
-        definition?.type === "substance" &&
-        definition.tags.includes("strong-alkali"),
-    );
-  });
+export function getAlkaliRecoveryCards(state: GameState, player: Player): CardInstanceId[] {
+  if (!canRecoverHp(player)) return [];
+  return player.hand.filter((id) => inHand(state, player, id) && getCardDefinition(state, id)?.tags.includes("strong-alkali"));
 }
 
 function getCurrentPendingOptionCards(
@@ -456,89 +377,34 @@ function getCurrentPendingOptionCards(
   player: Player,
   snapshotIds: readonly CardInstanceId[],
   predicate: (definition: CardDefinition) => boolean,
-) {
-  return snapshotIds.filter((cardInstanceId) => {
-    const instance = state.cardInstances[cardInstanceId];
-    const definition = getCardDefinition(state, cardInstanceId);
-    return Boolean(
-      player.hand.includes(cardInstanceId) &&
-        instance &&
-        instance.ownerId === player.id &&
-        instance.zone.type === "hand" &&
-        instance.zone.playerId === player.id &&
-        definition &&
-        predicate(definition),
-    );
+): CardInstanceId[] {
+  return snapshotIds.filter((id) => {
+    const def = getCardDefinition(state, id);
+    return inHand(state, player, id) && Boolean(def && predicate(def));
   });
 }
 
-export function getExperimentCounterattackPursuitCards(
-  state: GameState,
-  player: Player,
-) {
-  const pending = state.pendingExperimentCounterattack;
-  if (
-    state.phase !== "experimentCounterattackWindow" ||
-    !pending ||
-    pending.responderPlayerId !== player.id
-  ) {
-    return [];
-  }
-
-  return getCurrentPendingOptionCards(
-    state,
-    player,
-    pending.legalPursuitCardInstanceIds,
-    isLegalExperimentCounterattackPursuitDefinition,
-  );
+export function getExperimentCounterattackPursuitCards(state: GameState, player: Player): CardInstanceId[] {
+  const p = state.pendingExperimentCounterattack;
+  return state.phase === "experimentCounterattackWindow" && p && p.responderPlayerId === player.id
+    ? getCurrentPendingOptionCards(state, player, p.legalPursuitCardInstanceIds, isLegalExperimentCounterattackPursuitDefinition)
+    : [];
 }
 
-export function getExperimentCounterattackMetalCards(
-  state: GameState,
-  player: Player,
-) {
-  const pending = state.pendingExperimentCounterattack;
-  if (
-    state.phase !== "experimentCounterattackWindow" ||
-    !pending ||
-    pending.responderPlayerId !== player.id
-  ) {
-    return [];
-  }
-
-  return getCurrentPendingOptionCards(
-    state,
-    player,
-    pending.legalMetalCardInstanceIds,
-    isLegalExperimentCounterattackMetalDefinition,
-  );
+export function getExperimentCounterattackMetalCards(state: GameState, player: Player): CardInstanceId[] {
+  const p = state.pendingExperimentCounterattack;
+  return state.phase === "experimentCounterattackWindow" && p && p.responderPlayerId === player.id
+    ? getCurrentPendingOptionCards(state, player, p.legalMetalCardInstanceIds, isLegalExperimentCounterattackMetalDefinition)
+    : [];
 }
 
-export function getStatusHandlingCards(
-  state: GameState,
-  player: Player,
-  status: PlayerStatus | undefined,
-) {
-  if (!status || state.phase !== "statusWindow") {
-    return [];
-  }
-
-  return player.hand.filter((cardInstanceId) => {
-    const definition = getCardDefinition(state, cardInstanceId);
-
-    if (!definition || !definition.allowedTimings.includes("status-window")) {
-      return false;
-    }
-
-    if (status.statusId === "SO2_LEAK") {
-      return definition.tags.includes("alkaline-absorb");
-    }
-
-    return (
-      status.statusId === "FIRE" &&
-      (definition.id === "substance_h2o" || definition.id === "substance_co2") &&
-      definition.tags.includes("fire-extinguish")
-    );
+export function getStatusHandlingCards(state: GameState, player: Player, status: PlayerStatus | undefined) {
+  if (!status || state.phase !== "statusWindow") return [];
+  return player.hand.filter((id) => {
+    const d = getCardDefinition(state, id);
+    if (!d || !d.allowedTimings.includes("status-window")) return false;
+    if (status.statusId === "SO2_LEAK") return d.tags.includes("alkaline-absorb");
+    return status.statusId === "FIRE" && (d.id === "substance_h2o" || d.id === "substance_co2") && d.tags.includes("fire-extinguish");
   });
 }
 
@@ -578,21 +444,11 @@ export function getAvailableComponentCards(
   player: Player,
   definitionId: string,
   selectedCardIds: readonly CardInstanceId[],
-) {
-  return player.hand.filter((cardInstanceId) => {
-    if (selectedCardIds.includes(cardInstanceId)) {
-      return false;
-    }
-
-    const definition = getCardDefinition(state, cardInstanceId);
-    return definition?.id === definitionId && definition.allowedTimings.includes("diy-component");
-  });
+): CardInstanceId[] {
+  return player.hand.filter((id) => !selectedCardIds.includes(id) && getCardDefinition(state, id)?.id === definitionId && getCardDefinition(state, id)?.allowedTimings.includes("diy-component"));
 }
 
-export function getOpponentTargets(state: GameState, playerId: PlayerId) {
-  return state.players.filter((player) => player.id !== playerId && !player.eliminated);
-}
+export const getOpponentTargets = (state: GameState, playerId: PlayerId): Player[] =>
+  state.players.filter((p) => p.id !== playerId && !p.eliminated);
 
-export function getTotalCardCount(state: GameState) {
-  return Object.keys(state.cardInstances).length;
-}
+export const getTotalCardCount = (state: GameState): number => Object.keys(state.cardInstances).length;
