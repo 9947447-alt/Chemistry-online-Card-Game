@@ -18,7 +18,7 @@ import {
   getOpponentTargets,
 } from "../localGameView";
 import {
-  getCardDisplayName,
+  getOptionalCardDisplayName,
   getPlayerDisplayName,
   getSkillDisplayName,
 } from "../presentationLocale";
@@ -69,12 +69,7 @@ function CharacterSkillActions({
               })}
               type="button"
             >
-              {isEnglish ? "Use" : "使用"} {(() => {
-                const definition = getCardDefinition(game, cardInstanceId);
-                return definition
-                  ? getCardDisplayName(definition.id, definition.name, locale)
-                  : cardInstanceId;
-              })()}
+              {isEnglish ? "Use " : "使用 "}{getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
             </button>
           )) : (
             <button className="primary-button" disabled type="button">
@@ -274,7 +269,7 @@ export function ActionPanel({
               onClick={() => onSelectCard(cardInstanceId)}
             >
               <div>
-                <strong>{definition ? getCardDisplayName(definition.id, definition.name, locale) : (isEnglish ? "Unknown card" : "未知卡牌")}</strong>
+                <strong>{getOptionalCardDisplayName(definition, locale)}</strong>
                 <span className={`association-line${canAssociate ? " is-allowed" : " is-blocked"}`}>
                   {associationLabel}
                 </span>

@@ -127,25 +127,30 @@ function getPhaseFields(
   return { title, goal, entry, concept };
 }
 
-export function getConfiguringGuidance(locale: DisplayLocale = "zh-CN"): NewPlayerGuidanceView {
-  if (locale === "en") {
-    return {
-      phase: "configuring",
-      title: "Setup",
-      actor: "Both players",
-      goal: "Confirm the local shared-screen two-player lineup before starting this public game.",
-      entry: "Use Player A and Player B character selection and Start game below.",
-      concept: "Both hands are public; refreshing returns to the default character selections and does not save this game.",
-    };
-  }
+const configuringData: readonly [PhaseContent, PhaseContent] = [
+  [
+    "配置",
+    "确认本地同屏双人阵容后，再开始本局公开对局。",
+    "使用下方“玩家 A”“玩家 B”角色选择与“开始游戏”。",
+    "双方手牌公开；刷新页面会回到默认角色预选，不保存当前对局。",
+  ],
+  [
+    "Setup",
+    "Confirm the local shared-screen two-player lineup before starting this public game.",
+    "Use Player A and Player B character selection and Start game below.",
+    "Both hands are public; refreshing returns to the default character selections and does not save this game.",
+  ],
+];
 
+export function getConfiguringGuidance(locale: DisplayLocale = "zh-CN"): NewPlayerGuidanceView {
+  const [title, goal, entry, concept] = configuringData[locale === "en" ? 1 : 0];
   return {
     phase: "configuring",
-    title: "配置",
-    actor: "双方玩家",
-    goal: "确认本地同屏双人阵容后，再开始本局公开对局。",
-    entry: "使用下方“玩家 A”“玩家 B”角色选择与“开始游戏”。",
-    concept: "双方手牌公开；刷新页面会回到默认角色预选，不保存当前对局。",
+    title,
+    actor: locale === "en" ? "Both players" : "双方玩家",
+    goal,
+    entry,
+    concept,
   };
 }
 
@@ -156,38 +161,27 @@ export function getPlayingGuidance(
   const phase: GamePhase = game.phase;
   const isEn = locale === "en";
 
+  let actor = "";
   switch (phase) {
     case "preparationSelection": {
       const p = getPlayerName(game, game.pendingLaboratoryPreparation?.playerId, locale);
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: isEn ? `Current selector: ${p}` : `当前选择者：${p}`,
-      };
+      actor = isEn ? `Current selector: ${p}` : `当前选择者：${p}`;
+      break;
     }
     case "mainAction": {
       const p = getPlayerName(game, game.activePlayerId, locale);
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: isEn ? `Active player: ${p}` : `当前行动者：${p}`,
-      };
+      actor = isEn ? `Active player: ${p}` : `当前行动者：${p}`;
+      break;
     }
     case "responseWindow": {
       const p = getPlayerName(game, game.pendingResponse?.responderId, locale);
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: isEn ? `Current responder: ${p}` : `当前响应者：${p}`,
-      };
+      actor = isEn ? `Current responder: ${p}` : `当前响应者：${p}`;
+      break;
     }
     case "statusWindow": {
       const p = getPlayerName(game, game.pendingStatusHandling?.playerId, locale);
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: isEn ? `Current handler: ${p}` : `当前处理者：${p}`,
-      };
+      actor = isEn ? `Current handler: ${p}` : `当前处理者：${p}`;
+      break;
     }
     case "experimentCounterattackWindow": {
       const p = getPlayerName(
@@ -195,24 +189,18 @@ export function getPlayingGuidance(
         game.pendingExperimentCounterattack?.responderPlayerId,
         locale,
       );
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: isEn ? `Current counterattacker: ${p}` : `当前反击者：${p}`,
-      };
+      actor = isEn ? `Current counterattacker: ${p}` : `当前反击者：${p}`;
+      break;
     }
     case "gameOver": {
-      return {
-        ...getPhaseFields(phase, locale),
-        phase,
-        actor: game.isDraw
-          ? isEn
-            ? "Game result: Draw"
-            : "本局结果：平局"
-          : isEn
-            ? `Game result: ${getPlayerName(game, game.winnerPlayerId, locale)} wins`
-            : `本局结果：${getPlayerName(game, game.winnerPlayerId, locale)} 获胜`,
-      };
+      actor = game.isDraw
+        ? isEn
+          ? "Game result: Draw"
+          : "本局结果：平局"
+        : isEn
+          ? `Game result: ${getPlayerName(game, game.winnerPlayerId, locale)} wins`
+          : `本局结果：${getPlayerName(game, game.winnerPlayerId, locale)} 获胜`;
+      break;
     }
     case "setup":
     case "cycleStart":
@@ -224,4 +212,10 @@ export function getPlayingGuidance(
       return exhaustivePhase;
     }
   }
+
+  return {
+    ...getPhaseFields(phase, locale),
+    phase,
+    actor,
+  };
 }

@@ -1,6 +1,6 @@
 import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { characterDefinitions } from "../../game/data/characterDefinitions";
-import { diyRecipes, type DIYRecipe } from "../../game/data/diyRecipes";
+import { diyRecipes } from "../../game/data/diyRecipes";
 import { getReactionDefinition } from "../../game/data/reactions";
 import type { DisplayLocale } from "../../app/locale";
 import { canPlayCardAgainstTableReference } from "../../game/engine/cardAssociation";
@@ -548,45 +548,6 @@ export function getPlayerStatusById(player: Player | undefined, statusInstanceId
   }
 
   return player.statuses.find((status) => status.id === statusInstanceId);
-}
-
-export function getPlayableDiyRecipes() {
-  return diyRecipes;
-}
-
-export function getRecipeById(recipeId: string | undefined) {
-  return diyRecipes.find((recipe) => recipe.id === recipeId);
-}
-
-export function getRequiredComponentSlots(recipe: DIYRecipe) {
-  return recipe.requiredComponents.flatMap((requirement) =>
-    Array.from({ length: requirement.count }, (_, index) => ({
-      definitionId: requirement.definitionId,
-      slotId: `${requirement.definitionId}_${index}`,
-      label:
-        requirement.count > 1
-          ? `${cardDefinitionById.get(requirement.definitionId)?.name ?? requirement.definitionId} #${
-              index + 1
-            }`
-          : cardDefinitionById.get(requirement.definitionId)?.name ?? requirement.definitionId,
-    })),
-  );
-}
-
-export function getAvailableComponentCards(
-  state: GameState,
-  player: Player,
-  definitionId: string,
-  selectedCardIds: readonly CardInstanceId[],
-) {
-  return player.hand.filter((cardInstanceId) => {
-    if (selectedCardIds.includes(cardInstanceId)) {
-      return false;
-    }
-
-    const definition = getCardDefinition(state, cardInstanceId);
-    return definition?.id === definitionId && definition.allowedTimings.includes("diy-component");
-  });
 }
 
 export function getOpponentTargets(state: GameState, playerId: PlayerId) {

@@ -12,6 +12,7 @@ import {
   getCharacterDisplayName,
   getPlayerDisplayName,
 } from "../presentationLocale";
+import { getCardDefinition } from "../localGameView";
 
 type PlayerPanelProps = {
   game: GameState;
@@ -20,6 +21,9 @@ type PlayerPanelProps = {
   onSelectCard: (cardInstanceId: CardInstanceId) => void;
   handSelectionDisabled?: boolean;
   showActivePlayerIndicator?: boolean;
+  diyMode?: boolean;
+  diySelectedCardIds?: readonly CardInstanceId[];
+  onToggleDiyCard?: (cardInstanceId: CardInstanceId) => void;
 };
 
 export function PlayerPanel({
@@ -29,6 +33,9 @@ export function PlayerPanel({
   onSelectCard,
   handSelectionDisabled = false,
   showActivePlayerIndicator = true,
+  diyMode = false,
+  diySelectedCardIds = [],
+  onToggleDiyCard,
 }: PlayerPanelProps) {
   const character = getCharacterDefinition(player.characterId);
   const { locale } = useLocale();
@@ -79,16 +86,28 @@ export function PlayerPanel({
         </details>
       </div>
       <div className="hand-grid">
-        {player.hand.map((cardInstanceId) => (
-          <CardDebugCard
-            cardInstanceId={cardInstanceId}
-            disabled={handSelectionDisabled}
-            game={game}
-            key={cardInstanceId}
-            onSelect={handSelectionDisabled ? undefined : onSelectCard}
-            selected={!handSelectionDisabled && selectedCardId === cardInstanceId}
-          />
-        ))}
+        {player.hand.map((cardInstanceId) => {
+          const isDiyCardDisabled =
+            handSelectionDisabled ||
+            (diyMode &&
+              (player.id !== game.activePlayerId ||
+                !getCardDefinition(game, cardInstanceId)?.allowedTimings.includes("diy-component")));
+
+          const isSelected =
+            !isDiyCardDisabled &&
+            Boolean(diyMode ? diySelectedCardIds?.includes(cardInstanceId) : selectedCardId === cardInstanceId);
+
+          return (
+            <CardDebugCard
+              cardInstanceId={cardInstanceId}
+              disabled={isDiyCardDisabled}
+              game={game}
+              key={cardInstanceId}
+              onSelect={isDiyCardDisabled ? undefined : (diyMode ? onToggleDiyCard : onSelectCard)}
+              selected={isSelected}
+            />
+          );
+        })}
       </div>
     </section>
   );

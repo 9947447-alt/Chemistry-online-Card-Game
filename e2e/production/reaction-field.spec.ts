@@ -336,30 +336,49 @@ test("正式构建在 / 验证 Phase 16 双语游戏日志、反应日志与 DIY
   ];
 
   let selectedRecipeInfo = virtualAttackRecipes[0];
-  const recipeSelect = diyPanel.locator("select").first();
-  const componentSelects = diyPanel.locator(".component-slots select");
+  await page.getByRole("button", { name: "进入 DIY 选牌" }).click();
 
-  for (const recipeInfo of virtualAttackRecipes) {
-    await recipeSelect.selectOption(recipeInfo.id);
-    const slotCount = await componentSelects.count();
-    let allAvailable = true;
-    for (let i = 0; i < slotCount; i += 1) {
-      const optCount = await componentSelects.nth(i).locator("option").count();
-      if (optCount <= 1) {
-        allAvailable = false;
-        break;
-      }
-    }
-    if (allAvailable) {
-      selectedRecipeInfo = recipeInfo;
-      for (let i = 0; i < slotCount; i += 1) {
-        await componentSelects.nth(i).selectOption({ index: 1 });
-      }
-      break;
-    }
+  const p1Panel = page.locator(".player-panel[aria-labelledby='player_1-title']");
+  const p1HandCards = p1Panel.locator(".hand-grid .debug-card");
+  const cardCount = await p1HandCards.count();
+
+  const cardsByName: Record<string, number[]> = {};
+  for (let i = 0; i < cardCount; i += 1) {
+    const cardName = (await p1HandCards.nth(i).locator(".debug-card__name").innerText()).trim();
+    if (!cardsByName[cardName]) cardsByName[cardName] = [];
+    cardsByName[cardName].push(i);
   }
 
-  await page.getByRole("button", { name: "执行主动 DIY" }).click();
+  if (cardsByName["H+"]?.length >= 1 && cardsByName["Cl-"]?.length >= 1) {
+    selectedRecipeInfo = virtualAttackRecipes[0];
+    await p1HandCards.nth(cardsByName["H+"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["Cl-"][0]).locator("button.debug-card__select").click();
+  } else if (cardsByName["Na+"]?.length >= 1 && cardsByName["OH-"]?.length >= 1) {
+    selectedRecipeInfo = virtualAttackRecipes[1];
+    await p1HandCards.nth(cardsByName["Na+"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["OH-"][0]).locator("button.debug-card__select").click();
+  } else if (cardsByName["K+"]?.length >= 1 && cardsByName["OH-"]?.length >= 1) {
+    selectedRecipeInfo = virtualAttackRecipes[2];
+    await p1HandCards.nth(cardsByName["K+"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["OH-"][0]).locator("button.debug-card__select").click();
+  } else if (cardsByName["H+"]?.length >= 2 && cardsByName["SO4^2-"]?.length >= 1) {
+    selectedRecipeInfo = virtualAttackRecipes[3];
+    await p1HandCards.nth(cardsByName["H+"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["H+"][1]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["SO4^2-"][0]).locator("button.debug-card__select").click();
+  } else if (cardsByName["Ca^2+"]?.length >= 1 && cardsByName["OH-"]?.length >= 2) {
+    selectedRecipeInfo = virtualAttackRecipes[4];
+    await p1HandCards.nth(cardsByName["Ca^2+"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["OH-"][0]).locator("button.debug-card__select").click();
+    await p1HandCards.nth(cardsByName["OH-"][1]).locator("button.debug-card__select").click();
+  }
+
+  const targetSelect = diyPanel.locator("select");
+  if (await targetSelect.isVisible()) {
+    await targetSelect.selectOption("player_2");
+  }
+
+  await page.getByRole("button", { name: "执行 DIY" }).click();
 
   const logItems = gameLog.locator("ol li");
   const diyLog = logItems.last();

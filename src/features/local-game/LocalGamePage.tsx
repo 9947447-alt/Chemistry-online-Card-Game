@@ -5,7 +5,7 @@ import { LocaleSwitch, useLocale } from "../../app/locale";
 import { ProjectRepositoryLink } from "../../app/projectRepository";
 import { releaseMetadata } from "../../app/releaseMetadata";
 import type { GameAction } from "../../game/engine/actions";
-import type { CardInstanceId } from "../../game/engine/types";
+import type { CardInstanceId, PlayerId } from "../../game/engine/types";
 import { ActionPanel } from "./components/ActionPanel";
 import { AboutDialog } from "./components/AboutDialog";
 import { CharacterSelectionPanel } from "./components/CharacterSelectionPanel";
@@ -60,15 +60,57 @@ function PlayingGame({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const [selectedCardId, setSelectedCardId] = useState<CardInstanceId | undefined>();
+  const [diyMode, setDiyMode] = useState(false);
+  const [diySelectedCardIds, setDiySelectedCardIds] = useState<readonly CardInstanceId[]>([]);
+  const [diyTargetPlayerId, setDiyTargetPlayerId] = useState<PlayerId | undefined>();
+
+  function resetDiyState() {
+    setDiyMode(false);
+    setDiySelectedCardIds([]);
+    setDiyTargetPlayerId(undefined);
+  }
 
   useEffect(() => {
     setSelectedCardId(undefined);
+    resetDiyState();
   }, [session.revision]);
+
+  useEffect(() => {
+    if (game.phase !== "mainAction") {
+      resetDiyState();
+    }
+  }, [game.phase, game.activePlayerId]);
+
+  useEffect(() => {
+    const activePlayer = game.players.find((p) => p.id === game.activePlayerId);
+    if (!activePlayer) return;
+    const handSet = new Set(activePlayer.hand);
+    setDiySelectedCardIds((prev) => {
+      const filtered = prev.filter((id) => handSet.has(id));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [game]);
 
   function dispatchGameAction(action: GameAction) {
     dispatch({ type: "DISPATCH_GAME_ACTION", action });
     setSelectedCardId(undefined);
+    resetDiyState();
   }
+
+  const handleEnterDiyMode = () => {
+    setSelectedCardId(undefined);
+    setDiyMode(true);
+    setDiySelectedCardIds([]);
+    setDiyTargetPlayerId(undefined);
+  };
+
+  const handleToggleDiyCard = (cardInstanceId: CardInstanceId) => {
+    setDiySelectedCardIds((prev) =>
+      prev.includes(cardInstanceId)
+        ? prev.filter((id) => id !== cardInstanceId)
+        : [...prev, cardInstanceId],
+    );
+  };
 
   return (
     <main className="local-game-page">
@@ -84,10 +126,13 @@ function PlayingGame({
           <div className="players-grid">
             {game.players.map((player) => (
               <PlayerPanel
+                diyMode={diyMode}
+                diySelectedCardIds={diySelectedCardIds}
                 game={game}
                 handSelectionDisabled={game.phase !== "mainAction"}
                 key={player.id}
                 onSelectCard={setSelectedCardId}
+                onToggleDiyCard={handleToggleDiyCard}
                 player={player}
                 selectedCardId={selectedCardId}
                 showActivePlayerIndicator={game.phase !== "preparationSelection"}
@@ -120,7 +165,16 @@ function PlayingGame({
                 onSelectCard={setSelectedCardId}
                 selectedCardId={selectedCardId}
               />
-              <DiyPanel dispatchGameAction={dispatchGameAction} game={game} />
+              <DiyPanel
+                diyMode={diyMode}
+                dispatchGameAction={dispatchGameAction}
+                game={game}
+                onCancelDiyMode={resetDiyState}
+                onEnterDiyMode={handleEnterDiyMode}
+                onTargetPlayerChange={setDiyTargetPlayerId}
+                selectedCardIds={diySelectedCardIds}
+                targetPlayerId={diyTargetPlayerId}
+              />
               <ResponsePanel dispatchGameAction={dispatchGameAction} game={game} />
               <StatusPanel dispatchGameAction={dispatchGameAction} game={game} />
             </>

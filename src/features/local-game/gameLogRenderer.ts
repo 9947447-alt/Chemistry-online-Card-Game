@@ -153,11 +153,11 @@ export const logRenderers: LogRendererMap = {
   counterattack_pursuit: (params, locale, context) =>
     fmt(locale, "$0 发动实验反击，使用 $1 追击 $2，造成 $3 点伤害。", "$0 activated the experiment counterattack, used $1 to pursue $2, and dealt $3 damage.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictCardDisplayName(params.cardDefinitionId, locale), getPlayerDisplayNameById(params.targetId, locale, context), params.amount),
 
-  diy_co2_remove_fire: (params, locale, context) =>
-    fmt(locale, "$0 主动 DIY 生成 CO2 并移除火情；不创建 CO2 卡牌。", "$0 used active DIY to produce CO2 and remove Fire; no CO2 card is created.", getPlayerDisplayNameById(params.playerId, locale, context)),
+  diy_co2_remove_fire: ((gas) => (params: any, locale: DisplayLocale, context: LogPresentationContext) =>
+    fmt(locale, `$0 主动 DIY 生成 ${gas} 并移除火情；不创建 ${gas} 卡牌。`, `$0 used active DIY to produce ${gas} and remove Fire; no ${gas} card is created.`, getPlayerDisplayNameById(params.playerId, locale, context)))("CO2"),
 
-  diy_h2o_remove_fire: (params, locale, context) =>
-    fmt(locale, "$0 主动 DIY 生成 H2O 并移除火情；不创建 H2O 卡牌。", "$0 used active DIY to produce H2O and remove Fire; no H2O card is created.", getPlayerDisplayNameById(params.playerId, locale, context)),
+  diy_h2o_remove_fire: ((gas) => (params: any, locale: DisplayLocale, context: LogPresentationContext) =>
+    fmt(locale, `$0 主动 DIY 生成 ${gas} 并移除火情；不创建 ${gas} 卡牌。`, `$0 used active DIY to produce ${gas} and remove Fire; no ${gas} card is created.`, getPlayerDisplayNameById(params.playerId, locale, context)))("H2O"),
 
   diy_virtual_attack: (params, locale, context) =>
     fmt(locale, "$0 主动 DIY 使用 $1，生成虚拟产品 $2；对 $3 的$4伤害基础值为 $5 点，等待响应；不创建实体卡牌。", "$0 used active DIY recipe $1 to produce the virtual product $2; the base $4 damage value to $3 is $5, awaiting response; no entity card is created.", getPlayerDisplayNameById(params.playerId, locale, context), getStrictDiyRecipeDisplayName(params.recipeId, locale), getStrictDiyVirtualProductDisplayName(params.recipeId, locale), getPlayerDisplayNameById(params.targetId, locale, context), getStrictDamageKindDisplayName(params.damageKind, locale), params.amount),
@@ -176,15 +176,5 @@ export function renderGameLogEntry(
   locale: DisplayLocale = "zh-CN",
   context: LogPresentationContext = { players: {} },
 ): string {
-  return renderEvent(entry.eventKey, entry.params, locale, context, entry);
-}
-
-function renderEvent<E extends GameLogEventKey>(
-  eventKey: E,
-  params: GameLogParamsMap[E],
-  locale: DisplayLocale,
-  context: LogPresentationContext,
-  entry: Extract<GameLogEntry, { eventKey: E }>,
-): string {
-  return logRenderers[eventKey](params, locale, context, entry);
+  return (logRenderers[entry.eventKey] as any)(entry.params, locale, context, entry);
 }
