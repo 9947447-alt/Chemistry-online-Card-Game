@@ -24,37 +24,11 @@ function getSourcePlayerId(source: DamageSource): PlayerId | null {
   return source.kind === "status" ? null : source.sourcePlayerId;
 }
 
-function cloneDamageSource(source: DamageSource): DamageSource {
-  switch (source.kind) {
-    case "card":
-      return source.sourceSkillId
-        ? { ...source, sourceSkillId: source.sourceSkillId }
-        : {
-            kind: "card",
-            sourcePlayerId: source.sourcePlayerId,
-            cardInstanceId: source.cardInstanceId,
-            cardDefinitionId: source.cardDefinitionId,
-          };
-    case "diy":
-      return { ...source };
-    case "status":
-      return { ...source };
-    case "character-skill":
-      return { ...source };
-    default: {
-      const exhaustiveSource: never = source;
-      return exhaustiveSource;
-    }
-  }
-}
-
-function cloneDamageContext(context: DamageContext): DamageContext {
-  return {
-    ...context,
-    source: cloneDamageSource(context.source),
-    tags: [...context.tags],
-  };
-}
+const cloneDamageContext = (context: DamageContext): DamageContext => ({
+  ...context,
+  source: { ...context.source },
+  tags: [...context.tags],
+});
 
 export function isLegalExperimentCounterattackMetalDefinition(
   definition: CardDefinition,

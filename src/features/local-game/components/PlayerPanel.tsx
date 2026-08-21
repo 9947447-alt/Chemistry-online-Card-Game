@@ -5,17 +5,20 @@ import type {
   GameState,
   Player,
 } from "../../../game/engine/types";
+import type { PlayerController } from "../localGameSession";
 import { CharacterSkillList } from "./CharacterSelectionPanel";
 import { formatSkillDebugText } from "../characterPresentation";
 import { CardDebugCard } from "./CardDebugCard";
 import {
   getCharacterDisplayName,
+  getPlayerControllerDisplayName,
   getPlayerDisplayName,
 } from "../presentationLocale";
 
 type PlayerPanelProps = {
   game: GameState;
   player: Player;
+  controller?: PlayerController;
   selectedCardId?: CardInstanceId;
   onSelectCard: (cardInstanceId: CardInstanceId) => void;
   handSelectionDisabled?: boolean;
@@ -25,6 +28,7 @@ type PlayerPanelProps = {
 export function PlayerPanel({
   game,
   player,
+  controller,
   selectedCardId,
   onSelectCard,
   handSelectionDisabled = false,
@@ -33,6 +37,8 @@ export function PlayerPanel({
   const character = getCharacterDefinition(player.characterId);
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const isAi = controller === "ai";
+  const effectiveHandDisabled = handSelectionDisabled || isAi;
   const statusText = player.statuses.length > 0
     ? player.statuses.map((status) => `${status.statusId} (${status.id})`).join(", ")
     : "无";
@@ -42,7 +48,10 @@ export function PlayerPanel({
       <div className="player-panel__header">
         <div>
           <h2 id={`${player.id}-title`}>{getPlayerDisplayName(player, locale)}</h2>
-          <p>{getCharacterDisplayName(character.id, locale)}</p>
+          <p>
+            {getCharacterDisplayName(character.id, locale)}
+            {controller ? ` · ${getPlayerControllerDisplayName(controller, locale)}` : ""}
+          </p>
         </div>
         {showActivePlayerIndicator && game.activePlayerId === player.id ? (
           <span className="active-pill">{isEnglish ? "Active" : "当前行动"}</span>
@@ -55,15 +64,14 @@ export function PlayerPanel({
           [isEnglish ? "Pending status" : "待处理状态", player.statuses.length > 0 ? (isEnglish ? "Yes" : "有") : (isEnglish ? "No" : "无")],
           [isEnglish ? "DIY this cycle" : "本周期 DIY", player.usedDIYThisCycle ? (isEnglish ? "Used" : "已用") : (isEnglish ? "Unused" : "未用")],
           [isEnglish ? "Hand" : "手牌", player.hand.length],
-        ] as const).map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+        ] as const).map(([l, v]) => (
+          <div key={l}><dt>{l}</dt><dd>{v}</dd></div>
         ))}
       </dl>
       <p className="status-line">{isEnglish ? "Current status" : "当前状态"}：{player.statuses.length > 0 ? (isEnglish ? "Pending status" : "有待处理状态") : (isEnglish ? "Normal" : "正常")}</p>
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-        <p className="status-line">playerId：{player.id}</p>
-        <p className="status-line">{isEnglish ? "Status" : "状态"}：{statusText}</p>
+        <p>{player.id} · {statusText}</p>
       </details>
       <div className="character-readout">
         <div className="character-readout__heading">
@@ -82,11 +90,11 @@ export function PlayerPanel({
         {player.hand.map((cardInstanceId) => (
           <CardDebugCard
             cardInstanceId={cardInstanceId}
-            disabled={handSelectionDisabled}
+            disabled={effectiveHandDisabled}
             game={game}
             key={cardInstanceId}
-            onSelect={handSelectionDisabled ? undefined : onSelectCard}
-            selected={!handSelectionDisabled && selectedCardId === cardInstanceId}
+            onSelect={effectiveHandDisabled ? undefined : onSelectCard}
+            selected={!effectiveHandDisabled && selectedCardId === cardInstanceId}
           />
         ))}
       </div>

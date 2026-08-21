@@ -90,66 +90,25 @@ export type AIObservation = Readonly<{
   isDraw?: boolean;
 }>;
 
-function cloneCharacterUsage(usage: CharacterUsageState): CharacterUsageState {
-  return {
-    perCycle: { ...usage.perCycle },
-    perRound: { ...usage.perRound },
-  };
-}
+const cloneStatuses = (statuses: readonly PlayerStatus[]) =>
+  statuses.map((s) => ({ ...s }));
 
-function cloneStatuses(statuses: readonly PlayerStatus[]): PlayerStatus[] {
-  return statuses.map((status) => ({
-    id: status.id,
-    statusId: status.statusId,
-    sourcePlayerId: status.sourcePlayerId,
-    createdAt: status.createdAt,
-  }));
-}
+const cloneTableReference = (t?: TableReference) => (t ? { ...t } : undefined);
 
-function cloneTableReference(
-  tableRef?: TableReference,
-): TableReference | undefined {
-  if (!tableRef) {
-    return undefined;
-  }
-  return {
-    cardInstanceId: tableRef.cardInstanceId,
-    definitionId: tableRef.definitionId,
-    displayName: tableRef.displayName,
-    playedBy: tableRef.playedBy,
-    cycle: tableRef.cycle,
-    round: tableRef.round,
-  };
-}
+const cloneReaction = (r: SuccessfulReactionEvent): SuccessfulReactionEvent =>
+  ({
+    ...r,
+    participants: r.participants.map((p) => ({ ...p })),
+    outcome: { ...r.outcome },
+  }) as unknown as SuccessfulReactionEvent;
 
-function cloneSuccessfulReactionEvent(
-  reaction: SuccessfulReactionEvent,
-): SuccessfulReactionEvent {
-  return {
-    ...reaction,
-    trigger: { ...reaction.trigger },
-    participants: reaction.participants.map((p) => ({ ...p })) as any,
-    outcome: { ...reaction.outcome },
-  } as SuccessfulReactionEvent;
-}
+const cloneLog = (log: readonly GameLogEntry[]): readonly GameLogEntry[] =>
+  log.map((e) => (e.reaction ? { ...e, reaction: cloneReaction(e.reaction) } : { ...e }));
 
-function cloneLog(log: readonly GameLogEntry[]): GameLogEntry[] {
-  return log.map((entry) => {
-    if (entry.eventKey === "reaction") {
-      return {
-        id: entry.id,
-        eventKey: "reaction" as const,
-        params: { ...entry.params },
-        reaction: cloneSuccessfulReactionEvent(entry.reaction),
-      };
-    }
-    return {
-      id: entry.id,
-      eventKey: entry.eventKey,
-      params: { ...entry.params },
-    };
-  }) as GameLogEntry[];
-}
+const cloneUsage = (u: CharacterUsageState) => ({
+  perCycle: { ...u.perCycle },
+  perRound: { ...u.perRound },
+});
 
 function projectPendingContext(
   state: GameState,
@@ -202,41 +161,32 @@ function projectPendingContext(
   return { kind: "none" };
 }
 
-export function cloneCardDefinition(def: CardDefinition): CardDefinition {
-  return {
-    ...def,
-    elements: def.elements ? [...def.elements] : undefined,
-    ionsProvided: def.ionsProvided ? [...def.ionsProvided] : undefined,
-    tags: [...def.tags],
-    allowedTimings: [...def.allowedTimings],
-  };
-}
+export const cloneCardDefinition = (def: CardDefinition): CardDefinition => ({
+  ...def,
+  tags: [...def.tags],
+  allowedTimings: [...def.allowedTimings],
+  elements: def.elements ? [...def.elements] : undefined,
+});
 
-export function getAIObservation(
-  state: GameState,
-  viewerPlayerId: PlayerId,
-): AIObservation {
-  const viewerPlayer = state.players.find((player) => player.id === viewerPlayerId);
+export function getAIObservation(state: GameState, viewerPlayerId: PlayerId): AIObservation {
+  const v = state.players.find((p) => p.id === viewerPlayerId);
 
-  const self: AIObservationSelf = viewerPlayer
+  const self: AIObservationSelf = v
     ? {
-        playerId: viewerPlayer.id,
-        name: viewerPlayer.name,
-        characterId: viewerPlayer.characterId,
-        hp: viewerPlayer.hp,
-        maxHp: viewerPlayer.maxHp,
-        hand: [...viewerPlayer.hand],
-        handCards: viewerPlayer.hand
-          .map((cardId) => {
-            const instance = state.cardInstances[cardId];
-            return instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
-          })
-          .filter((definition): definition is CardDefinition => definition !== undefined)
+        playerId: v.id,
+        name: v.name,
+        characterId: v.characterId,
+        hp: v.hp,
+        maxHp: v.maxHp,
+        hand: [...v.hand],
+        handCards: v.hand
+          .map((id) => cardDefinitionsById.get(state.cardInstances[id]?.definitionId ?? ""))
+          .filter((d): d is CardDefinition => Boolean(d))
           .map(cloneCardDefinition),
-        statuses: cloneStatuses(viewerPlayer.statuses),
-        eliminated: viewerPlayer.eliminated,
-        usedDIYThisCycle: viewerPlayer.usedDIYThisCycle,
-        characterUsage: cloneCharacterUsage(viewerPlayer.characterUsage),
+        statuses: v.statuses.map((s) => ({ ...s })),
+        eliminated: v.eliminated,
+        usedDIYThisCycle: v.usedDIYThisCycle,
+        characterUsage: cloneUsage(v.characterUsage),
       }
     : {
         playerId: viewerPlayerId,
@@ -253,41 +203,29 @@ export function getAIObservation(
       };
 
   const opponents: AIObservationOpponent[] = state.players
-    .filter((player) => player.id !== viewerPlayerId)
-    .map((opponent) => ({
-      playerId: opponent.id,
-      name: opponent.name,
-      characterId: opponent.characterId,
-      hp: opponent.hp,
-      maxHp: opponent.maxHp,
-      handCount: opponent.hand.length,
-      statuses: cloneStatuses(opponent.statuses),
-      eliminated: opponent.eliminated,
-      usedDIYThisCycle: opponent.usedDIYThisCycle,
-      characterUsage: cloneCharacterUsage(opponent.characterUsage),
+    .filter((p) => p.id !== viewerPlayerId)
+    .map((op) => ({
+      playerId: op.id,
+      name: op.name,
+      characterId: op.characterId,
+      hp: op.hp,
+      maxHp: op.maxHp,
+      handCount: op.hand.length,
+      statuses: op.statuses.map((s) => ({ ...s })),
+      eliminated: op.eliminated,
+      usedDIYThisCycle: op.usedDIYThisCycle,
+      characterUsage: cloneUsage(op.characterUsage),
     }));
 
-  const discardPileCards: AIObservationDiscardCard[] = state.discardPile.map(
-    (cardInstanceId) => {
-      const instance = state.cardInstances[cardInstanceId];
-      const def = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
-      const definition = def
+  const discardPileCards: AIObservationDiscardCard[] = state.discardPile.map((id) => {
+    const def = cardDefinitionsById.get(state.cardInstances[id]?.definitionId ?? "");
+    return {
+      cardInstanceId: id,
+      definition: def
         ? cloneCardDefinition(def)
-        : {
-            id: instance?.definitionId ?? "unknown",
-            name: "Unknown Card",
-            type: "substance" as const,
-            formula: "Unknown",
-            tags: [],
-            allowedTimings: [],
-            rulesText: "",
-          };
-      return {
-        cardInstanceId,
-        definition,
-      };
-    },
-  );
+        : { id: state.cardInstances[id]?.definitionId ?? "unknown", name: "Unknown Card", type: "substance" as const, formula: "Unknown", tags: [], allowedTimings: [], rulesText: "" },
+    };
+  });
 
   return {
     viewerPlayerId,
@@ -300,7 +238,7 @@ export function getAIObservation(
     deckCount: state.deck.length,
     discardPile: [...state.discardPile],
     discardPileCards,
-    tableReference: cloneTableReference(state.tableReference),
+    tableReference: state.tableReference ? { ...state.tableReference } : undefined,
     self,
     opponents,
     pendingContext: projectPendingContext(state, viewerPlayerId),

@@ -44,13 +44,11 @@ export function CardDebugCard({
         type="button"
       >
         <span className="debug-card__name">{getCardDisplayName(definition.id, definition.name, locale)}</span>
-        <span className="debug-card__line">{isEnglish ? "Selectable in this game" : "可在当前对局中选择"}</span>
+        <span className="debug-card__line">{isEnglish ? "Selectable" : "当前可选"}</span>
       </button>
       <details className="debug-details debug-card__details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-        <span className="debug-card__meta">{definition.type} · {cardInstanceId}</span>
-        <span className="debug-card__line">{isEnglish ? "Tags" : "标签"}：{formatList(definition.tags)}</span>
-        <span className="debug-card__line">{isEnglish ? "Timing" : "时机"}：{formatList(definition.allowedTimings)}</span>
+        <span className="debug-card__meta">{cardInstanceId} · {formatList(definition.tags)} · {formatList(definition.allowedTimings)}</span>
       </details>
     </article>
   );

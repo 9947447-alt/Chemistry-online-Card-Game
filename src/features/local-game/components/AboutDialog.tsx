@@ -49,39 +49,21 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
 
         <section className="about-section" aria-labelledby="about-release-title">
           <h3 id="about-release-title">{releaseMetadata.displayName} <span className="secondary-brand">{releaseMetadata.secondaryName}</span></h3>
-          <dl className="about-metadata">
-            {([
-              [isEnglish ? "Release channel" : "发布渠道", releaseMetadata.channel],
-              [isEnglish ? "App version" : "应用版本", releaseMetadata.version],
-              [isEnglish ? "Rules version" : "规则版本", releaseMetadata.rulesVersion],
-              ["Commit", releaseMetadata.commit],
-            ] as const).map(([label, value]) => (
-              <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
-            ))}
-          </dl>
+          <p className="panel-note">{releaseMetadata.version} ({releaseMetadata.commit}) · {releaseMetadata.rulesVersion}</p>
           <ProjectRepositoryLink />
         </section>
 
         <section className="about-section">
           <h3>{isEnglish ? "Current capabilities and basic controls" : "当前能力与基本操作"}</h3>
           <ul>
-            {(isEnglish
-              ? [
-                  "A local shared-screen public two-player game; both hands, deck counts, statuses, and the full log are public.",
-                  "Choose both characters, then complete preparation, main action, response, status handling, and character skills for the current phase.",
-                  "Acid-base responses can cancel damage; acid and carbonate can produce virtual CO2; alkaline cards can handle immediate or pending effects.",
-                  "Each player may use active DIY once per cycle; character skills and successful reaction events follow their formal definitions and log display.",
-                  "Restarting or returning during a game needs confirmation; after game over these actions run directly.",
-                ]
-              : [
-                  "本地同屏双人公开对局；双方手牌、牌堆数量、状态与完整日志均公开。",
-                  "选择双方角色后开始；按当前阶段完成备课、主行动、响应、状态处理与角色技能。",
-                  "酸碱响应可取消伤害；酸与碳酸盐可生成虚拟 CO2；碱性牌可处理即时或待处理效果。",
-                  "主动 DIY 每名玩家每周期一次；角色技能与成功反应事件按正式定义和日志展示。",
-                  "对局进行中重开或返回角色选择需要二次确认；对局结束后可直接执行。",
-                ]
-            ).map((item) => (
-              <li key={item}>{item}</li>
+            {[
+              ["本地公开对局；手牌、牌堆、状态与完整日志公开。", "Local public game; hands, deck, status, and log are public."],
+              ["按阶段完成备课、主行动、响应、状态处理与角色技能。", "Follow phases for preparation, actions, response, and skills."],
+              ["酸碱中和产生虚拟 H2O；酸与碳酸盐产生虚拟 CO2；两者只记录结果，不创建 CardInstance。", "Responses cancel damage; virtual CO2 generated."],
+              ["主动 DIY 每周期一次；角色技能按定义展示。", "Active DIY once per cycle; character skills follow definitions."],
+              ["对局中重开需确认；对局结束后可直接执行。", "Restarting during play requires confirmation."],
+            ].map(([zh, en]) => (
+              <li key={zh}>{isEnglish ? en : zh}</li>
             ))}
           </ul>
         </section>
@@ -89,21 +71,13 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
         <section className="about-section">
           <h3>{isEnglish ? "First-game quick guide" : "首局速查"}</h3>
           <ul>
-            {(isEnglish
-              ? [
-                  "Confirm a local shared-screen two-player lineup on the character selection page; both hands remain public.",
-                  "Use the panel for the current phase to complete preparation, main action, response, status handling, or Experiment Counterattack. The help and freeze documents remain authoritative.",
-                  "Response DIY is disabled. Acid-base neutralization produces virtual H2O and acid-carbonate produces virtual CO2; both only record results and create no CardInstance.",
-                  "The ordinary physical card pool is fixed at 68. Real metals, equations, precipitation, and general reaction chains remain deferred.",
-                ]
-              : [
-                  "先在角色选择页确认本地同屏双人阵容；双方手牌始终公开。",
-                  "按当前阶段面板完成备课、主行动、响应、状态处理或实验反击；完整规则以帮助与冻结文档为准。",
-                  "响应 DIY 关闭。酸碱中和产生虚拟 H2O；酸与碳酸盐产生虚拟 CO2；两者只记录结果，不创建 CardInstance。",
-                  "普通实体卡池固定为 68 张；真实金属、方程式、沉淀与通用反应链仍延期。",
-                ]
-            ).map((item) => (
-              <li key={item}>{item}</li>
+            {[
+              ["在角色选择页确认阵容；双方手牌公开。", "Confirm lineup on setup page; hands are public."],
+              ["按当前面板完成各阶段操作或实验反击。", "Follow active panel for phase actions or counterattack."],
+              ["响应 DIY 关闭。中和产出虚拟 H2O，酸+碳酸盐产出虚拟 CO2。", "Neutralization yields virtual H2O; acid+carbonate yields virtual CO2."],
+              ["卡池固定 68 张；真实金属、方程式与反应链延期。", "Pool fixed at 68; metals, equations, and chains are deferred."],
+            ].map(([zh, en]) => (
+              <li key={zh}>{isEnglish ? en : zh}</li>
             ))}
           </ul>
         </section>
@@ -125,7 +99,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
             ))}
           </div>
           <p>
-            {isEnglish ? "Experiment Counterattack offers partial choices in this playtest. This area shows only public summaries from character definitions and does not copy rule execution logic." : "“实验反击”在当前试玩中提供部分选择；这里仅展示角色定义的公开摘要，不复制规则执行逻辑。"}
+            {isEnglish ? "Experiment Counterattack offers partial choices in this playtest." : "实验反击在当前试玩中提供部分选择。"}
           </p>
           <details className="debug-details">
             <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
@@ -138,24 +112,16 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
         <section className="about-section">
           <h3>{isEnglish ? "Data, safety, and content boundaries" : "数据、安全与内容边界"}</h3>
           <ul>
-            {(isEnglish
-              ? [
-                  "No game telemetry, accounts, online play, or saves; refreshing discards the current game and returns to the default selections.",
-                  "The ordinary physical card pool is fixed at 68; virtual H2O, CO2, and skill results never create extra ordinary CardInstances.",
-                  "Metal counterattacks, equations, precipitation, response DIY, multiplayer, rooms, replays, and desktop installation are deferred.",
-                  "Local safe diagnostics contain only the name, app version, rules version, commit, stable error code, and a non-sensitive environment summary.",
-                ]
-              : [
-                  "零网络遥测，无账号、无联网、无存档；刷新会丢失当前对局并回到默认角色预选。",
-                  "普通实体卡池固定为 68 张；虚拟 H2O、CO2 与技能结果不会创建额外普通 CardInstance。",
-                  "金属反击、方程式、沉淀、响应 DIY、多人、房间、回放和桌面安装均延期。",
-                  "本地安全错误报告只包含名称、应用版本、规则版本、commit、稳定错误码和非敏感运行环境概要。",
-                ]
-            ).map((item) => (
-              <li key={item}>{item}</li>
+            {[
+              ["无遥测、无账号、无联网、无存档；刷新即丢失对局。", "No telemetry, accounts, online play, or saves."],
+              ["卡池固定 68 张；虚拟产物不创建实体 CardInstance。", "Pool fixed at 68; virtual products create no CardInstances."],
+              ["金属反击、方程式、沉淀与多人房间延期。", "Metal counterattack, equations, and rooms are deferred."],
+              ["本地安全诊断仅含版本、commit 与错误码。", "Diagnostics include version, commit, and error code."],
+            ].map(([zh, en]) => (
+              <li key={zh}>{isEnglish ? en : zh}</li>
             ))}
           </ul>
-          <p className="panel-note">反馈 / Feedback：点击反馈将离开游戏，提交内容由 Microsoft Forms 处理。 / Clicking Feedback leaves the game and Microsoft Forms handles submitted content.</p>
+          <p className="panel-note">{isEnglish ? "Feedback opens external Microsoft Forms." : "反馈将打开外部 Microsoft Forms 问卷。"}</p>
         </section>
     </ModalDialog>
   );

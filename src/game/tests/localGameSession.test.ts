@@ -87,10 +87,31 @@ describe("Phase 9 local Debug Alpha configuration", () => {
     expect(state).toEqual({
       mode: "configuring",
       characterIds: defaultCharacterSelection,
+      playerControllers: ["human", "human"],
       revision: 0,
       error: null,
     });
     expect("game" in state).toBe(false);
+  });
+
+  it("supports selecting player controller for human vs ai configuration", () => {
+    let state: LocalGameSessionState = createConfiguringLocalGameSession();
+    state = localGameSessionReducer(state, {
+      type: "SELECT_PLAYER_CONTROLLER",
+      playerIndex: 1,
+      controller: "ai",
+    });
+
+    expect(state.playerControllers).toEqual(["human", "ai"]);
+    expect(state.error).toBeNull();
+
+    const invalidState = localGameSessionReducer(state, {
+      type: "SELECT_PLAYER_CONTROLLER",
+      playerIndex: 1,
+      controller: "alien",
+    });
+    expect(invalidState.playerControllers).toEqual(["human", "ai"]);
+    expect(invalidState.error).toContain("未知控制方");
   });
 
   it("uses all seven formal character definitions as the display source", () => {

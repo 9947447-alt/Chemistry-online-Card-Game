@@ -84,27 +84,14 @@ export type AppliedDamage = Readonly<{
 const noDamageModifiers: DamageModifierSet = {};
 
 function assertFiniteNonNegative(label: string, amount: number): void {
-  if (!Number.isFinite(amount) || amount < 0) {
-    throw new Error(`${label} must be a finite non-negative number.`);
-  }
+  if (!Number.isFinite(amount) || amount < 0) throw new Error(`${label} must be a finite non-negative number.`);
 }
 
-function validateModifiers(modifiers: DamageModifierSet): void {
-  if (modifiers.setValue) {
-    assertFiniteNonNegative("Damage set value", modifiers.setValue.amount);
-  }
-
-  if (modifiers.increase) {
-    assertFiniteNonNegative("Damage increase", modifiers.increase.amount);
-  }
-
-  if (modifiers.reduction) {
-    assertFiniteNonNegative("Damage reduction", modifiers.reduction.amount);
-  }
-
-  if (modifiers.minimum) {
-    assertFiniteNonNegative("Damage minimum", modifiers.minimum.amount);
-  }
+function validateModifiers(m: DamageModifierSet): void {
+  if (m.setValue) assertFiniteNonNegative("Damage set value", m.setValue.amount);
+  if (m.increase) assertFiniteNonNegative("Damage increase", m.increase.amount);
+  if (m.reduction) assertFiniteNonNegative("Damage reduction", m.reduction.amount);
+  if (m.minimum) assertFiniteNonNegative("Damage minimum", m.minimum.amount);
 }
 
 export function resolveNormalDamage(
@@ -121,69 +108,23 @@ export function resolveNormalDamage(
 
   const isImmune = modifiers.immunity !== undefined;
   const afterImmunityAmount = isImmune ? 0 : increasedAmount;
-  const reducedAmount = isImmune
-    ? 0
-    : Math.max(0, afterImmunityAmount - (modifiers.reduction?.amount ?? 0));
-  const minimumAmount = isImmune
-    ? 0
-    : modifiers.minimum
-      ? Math.max(reducedAmount, modifiers.minimum.amount)
-      : reducedAmount;
+  const reducedAmount = isImmune ? 0 : Math.max(0, afterImmunityAmount - (modifiers.reduction?.amount ?? 0));
+  const minimumAmount = isImmune ? 0 : modifiers.minimum ? Math.max(reducedAmount, modifiers.minimum.amount) : reducedAmount;
   const cappedAmount = Math.min(minimumAmount, normalDamageCap);
   const finalAmount = cappedAmount;
-
   assertFiniteNonNegative("Final DAMAGE", finalAmount);
 
   return {
     finalAmount,
     trace: [
-      {
-        stage: "base",
-        inputAmount: baseAmount,
-        outputAmount: baseAmount,
-      },
-      {
-        stage: "set-value",
-        inputAmount: baseAmount,
-        outputAmount: setValueAmount,
-        modifier: modifiers.setValue,
-      },
-      {
-        stage: "increase",
-        inputAmount: setValueAmount,
-        outputAmount: increasedAmount,
-        modifier: modifiers.increase,
-      },
-      {
-        stage: "immunity",
-        inputAmount: increasedAmount,
-        outputAmount: afterImmunityAmount,
-        modifier: modifiers.immunity,
-      },
-      {
-        stage: "reduction",
-        inputAmount: afterImmunityAmount,
-        outputAmount: reducedAmount,
-        modifier: modifiers.reduction,
-      },
-      {
-        stage: "minimum",
-        inputAmount: reducedAmount,
-        outputAmount: minimumAmount,
-        modifier: modifiers.minimum,
-        skippedByImmunity: isImmune,
-      },
-      {
-        stage: "cap",
-        inputAmount: minimumAmount,
-        outputAmount: cappedAmount,
-        cap: normalDamageCap,
-      },
-      {
-        stage: "final",
-        inputAmount: cappedAmount,
-        outputAmount: finalAmount,
-      },
+      { stage: "base", inputAmount: baseAmount, outputAmount: baseAmount },
+      { stage: "set-value", inputAmount: baseAmount, outputAmount: setValueAmount, modifier: modifiers.setValue },
+      { stage: "increase", inputAmount: setValueAmount, outputAmount: increasedAmount, modifier: modifiers.increase },
+      { stage: "immunity", inputAmount: increasedAmount, outputAmount: afterImmunityAmount, modifier: modifiers.immunity },
+      { stage: "reduction", inputAmount: afterImmunityAmount, outputAmount: reducedAmount, modifier: modifiers.reduction },
+      { stage: "minimum", inputAmount: reducedAmount, outputAmount: minimumAmount, modifier: modifiers.minimum, skippedByImmunity: isImmune },
+      { stage: "cap", inputAmount: minimumAmount, outputAmount: cappedAmount, cap: normalDamageCap },
+      { stage: "final", inputAmount: cappedAmount, outputAmount: finalAmount },
     ],
   };
 }

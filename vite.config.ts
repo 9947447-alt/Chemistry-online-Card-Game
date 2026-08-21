@@ -90,7 +90,11 @@ export default defineConfig({
   define: {
     __APP_COMMIT__: JSON.stringify(readBuildCommit()),
   },
+  esbuild: {
+    legalComments: "none",
+  },
   build: {
+    target: "es2022",
     sourcemap: false,
   },
   test: {

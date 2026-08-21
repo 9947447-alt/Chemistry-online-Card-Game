@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "../../../app/locale";
 import type { GameAction } from "../../../game/engine/actions";
 import type { CardInstanceId, GameState, PlayerId } from "../../../game/engine/types";
+import type { PlayerControllerSelection } from "../localGameSession";
 import {
   cardDefinitionById,
   getActivePlayer,
@@ -21,13 +22,19 @@ import {
 
 type DiyPanelProps = {
   game: GameState;
+  playerControllers?: PlayerControllerSelection;
   dispatchGameAction: (action: GameAction) => void;
 };
 
-export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
+export function DiyPanel({ game, playerControllers, dispatchGameAction }: DiyPanelProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const activePlayer = getActivePlayer(game);
+  const isAi = Boolean(
+    activePlayer &&
+      playerControllers &&
+      playerControllers[activePlayer.id === "player_1" ? 0 : 1] === "ai",
+  );
   const recipes = getPlayableDiyRecipes();
   const [recipeId, setRecipeId] = useState(recipes[0]?.id);
   const recipe = getRecipeById(recipeId);
@@ -51,6 +58,7 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
     .filter((cardInstanceId): cardInstanceId is CardInstanceId => Boolean(cardInstanceId));
   const allComponentsSelected = selectedComponentIds.length === slots.length;
   const canSubmit =
+    !isAi &&
     allComponentsSelected &&
     !activePlayer.usedDIYThisCycle &&
     (!recipe.requiresTarget || Boolean(targetPlayerId));
@@ -77,50 +85,28 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
           ))}
         </select>
       </label>
-      <div className="recipe-list" aria-label={isEnglish ? "All MVP 0 active DIY recipes" : "全部 MVP 0 主动 DIY 配方"}>
-        {recipes.map((candidate) => (
-          <button
-            className={`recipe-chip${candidate.id === recipe.id ? " is-selected" : ""}`}
-            key={candidate.id}
-            onClick={() => setRecipeId(candidate.id)}
-            type="button"
-          >
-            {getDiyRecipeDisplayName(candidate.id, candidate.name, locale)}
-          </button>
-        ))}
-      </div>
       <div className="component-slots">
         {slots.map((slot) => {
-          const selectedForOtherSlots = selectedComponentIds.filter(
-            (cardInstanceId) => cardInstanceId !== componentIds[slot.slotId],
-          );
           const options = getAvailableComponentCards(
             game,
             activePlayer,
             slot.definitionId,
-            selectedForOtherSlots,
+            selectedComponentIds.filter((id) => id !== componentIds[slot.slotId]),
           );
-          const definition = cardDefinitionById.get(slot.definitionId);
-          const definitionName = definition
-            ? getCardDisplayName(definition.id, definition.name, locale)
-            : slot.definitionId;
+          const def = cardDefinitionById.get(slot.definitionId);
+          const name = def ? getCardDisplayName(def.id, def.name, locale) : slot.definitionId;
 
           return (
             <label className="field-row" key={slot.slotId}>
-              <span>{definitionName}</span>
+              <span>{name}</span>
               <select
-                onChange={(event) =>
-                  setComponentIds((current) => ({
-                    ...current,
-                    [slot.slotId]: event.target.value,
-                  }))
-                }
+                onChange={(e) => setComponentIds((c) => ({ ...c, [slot.slotId]: e.target.value }))}
                 value={componentIds[slot.slotId] ?? ""}
               >
-                <option value="">{isEnglish ? "Select" : "选择"} {definitionName}</option>
-                {options.map((cardInstanceId) => (
-                  <option key={cardInstanceId} value={cardInstanceId}>
-                    {getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
+                <option value="">{isEnglish ? "Select " : "选择 "}{name}</option>
+                {options.map((id) => (
+                  <option key={id} value={id}>
+                    {getOptionalCardDisplayName(getCardDefinition(game, id), locale)}
                   </option>
                 ))}
               </select>
@@ -132,22 +118,22 @@ export function DiyPanel({ game, dispatchGameAction }: DiyPanelProps) {
         <label className="field-row">
           <span>{isEnglish ? "DIY target" : "DIY 目标"}</span>
           <select
-            onChange={(event) => setTargetPlayerId(event.target.value)}
+            onChange={(e) => setTargetPlayerId(e.target.value)}
             value={targetPlayerId ?? ""}
           >
-            {targets.map((target) => (
-              <option key={target.id} value={target.id}>
-                {getPlayerDisplayName(target, locale)}
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {getPlayerDisplayName(t, locale)}
               </option>
             ))}
           </select>
         </label>
       ) : (
-        <p className="empty-note">{isEnglish ? "This recipe does not require a target." : "此配方不需要选择目标。"}</p>
+        <p className="empty-note">{isEnglish ? "No target required." : "此配方不需要选择目标。"}</p>
       )}
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-        <p>targetPlayerId：{recipe.requiresTarget ? targetPlayerId ?? (isEnglish ? "not selected" : "未选择") : (isEnglish ? "not set" : "未设置")}</p>
+        <p>targetPlayerId: {recipe.requiresTarget ? targetPlayerId ?? "none" : "n/a"}</p>
       </details>
       <button
         className="primary-button"

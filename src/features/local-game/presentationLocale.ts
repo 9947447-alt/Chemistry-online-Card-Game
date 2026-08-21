@@ -11,7 +11,7 @@ import type { DisplayLocale } from "../../app/locale";
 import { cardDefinitions } from "../../game/data/cardDefinitions";
 import { characterDefinitions, getCharacterDefinition } from "../../game/data/characterDefinitions";
 import { diyRecipes } from "../../game/data/diyRecipes";
-import type { FatalErrorCode } from "./localGameSession";
+import type { FatalErrorCode, PlayerController } from "./localGameSession";
 
 type LocalizedLabel = readonly [zh: string, en: string];
 
@@ -32,7 +32,7 @@ function lookup(
   return fallback;
 }
 
-const characterEnglishNames: Readonly<Record<CharacterId, string>> = {
+const characterEnglishNames: Record<string, string> = {
   laboratory_teacher: "Laboratory Teacher",
   chemical_factory_ceo: "Chemical Factory CEO",
   clumsy_party_secretary: "Clumsy Party Secretary",
@@ -42,9 +42,7 @@ const characterEnglishNames: Readonly<Record<CharacterId, string>> = {
   sulfuric_acid_factory_director: "Sulfuric Acid Factory Director",
 };
 
-const skillEnglishNames: Readonly<
-  Record<string, string> & Record<CharacterSkillId, string>
-> = {
+const skillEnglishNames: Record<string, string> = {
   lesson_preparation: "Lesson Preparation",
   extra_lesson: "Extra Lesson",
   capital_reserve: "Capital Reserve",
@@ -65,44 +63,31 @@ const skillEnglishNames: Readonly<
 };
 
 function getCanonicalSkillName(skillId: string): string | undefined {
-  for (const character of characterDefinitions) {
-    const skill = character.skills.find((candidate) => candidate.id === skillId);
-    if (skill !== undefined) {
-      return skill.name;
-    }
-  }
-  return undefined;
-}
-
-function getKnownCardDisplayName(definitionId: string, locale: DisplayLocale): string | undefined {
-  const canonical = cardDefinitions.find((definition) => definition.id === definitionId)?.name;
-  if (canonical !== undefined) {
-    return locale === "en" ? (cardEnglishNames[definitionId] ?? canonical) : canonical;
+  for (const c of characterDefinitions) {
+    const s = c.skills.find((k) => k.id === skillId);
+    if (s) return s.name;
   }
 }
 
-function getKnownDiyRecipeDisplayName(recipeId: string, locale: DisplayLocale): string | undefined {
-  const canonical = diyRecipes.find((recipe) => recipe.id === recipeId)?.name;
-  if (canonical !== undefined) {
-    return locale === "en" ? (diyRecipeEnglishNames[recipeId] ?? canonical) : canonical;
-  }
+function getKnownCardDisplayName(id: string, locale: DisplayLocale): string | undefined {
+  const c = cardDefinitions.find((d) => d.id === id)?.name;
+  if (c) return locale === "en" ? (cardEnglishNames[id] ?? c) : c;
 }
 
-const zh_hcl = "稀 HCl";
-const zh_h2so4 = "稀 H2SO4";
-const zh_naoh = "稀 NaOH";
-const zh_koh = "稀 KOH";
-const zh_lime = "石灰水 Ca(OH)2";
+function getKnownDiyRecipeDisplayName(id: string, locale: DisplayLocale): string | undefined {
+  const c = diyRecipes.find((r) => r.id === id)?.name;
+  if (c) return locale === "en" ? (diyRecipeEnglishNames[id] ?? c) : c;
+}
 
-const diyVirtualProductNames: Readonly<Record<string, readonly [string, string]>> = {
-  diy_hcl_from_h_cl: [zh_hcl, "dilute HCl"],
-  diy_h2so4_from_2h_so4: [zh_h2so4, "dilute H2SO4"],
-  diy_naoh_from_na_oh: [zh_naoh, "dilute NaOH"],
-  diy_koh_from_k_oh: [zh_koh, "dilute KOH"],
-  diy_limewater_from_ca_2oh: [zh_lime, "limewater Ca(OH)2"],
+const diyVirtualProductNames: Record<string, LocalizedLabel> = {
+  diy_hcl_from_h_cl: ["稀 HCl", "dilute HCl"],
+  diy_h2so4_from_2h_so4: ["稀 H2SO4", "dilute H2SO4"],
+  diy_naoh_from_na_oh: ["稀 NaOH", "dilute NaOH"],
+  diy_koh_from_k_oh: ["稀 KOH", "dilute KOH"],
+  diy_limewater_from_ca_2oh: ["石灰水 Ca(OH)2", "limewater Ca(OH)2"],
 };
 
-const cardEnglishNames: Readonly<Record<string, string>> = {
+const cardEnglishNames: Record<string, string> = {
   substance_hcl_dilute: "Dilute HCl",
   substance_h2so4_dilute: "Dilute H2SO4",
   substance_naoh_dilute: "Dilute NaOH",
@@ -111,7 +96,7 @@ const cardEnglishNames: Readonly<Record<string, string>> = {
   event_lab_fire: "Laboratory Bench Fire",
 };
 
-const diyRecipeEnglishNames: Readonly<Record<string, string>> = {
+const diyRecipeEnglishNames: Record<string, string> = {
   diy_hcl_from_h_cl: "H+ + Cl- -> dilute HCl",
   diy_h2so4_from_2h_so4: "2H+ + SO4^2- -> dilute H2SO4",
   diy_naoh_from_na_oh: "Na+ + OH- -> dilute NaOH",
@@ -119,23 +104,23 @@ const diyRecipeEnglishNames: Readonly<Record<string, string>> = {
   diy_limewater_from_ca_2oh: "Ca2+ + 2OH- -> limewater Ca(OH)2",
 };
 
-const statusNames: Readonly<Record<string, LocalizedLabel>> = {
+const statusNames: Record<string, LocalizedLabel> = {
   SO2_LEAK: ["SO2 泄漏", "SO2 leak"],
   FIRE: ["火情", "Fire"],
 };
 
-const damageKindNames: Readonly<Record<string, LocalizedLabel>> = {
+const damageKindNames: Record<string, LocalizedLabel> = {
   acid: ["酸性", "acid"],
   base: ["碱性", "alkaline"],
 };
 
-const reactionNames: Readonly<Record<string, LocalizedLabel>> = {
+const reactionNames: Record<string, LocalizedLabel> = {
   acid_base_neutralization: ["酸碱中和", "Acid-base neutralization"],
   acid_carbonate_co2: ["酸与碳酸盐", "Acid and carbonate"],
   so2_alkaline_absorption: ["SO2 碱性吸收", "SO2 alkaline absorption"],
 };
 
-const skillTypeNames: Readonly<Record<CharacterSkillType, LocalizedLabel>> = {
+const skillTypeNames: Record<CharacterSkillType, LocalizedLabel> = {
   active: ["主动", "Active"],
   passive: ["被动", "Passive"],
   response: ["响应", "Response"],
@@ -157,95 +142,52 @@ const implementationStatusNames: Readonly<Record<CharacterSkillImplementationSta
   deferred: ["延期", "Deferred"],
 };
 
-export function getCharacterDisplayName(characterId: CharacterId, locale: DisplayLocale): string {
-  return locale === "en"
-    ? characterEnglishNames[characterId]
-    : getCharacterDefinition(characterId).name;
-}
+export const getCharacterDisplayName = (characterId: CharacterId, locale: DisplayLocale): string =>
+  locale === "en" ? characterEnglishNames[characterId] : getCharacterDefinition(characterId).name;
 
 export function getSkillDisplayName(skillId: string, locale: DisplayLocale): string {
   const canonical = getCanonicalSkillName(skillId);
-  if (canonical === undefined) {
-    return skillId;
-  }
-  return locale === "en" ? skillEnglishNames[skillId] : canonical;
+  return canonical === undefined ? skillId : (locale === "en" ? skillEnglishNames[skillId] : canonical);
 }
 
 export function getStrictSkillDisplayName(skillId: string, locale: DisplayLocale): string {
   const canonical = getCanonicalSkillName(skillId);
-  if (canonical === undefined) {
-    throw new Error(`Unknown skillId for log presentation: ${skillId}`);
-  }
+  if (canonical === undefined) throw new Error(`Unknown skillId for log presentation: ${skillId}`);
   return locale === "en" ? skillEnglishNames[skillId] : canonical;
 }
 
-export function getCardDisplayName(definitionId: string, fallback: string, locale: DisplayLocale): string {
-  return getKnownCardDisplayName(definitionId, locale) ?? fallback;
-}
+export const getCardDisplayName = (definitionId: string, fallback: string, locale: DisplayLocale): string =>
+  getKnownCardDisplayName(definitionId, locale) ?? fallback;
 
-export function getOptionalCardDisplayName(
+export const getOptionalCardDisplayName = (
   definition: { id: string; name: string } | undefined,
   locale: DisplayLocale,
-): string {
-  return definition
-    ? getCardDisplayName(definition.id, definition.name, locale)
-    : (locale === "en" ? "Unknown card" : "未知卡牌");
-}
+): string =>
+  definition ? getCardDisplayName(definition.id, definition.name, locale) : (locale === "en" ? "Unknown card" : "未知卡牌");
 
 export function getStrictCardDisplayName(definitionId: string, locale: DisplayLocale): string {
   const name = getKnownCardDisplayName(definitionId, locale);
-  if (name === undefined) {
-    throw new Error(`Unknown card definitionId for log presentation: ${definitionId}`);
-  }
+  if (name === undefined) throw new Error(`Unknown card definitionId for log presentation: ${definitionId}`);
   return name;
 }
 
-export function getDiyRecipeDisplayName(recipeId: string, fallback: string, locale: DisplayLocale): string {
-  return getKnownDiyRecipeDisplayName(recipeId, locale) ?? fallback;
-}
+export const getDiyRecipeDisplayName = (recipeId: string, fallback: string, locale: DisplayLocale): string =>
+  getKnownDiyRecipeDisplayName(recipeId, locale) ?? fallback;
 
 export function getStrictDiyRecipeDisplayName(recipeId: string, locale: DisplayLocale): string {
   const name = getKnownDiyRecipeDisplayName(recipeId, locale);
-  if (name === undefined) {
-    throw new Error(`Unknown recipeId for log presentation: ${recipeId}`);
-  }
+  if (name === undefined) throw new Error(`Unknown recipeId for log presentation: ${recipeId}`);
   return name;
 }
 
-export function getStatusDisplayName(statusId: string, locale: DisplayLocale): string {
-  return lookup(statusNames, statusId, locale);
-}
-
-export function getStrictStatusDisplayName(statusId: string, locale: DisplayLocale): string {
-  return lookup(statusNames, statusId, locale, "statusId");
-}
-
-export function getReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
-  return lookup(reactionNames, reactionId, locale);
-}
-
-export function getStrictReactionDisplayName(reactionId: string, locale: DisplayLocale): string {
-  return lookup(reactionNames, reactionId, locale, "reactionId");
-}
-
-export function getDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
-  return lookup(damageKindNames, damageKind, locale);
-}
-
-export function getStrictDamageKindDisplayName(damageKind: string, locale: DisplayLocale): string {
-  return lookup(damageKindNames, damageKind, locale, "damageKind");
-}
-
-export function getSkillTypeDisplayName(type: CharacterSkillType, locale: DisplayLocale): string {
-  return skillTypeNames[type][locale === "en" ? 1 : 0];
-}
-
-export function getImplementationStatusDisplayName(
-  status: CharacterSkillImplementationStatus,
-  locale: DisplayLocale,
-): string {
-  return implementationStatusNames[status][locale === "en" ? 1 : 0];
-}
+export const getStatusDisplayName = (statusId: string, locale: DisplayLocale): string => lookup(statusNames, statusId, locale);
+export const getStrictStatusDisplayName = (statusId: string, locale: DisplayLocale): string => lookup(statusNames, statusId, locale, "statusId");
+export const getReactionDisplayName = (reactionId: string, locale: DisplayLocale): string => lookup(reactionNames, reactionId, locale);
+export const getStrictReactionDisplayName = (reactionId: string, locale: DisplayLocale): string => lookup(reactionNames, reactionId, locale, "reactionId");
+export const getDamageKindDisplayName = (damageKind: string, locale: DisplayLocale): string => lookup(damageKindNames, damageKind, locale);
+export const getStrictDamageKindDisplayName = (damageKind: string, locale: DisplayLocale): string => lookup(damageKindNames, damageKind, locale, "damageKind");
+export const getSkillTypeDisplayName = (type: CharacterSkillType, locale: DisplayLocale): string => skillTypeNames[type][locale === "en" ? 1 : 0];
+export const getImplementationStatusDisplayName = (status: CharacterSkillImplementationStatus, locale: DisplayLocale): string => implementationStatusNames[status][locale === "en" ? 1 : 0];
 
 export function getSkillAvailabilityDisplayName(
   status: CharacterSkillImplementationStatus,
@@ -279,13 +221,11 @@ export function getPlayerDisplayName(player: Player | undefined, locale: Display
 }
 
 
-export function getDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
-  return lookup(diyVirtualProductNames, recipeId, locale);
-}
+export const getDiyVirtualProductDisplayName = (recipeId: string, locale: DisplayLocale): string =>
+  lookup(diyVirtualProductNames, recipeId, locale);
 
-export function getStrictDiyVirtualProductDisplayName(recipeId: string, locale: DisplayLocale): string {
-  return lookup(diyVirtualProductNames, recipeId, locale, "virtual product recipeId");
-}
+export const getStrictDiyVirtualProductDisplayName = (recipeId: string, locale: DisplayLocale): string =>
+  lookup(diyVirtualProductNames, recipeId, locale, "virtual product recipeId");
 
 export function getPlayerDisplayNameById(
   playerId: PlayerId,
@@ -293,15 +233,9 @@ export function getPlayerDisplayNameById(
   context?: LogPresentationContext,
 ): string {
   const customName = context?.players[playerId]?.customName;
-  if (customName !== undefined) {
-    return customName;
-  }
-  if (playerId === "player_1") {
-    return locale === "en" ? "Player A" : "玩家 A";
-  }
-  if (playerId === "player_2") {
-    return locale === "en" ? "Player B" : "玩家 B";
-  }
+  if (customName !== undefined) return customName;
+  if (playerId === "player_1") return locale === "en" ? "Player A" : "玩家 A";
+  if (playerId === "player_2") return locale === "en" ? "Player B" : "玩家 B";
   throw new Error(`Unknown playerId for log presentation: ${playerId}`);
 }
 
@@ -309,35 +243,34 @@ const fatalMessages: Readonly<
   Record<string, LocalizedLabel> & Record<FatalErrorCode, LocalizedLabel>
 > = {
   SESSION_INITIALIZATION_FAILED: [
-    "本地会话初始化失败。旧状态已被隔离，请重新开始。",
-    "Local session initialization failed. The old state was isolated; please start again.",
+    "本地会话初始化失败，请重新开始。",
+    "Session initialization failed; please restart.",
   ],
   GAME_START_FAILED: [
-    "无法创建本地对局。未保留不完整的游戏状态。",
-    "A local game could not be created. No incomplete game state was kept.",
+    "无法创建本地对局，请重试。",
+    "Could not create game; please retry.",
   ],
   GAME_RESTART_FAILED: [
-    "无法重建本地对局。旧对局已被隔离。",
-    "The local game could not be rebuilt. The old game was isolated.",
+    "无法重建本地对局，旧对局已隔离。",
+    "Could not rebuild game; old game isolated.",
   ],
   GAME_ACTION_FAILED: [
-    "处理本次操作时发生致命错误。旧对局已停止运行。",
-    "A fatal error occurred while handling this action. The old game stopped running.",
+    "操作发生致命错误，对局已停止。",
+    "Action failed; game stopped.",
   ],
   GAME_RECOVERY_FAILED: [
-    "恢复操作未能创建全新对局。你可以重试或返回角色选择。",
-    "Recovery could not create a new game. You may retry or return to character selection.",
+    "恢复未能创建新对局，请返回重试。",
+    "Recovery failed; please return and retry.",
   ],
   GAME_STATE_VALIDATION_FAILED: [
-    "新建状态未通过会话边界校验，已阻止继续运行。",
-    "The new state did not pass session-boundary validation, so continued operation was blocked.",
+    "新状态未通过校验，已阻止运行。",
+    "State failed validation; operation blocked.",
   ],
 };
 
-export function getFatalMessageDisplayName(
-  code: string,
-  fallback: string,
-  locale: DisplayLocale,
-): string {
-  return lookup(fatalMessages, code, locale, undefined, fallback);
-}
+export const getFatalMessageDisplayName = (code: string, fallback: string, locale: DisplayLocale): string =>
+  lookup(fatalMessages, code, locale, undefined, fallback);
+
+export const getPlayerControllerDisplayName = (controller: PlayerController, locale: DisplayLocale): string =>
+  controller === "human" ? (locale === "en" ? "Human" : "人类") : "NATBA AI";
+

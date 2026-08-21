@@ -103,49 +103,21 @@ export function moveCardFromHandToDiscard(
   );
 }
 
-export function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
-  if (definition.tags.includes("acid")) {
-    return "acid";
-  }
-
-  if (definition.tags.includes("base")) {
-    return "base";
-  }
-
-  return undefined;
+export function getAcidBaseDamageKind(def: CardDefinition): "acid" | "base" | undefined {
+  return def.tags.includes("acid") ? "acid" : def.tags.includes("base") ? "base" : undefined;
 }
 
-export function canNeutralize(
-  incomingDamageKind: "acid" | "base",
-  responseDefinition: CardDefinition,
-): boolean {
-  if (!responseDefinition.allowedTimings.includes("response")) {
-    return false;
-  }
-
-  if (responseDefinition.type !== "ion" && responseDefinition.type !== "substance") {
-    return false;
-  }
-
-  if (incomingDamageKind === "acid") {
-    return responseDefinition.tags.includes("base");
-  }
-
-  return responseDefinition.tags.includes("acid");
+export function canNeutralize(incomingDamageKind: "acid" | "base", def: CardDefinition): boolean {
+  if (!def.allowedTimings.includes("response") || (def.type !== "ion" && def.type !== "substance")) return false;
+  return incomingDamageKind === "acid" ? def.tags.includes("base") : def.tags.includes("acid");
 }
 
-export function canGenerateCarbonDioxideAgainstAcid(
-  incomingDamageKind: "acid" | "base",
-  responseDefinition: CardDefinition,
-): boolean {
-  const isCarbonateResponder =
-    responseDefinition.id === "ion_co3" || responseDefinition.id === "substance_na2co3";
-
+export function canGenerateCarbonDioxideAgainstAcid(incomingDamageKind: "acid" | "base", def: CardDefinition): boolean {
   return (
     incomingDamageKind === "acid" &&
-    isCarbonateResponder &&
-    (responseDefinition.type === "ion" || responseDefinition.type === "substance") &&
-    responseDefinition.allowedTimings.includes("response")
+    (def.id === "ion_co3" || def.id === "substance_na2co3") &&
+    (def.type === "ion" || def.type === "substance") &&
+    def.allowedTimings.includes("response")
   );
 }
 
@@ -242,21 +214,9 @@ export function addStatusIfMissing(
   );
 }
 
-function removeStatusFromPlayer(
-  state: GameState,
-  playerId: PlayerId,
-  statusInstanceId: string,
-): GameState {
-  const player = getPlayer(state, playerId);
-
-  if (!player) {
-    return state;
-  }
-
-  return replacePlayer(state, playerId, {
-    ...player,
-    statuses: player.statuses.filter((status) => status.id !== statusInstanceId),
-  });
+function removeStatusFromPlayer(state: GameState, playerId: PlayerId, statusInstanceId: string): GameState {
+  const p = getPlayer(state, playerId);
+  return p ? replacePlayer(state, playerId, { ...p, statuses: p.statuses.filter((s) => s.id !== statusInstanceId) }) : state;
 }
 
 function playSulfurDioxideCard(
@@ -267,32 +227,13 @@ function playSulfurDioxideCard(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
-
-  if (!withCardDiscarded) {
-    return state;
-  }
-
-  const withStatus = addStatusIfMissing(withCardDiscarded, target.id, actor.id, "SO2_LEAK");
-
-  const resolved = appendEvent(
-    setTableReference(
-      {
-        ...withStatus,
-        phase: "mainAction",
-        pendingResponse: undefined,
-      },
-      actor,
-      cardInstanceId,
-      definition,
-    ),
-    {
-      eventKey: "card_play_so2",
-      params: { actorId: actor.id, targetId: target.id },
-    },
-  );
-
-  return advanceTurnFromReducer(resolved, shuffle);
+  const d = moveCardFromHandToDiscard(state, cardInstanceId);
+  if (!d) return state;
+  const s = addStatusIfMissing(d, target.id, actor.id, "SO2_LEAK");
+  return advanceTurnFromReducer(appendEvent(
+    setTableReference({ ...s, phase: "mainAction", pendingResponse: undefined }, actor, cardInstanceId, definition),
+    { eventKey: "card_play_so2", params: { actorId: actor.id, targetId: target.id } },
+  ), shuffle);
 }
 
 function playOxygenRecoveryCard(
@@ -302,63 +243,27 @@ function playOxygenRecoveryCard(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
-  if (!withCardDiscarded) {
-    return state;
-  }
-
-  const updatedActor = getPlayer(withCardDiscarded, actor.id);
-  if (!updatedActor) {
-    return state;
-  }
-
-  const healedHp = Math.min(actor.maxHp, actor.hp + 2);
-  const withHealing = replacePlayer(withCardDiscarded, actor.id, {
-    ...updatedActor,
-    hp: healedHp,
-  });
-  const resolved = appendEvent(
-    setTableReference(
-      {
-        ...withHealing,
-        phase: "mainAction",
-        pendingResponse: undefined,
-      },
-      actor,
-      cardInstanceId,
-      definition,
-    ),
-    {
-      eventKey: "card_play_o2",
-      params: { actorId: actor.id, amount: healedHp - actor.hp },
-    },
-  );
-
-  return advanceTurnFromReducer(resolved, shuffle);
+  const d = moveCardFromHandToDiscard(state, cardInstanceId);
+  if (!d) return state;
+  const u = getPlayer(d, actor.id);
+  if (!u) return state;
+  const healed = Math.min(actor.maxHp, actor.hp + 2);
+  const w = replacePlayer(d, actor.id, { ...u, hp: healed });
+  return advanceTurnFromReducer(appendEvent(
+    setTableReference({ ...w, phase: "mainAction", pendingResponse: undefined }, actor, cardInstanceId, definition),
+    { eventKey: "card_play_o2", params: { actorId: actor.id, amount: healed - actor.hp } },
+  ), shuffle);
 }
 
 function isOwnedHandCard(state: GameState, playerId: PlayerId, cardInstanceId: CardInstanceId): boolean {
-  const player = getPlayer(state, playerId);
-  const instance = state.cardInstances[cardInstanceId];
-  return Boolean(
-    player &&
-    !player.eliminated &&
-    player.hand.includes(cardInstanceId) &&
-    instance &&
-    instance.ownerId === playerId &&
-    instance.zone.type === "hand" &&
-    instance.zone.playerId === playerId,
-  );
+  const p = getPlayer(state, playerId);
+  const i = state.cardInstances[cardInstanceId];
+  return Boolean(p && !p.eliminated && p.hand.includes(cardInstanceId) && i && i.ownerId === playerId && i.zone.type === "hand" && i.zone.playerId === playerId);
 }
 
 export function validatePassAction(state: GameState, playerId: PlayerId): boolean {
   const actor = getPlayer(state, playerId);
-  return Boolean(
-    state.phase === "mainAction" &&
-    playerId === state.activePlayerId &&
-    actor &&
-    !actor.eliminated,
-  );
+  return Boolean(state.phase === "mainAction" && playerId === state.activePlayerId && actor && !actor.eliminated);
 }
 
 export function validatePlayReferenceCard(
@@ -366,16 +271,9 @@ export function validatePlayReferenceCard(
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
 ): boolean {
-  if (state.phase !== "mainAction" || playerId !== state.activePlayerId) {
-    return false;
-  }
-  const definition = getDefinitionForCard(state, cardInstanceId);
-  return Boolean(
-    isOwnedHandCard(state, playerId, cardInstanceId) &&
-    definition &&
-    definition.type !== "event" &&
-    canPlayCardAgainstTableReference(state, playerId, cardInstanceId),
-  );
+  if (state.phase !== "mainAction" || playerId !== state.activePlayerId) return false;
+  const d = getDefinitionForCard(state, cardInstanceId);
+  return Boolean(isOwnedHandCard(state, playerId, cardInstanceId) && d && d.type !== "event" && canPlayCardAgainstTableReference(state, playerId, cardInstanceId));
 }
 
 export function playReferenceCard(
@@ -384,36 +282,15 @@ export function playReferenceCard(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  if (!validatePlayReferenceCard(state, playerId, cardInstanceId)) {
-    return state;
-  }
-
+  if (!validatePlayReferenceCard(state, playerId, cardInstanceId)) return state;
   const actor = getPlayer(state, playerId)!;
   const definition = getDefinitionForCard(state, cardInstanceId)!;
-  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
-
-  if (!withCardDiscarded) {
-    return state;
-  }
-
-  const resolved = appendEvent(
-    setTableReference(
-      {
-        ...withCardDiscarded,
-        phase: "mainAction",
-        pendingResponse: undefined,
-      },
-      actor,
-      cardInstanceId,
-      definition,
-    ),
-    {
-      eventKey: "card_play_reference",
-      params: { actorId: actor.id, cardDefinitionId: definition.id },
-    },
-  );
-
-  return advanceTurnFromReducer(resolved, shuffle);
+  const d = moveCardFromHandToDiscard(state, cardInstanceId);
+  if (!d) return state;
+  return advanceTurnFromReducer(appendEvent(
+    setTableReference({ ...d, phase: "mainAction", pendingResponse: undefined }, actor, cardInstanceId, definition),
+    { eventKey: "card_play_reference", params: { actorId: actor.id, cardDefinitionId: definition.id } },
+  ), shuffle);
 }
 
 export function validatePlayMainActionCard(
@@ -617,20 +494,16 @@ export function validatePassStatusHandling(
   playerId: PlayerId,
   statusInstanceId: string,
 ): boolean {
-  const pending = state.pendingStatusHandling;
-  const player = getPlayer(state, playerId);
-  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
-
+  const p = state.pendingStatusHandling;
+  const pl = getPlayer(state, playerId);
+  const s = pl?.statuses.find((c) => c.id === statusInstanceId);
   return Boolean(
     state.phase === "statusWindow" &&
     state.activePlayerId === playerId &&
-    pending &&
-    pending.playerId === playerId &&
-    pending.statusInstanceId === statusInstanceId &&
-    player &&
-    !player.eliminated &&
-    status &&
-    (status.statusId === "SO2_LEAK" || status.statusId === "FIRE"),
+    p?.playerId === playerId &&
+    p?.statusInstanceId === statusInstanceId &&
+    pl && !pl.eliminated && s &&
+    (s.statusId === "SO2_LEAK" || s.statusId === "FIRE")
   );
 }
 
@@ -640,56 +513,23 @@ export function passStatusHandling(
   statusInstanceId: string,
   shuffle: ShuffleFunction,
 ): GameState {
-  if (!validatePassStatusHandling(state, playerId, statusInstanceId)) {
-    return state;
-  }
-
-  const player = getPlayer(state, playerId)!;
-  const status = player.statuses.find((candidate) => candidate.id === statusInstanceId)!;
-
-  const appliedDamage = applyDamage(state, {
+  if (!validatePassStatusHandling(state, playerId, statusInstanceId)) return state;
+  const pl = getPlayer(state, playerId)!;
+  const s = pl.statuses.find((c) => c.id === statusInstanceId)!;
+  const applied = applyDamage(state, {
     type: "DAMAGE",
-    context: createStatusDamageContext({
-      statusInstanceId: status.id,
-      statusId: status.statusId,
-      targetPlayerId: player.id,
-      baseAmount: 2,
-    }),
+    context: createStatusDamageContext({ statusInstanceId: s.id, statusId: s.statusId, targetPlayerId: pl.id, baseAmount: 2 }),
   });
-  const withDamage = appliedDamage.state;
-  const damagedPlayer = getPlayer(withDamage, player.id);
   const withLog = appendEvent(
-    {
-      ...withDamage,
-      pendingStatusHandling: undefined,
-    },
-    {
-      eventKey: "status_passed_damage",
-      params: {
-        playerId: player.id,
-        statusId: status.statusId,
-        amount: appliedDamage.resolution.finalAmount,
-      },
-    },
+    { ...applied.state, pendingStatusHandling: undefined },
+    { eventKey: "status_passed_damage", params: { playerId: pl.id, statusId: s.statusId, amount: applied.resolution.finalAmount } },
   );
-
-  const gameOverChecked = finishGameIfResolved(withLog);
-  if (gameOverChecked.phase === "gameOver") {
-    return gameOverChecked;
+  const checked = finishGameIfResolved(withLog);
+  if (checked.phase === "gameOver") return checked;
+  if (getPlayer(applied.state, pl.id)?.eliminated) {
+    return advanceTurnFromReducer({ ...checked, phase: "mainAction", pendingStatusHandling: undefined }, shuffle);
   }
-
-  if (damagedPlayer?.eliminated) {
-    return advanceTurnFromReducer(
-      {
-        ...gameOverChecked,
-        phase: "mainAction",
-        pendingStatusHandling: undefined,
-      },
-      shuffle,
-    );
-  }
-
-  return enterNextStatusWindowOrMainAction(gameOverChecked, player.id, status.createdAt);
+  return enterNextStatusWindowOrMainAction(checked, pl.id, s.createdAt);
 }
 
 export function validateRespondWithCard(

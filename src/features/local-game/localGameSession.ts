@@ -10,14 +10,23 @@ import { getFatalMessageDisplayName } from "./presentationLocale";
 
 export type CharacterSelection = readonly [CharacterId, CharacterId];
 
+export type PlayerController = "human" | "ai";
+export type PlayerControllerSelection = readonly [PlayerController, PlayerController];
+
 export const defaultCharacterSelection: CharacterSelection = [
   "laboratory_teacher",
   "chemical_factory_ceo",
 ];
 
+export const defaultPlayerControllers: PlayerControllerSelection = [
+  "human",
+  "human",
+];
+
 export type ConfiguringLocalGameSession = Readonly<{
   mode: "configuring";
   characterIds: CharacterSelection;
+  playerControllers: PlayerControllerSelection;
   revision: number;
   error: string | null;
 }>;
@@ -25,6 +34,7 @@ export type ConfiguringLocalGameSession = Readonly<{
 export type PlayingLocalGameSession = Readonly<{
   mode: "playing";
   characterIds: CharacterSelection;
+  playerControllers: PlayerControllerSelection;
   revision: number;
   game: GameState;
   error: string | null;
@@ -47,6 +57,7 @@ export type FatalLocalGameError = Readonly<{
 export type FatalLocalGameSession = Readonly<{
   mode: "fatal";
   characterIds: CharacterSelection;
+  playerControllers: PlayerControllerSelection;
   revision: number;
   error: FatalLocalGameError;
 }>;
@@ -62,6 +73,12 @@ type SelectCharacterAction = Readonly<{
   characterId: unknown;
 }>;
 
+type SelectPlayerControllerAction = Readonly<{
+  type: "SELECT_PLAYER_CONTROLLER";
+  playerIndex: 0 | 1;
+  controller: unknown;
+}>;
+
 type ReturnToCharacterSelectionAction = Readonly<{
   type: "RETURN_TO_CHARACTER_SELECTION";
 }>;
@@ -74,6 +91,7 @@ type DispatchGameAction = Readonly<{
 type CreatedGameActionPayload = Readonly<{
   expectedRevision: number;
   characterIds: CharacterSelection;
+  playerControllers?: PlayerControllerSelection;
   game: GameState;
 }>;
 
@@ -81,6 +99,7 @@ type ApplyGameActionResult = Readonly<{
   type: "APPLY_GAME_ACTION_RESULT";
   expectedRevision: number;
   characterIds: CharacterSelection;
+  playerControllers?: PlayerControllerSelection;
   game: GameState;
 }>;
 
@@ -93,6 +112,7 @@ type EnterFatalAction = Readonly<{
 
 export type LocalGameSessionAction =
   | SelectCharacterAction
+  | SelectPlayerControllerAction
   | (CreatedGameActionPayload & Readonly<{ type: "APPLY_STARTED_LOCAL_GAME" }>)
   | (CreatedGameActionPayload & Readonly<{ type: "APPLY_RESTARTED_LOCAL_GAME" }>)
   | (CreatedGameActionPayload & Readonly<{ type: "APPLY_RECOVERED_LOCAL_GAME" }>)
@@ -103,6 +123,7 @@ export type LocalGameSessionAction =
 
 export type LocalGameSessionCommand =
   | SelectCharacterAction
+  | SelectPlayerControllerAction
   | Readonly<{ type: "START_LOCAL_GAME" }>
   | Readonly<{ type: "RESTART_CURRENT_LINEUP" }>
   | Readonly<{ type: "RECOVER_FATAL_WITH_CURRENT_LINEUP" }>
@@ -119,6 +140,20 @@ export type LocalGameEngineReducer = (
 ) => GameState;
 
 export type LocalGameSessionInitializer = () => LocalGameSessionState;
+
+export function isPlayerController(value: unknown): value is PlayerController {
+  return value === "human" || value === "ai";
+}
+
+export function isPlayerControllerSelection(
+  values: readonly unknown[],
+): values is PlayerControllerSelection {
+  return (
+    values.length === 2 &&
+    isPlayerController(values[0]) &&
+    isPlayerController(values[1])
+  );
+}
 
 export function isCharacterId(value: unknown): value is CharacterId {
   return (
@@ -137,10 +172,14 @@ export function isCharacterSelection(
   );
 }
 
-export function createConfiguringLocalGameSession(): ConfiguringLocalGameSession {
+export function createConfiguringLocalGameSession(
+  characterIds: CharacterSelection = defaultCharacterSelection,
+  playerControllers: PlayerControllerSelection = defaultPlayerControllers,
+): ConfiguringLocalGameSession {
   return {
     mode: "configuring",
-    characterIds: defaultCharacterSelection,
+    characterIds: [characterIds[0], characterIds[1]],
+    playerControllers: [playerControllers[0], playerControllers[1]],
     revision: 0,
     error: null,
   };
@@ -150,10 +189,12 @@ export function createFatalLocalGameSession(
   characterIds: CharacterSelection,
   revision: number,
   code: FatalErrorCode,
+  playerControllers: PlayerControllerSelection = defaultPlayerControllers,
 ): FatalLocalGameSession {
   return {
     mode: "fatal",
     characterIds: [characterIds[0], characterIds[1]],
+    playerControllers: [playerControllers[0], playerControllers[1]],
     revision: revision + 1,
     error: {
       code,
@@ -175,12 +216,8 @@ export function formatFatalDiagnostics(error: FatalLocalGameError): string {
   ].join("\n");
 }
 
-function sameCharacterSelection(
-  left: readonly unknown[],
-  right: CharacterSelection,
-): boolean {
-  return left.length === 2 && left[0] === right[0] && left[1] === right[1];
-}
+const samePair = (left: readonly unknown[], right: readonly unknown[]): boolean =>
+  left.length === 2 && left[0] === right[0] && left[1] === right[1];
 
 function gameMatchesCharacterSelection(
   game: GameState,
@@ -202,21 +239,27 @@ function applyCreatedGame(
     return state;
   }
 
+  const effectiveControllers = action.playerControllers ?? state.playerControllers;
+
   if (
     !isCharacterSelection(action.characterIds) ||
-    !sameCharacterSelection(action.characterIds, state.characterIds) ||
+    !samePair(action.characterIds, state.characterIds) ||
+    !isPlayerControllerSelection(effectiveControllers) ||
+    !samePair(effectiveControllers, state.playerControllers) ||
     !gameMatchesCharacterSelection(action.game, state.characterIds)
   ) {
     return createFatalLocalGameSession(
       state.characterIds,
       state.revision,
       "GAME_STATE_VALIDATION_FAILED",
+      state.playerControllers,
     );
   }
 
   return {
     mode: "playing",
     characterIds: [state.characterIds[0], state.characterIds[1]],
+    playerControllers: [effectiveControllers[0], effectiveControllers[1]],
     revision: state.revision + 1,
     game: action.game,
     error: null,
@@ -231,14 +274,18 @@ function applyGameActionResult(
     return state;
   }
 
+  const effectiveControllers = action.playerControllers ?? state.playerControllers;
+
   if (
-    !sameCharacterSelection(action.characterIds, state.characterIds) ||
+    !samePair(action.characterIds, state.characterIds) ||
+    !samePair(effectiveControllers, state.playerControllers) ||
     !gameMatchesCharacterSelection(action.game, state.characterIds)
   ) {
     return createFatalLocalGameSession(
       state.characterIds,
       state.revision,
       "GAME_STATE_VALIDATION_FAILED",
+      state.playerControllers,
     );
   }
 
@@ -274,6 +321,7 @@ function reduceDispatchedGameAction(
       state.characterIds,
       state.revision,
       "GAME_ACTION_FAILED",
+      state.playerControllers,
     );
   }
 
@@ -281,6 +329,7 @@ function reduceDispatchedGameAction(
     type: "APPLY_GAME_ACTION_RESULT",
     expectedRevision: state.revision,
     characterIds: state.characterIds,
+    playerControllers: state.playerControllers,
     game,
   });
 }
@@ -291,28 +340,23 @@ export function localGameSessionReducer(
   reduceGame: LocalGameEngineReducer = engineReducer,
 ): LocalGameSessionState {
   switch (action.type) {
-    case "SELECT_CHARACTER": {
-      if (state.mode !== "configuring") {
-        return state;
-      }
-
-      if (!isCharacterId(action.characterId)) {
-        return {
-          ...state,
-          error: "未知角色不能用于创建本地对局。",
-        };
-      }
-
-      const nextCharacterIds: CharacterSelection = action.playerIndex === 0
-        ? [action.characterId, state.characterIds[1]]
-        : [state.characterIds[0], action.characterId];
-
+    case "SELECT_CHARACTER":
+      if (state.mode !== "configuring") return state;
+      if (!isCharacterId(action.characterId)) return { ...state, error: "未知角色不能用于创建本地对局。" };
       return {
         ...state,
-        characterIds: nextCharacterIds,
+        characterIds: action.playerIndex === 0 ? [action.characterId, state.characterIds[1]] : [state.characterIds[0], action.characterId],
         error: null,
       };
-    }
+
+    case "SELECT_PLAYER_CONTROLLER":
+      if (state.mode !== "configuring") return state;
+      if (!isPlayerController(action.controller)) return { ...state, error: "未知控制方类型。" };
+      return {
+        ...state,
+        playerControllers: action.playerIndex === 0 ? [action.controller, state.playerControllers[1]] : [state.playerControllers[0], action.controller],
+        error: null,
+      };
 
     case "APPLY_STARTED_LOCAL_GAME":
       return applyCreatedGame(state, action, "configuring");
@@ -328,17 +372,17 @@ export function localGameSessionReducer(
 
     case "ENTER_FATAL_LOCAL_GAME":
       return state.mode === action.expectedMode && state.revision === action.expectedRevision
-        ? createFatalLocalGameSession(state.characterIds, state.revision, action.code)
+        ? createFatalLocalGameSession(
+            state.characterIds,
+            state.revision,
+            action.code,
+            state.playerControllers,
+          )
         : state;
 
     case "RETURN_TO_CHARACTER_SELECTION":
       return state.mode === "playing" || state.mode === "fatal"
-        ? {
-            mode: "configuring",
-            characterIds: [state.characterIds[0], state.characterIds[1]],
-            revision: state.revision + 1,
-            error: null,
-          }
+        ? { mode: "configuring", characterIds: state.characterIds, playerControllers: state.playerControllers, revision: state.revision + 1, error: null }
         : state;
 
     case "DISPATCH_GAME_ACTION":

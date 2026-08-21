@@ -1,6 +1,7 @@
 import type { GameAction } from "../../../game/engine/actions";
 import { useLocale } from "../../../app/locale";
 import type { GameState } from "../../../game/engine/types";
+import type { PlayerControllerSelection } from "../localGameSession";
 import {
   getPlayer,
   getPlayerStatusById,
@@ -11,14 +12,20 @@ import { getPlayerDisplayName, getStatusDisplayName } from "../presentationLocal
 
 type StatusPanelProps = {
   game: GameState;
+  playerControllers?: PlayerControllerSelection;
   dispatchGameAction: (action: GameAction) => void;
 };
 
-export function StatusPanel({ game, dispatchGameAction }: StatusPanelProps) {
+export function StatusPanel({ game, playerControllers, dispatchGameAction }: StatusPanelProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const pendingStatusHandling = game.pendingStatusHandling;
   const player = pendingStatusHandling ? getPlayer(game, pendingStatusHandling.playerId) : undefined;
+  const isAi = Boolean(
+    player &&
+      playerControllers &&
+      playerControllers[player.id === "player_1" ? 0 : 1] === "ai",
+  );
   const status = getPlayerStatusById(player, pendingStatusHandling?.statusInstanceId);
   const handlingCards = player ? getStatusHandlingCards(game, player, status) : [];
 
@@ -35,6 +42,7 @@ export function StatusPanel({ game, dispatchGameAction }: StatusPanelProps) {
         </div>
         <button
           className="secondary-button"
+          disabled={isAi}
           onClick={() =>
             dispatchGameAction({
               type: "PASS_STATUS_HANDLING",
@@ -49,6 +57,7 @@ export function StatusPanel({ game, dispatchGameAction }: StatusPanelProps) {
       </div>
       <p className="panel-note">
         {isEnglish ? `${getPlayerDisplayName(player, locale)} is handling ${getStatusDisplayName(status.statusId, locale)}.` : `${player.name} 正在处理一项状态`}
+        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is handling status..." : "NATBA-0 AI 正在自动处理状态..."}` : ""}
       </p>
       <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>HANDLE_STATUS_WITH_CARD / PASS_STATUS_HANDLING · {status.statusId} ({status.id})</p></details>
       <div className="candidate-grid">
@@ -56,20 +65,24 @@ export function StatusPanel({ game, dispatchGameAction }: StatusPanelProps) {
           handlingCards.map((cardInstanceId) => (
             <CardDebugCard
               cardInstanceId={cardInstanceId}
+              disabled={isAi}
               game={game}
               key={cardInstanceId}
-              onSelect={() =>
-                dispatchGameAction({
-                  type: "HANDLE_STATUS_WITH_CARD",
-                  playerId: player.id,
-                  statusInstanceId: status.id,
-                  cardInstanceId,
-                })
+              onSelect={
+                isAi
+                  ? undefined
+                  : () =>
+                      dispatchGameAction({
+                        type: "HANDLE_STATUS_WITH_CARD",
+                        playerId: player.id,
+                        statusInstanceId: status.id,
+                        cardInstanceId,
+                      })
               }
             />
           ))
         ) : (
-          <p className="empty-note">{isEnglish ? "The current player has no status-handling card available according to the UI's existing check." : "当前玩家没有 UI 判定可用的状态处理牌。"}</p>
+          <p className="empty-note">{isEnglish ? "No handling cards available." : "当前无可用处理牌。"}</p>
         )}
       </div>
     </section>

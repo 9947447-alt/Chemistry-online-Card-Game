@@ -1,6 +1,7 @@
 import type { GameAction } from "../../../game/engine/actions";
 import { useLocale } from "../../../app/locale";
 import type { GameState } from "../../../game/engine/types";
+import type { PlayerControllerSelection } from "../localGameSession";
 import {
   describePendingExperimentCounterattack,
   getCardDefinition,
@@ -13,17 +14,24 @@ import { getOptionalCardDisplayName, getPlayerDisplayName } from "../presentatio
 
 type ExperimentCounterattackPanelProps = {
   game: GameState;
+  playerControllers?: PlayerControllerSelection;
   dispatchGameAction: (action: GameAction) => void;
 };
 
 export function ExperimentCounterattackPanel({
   game,
+  playerControllers,
   dispatchGameAction,
 }: ExperimentCounterattackPanelProps) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const pending = game.pendingExperimentCounterattack;
   const responder = pending ? getPlayer(game, pending.responderPlayerId) : undefined;
+  const isAi = Boolean(
+    responder &&
+      playerControllers &&
+      playerControllers[responder.id === "player_1" ? 0 : 1] === "ai",
+  );
 
   if (
     game.phase !== "experimentCounterattackWindow" ||
@@ -58,6 +66,7 @@ export function ExperimentCounterattackPanel({
         {isEnglish
           ? `${getPlayerDisplayName(responder, locale)} successfully responded to ${getPlayerDisplayName(getPlayer(game, pending.attackerPlayerId), locale)}'s attack. Choose one legal counterattack option.`
           : `${responder.name} 已成功响应 ${getPlayerName(game, pending.attackerPlayerId)} 的攻击，请选择一个合法反击选项。`}
+        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is choosing counterattack..." : "NATBA-0 AI 正在自动选择反击..."}` : ""}
       </p>
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
@@ -72,7 +81,7 @@ export function ExperimentCounterattackPanel({
         </div>
         <button
           className="primary-button"
-          disabled={!canRecover}
+          disabled={isAi || !canRecover}
           onClick={() =>
             dispatchGameAction({
               type: "RESOLVE_EXPERIMENT_COUNTERATTACK",
@@ -89,24 +98,34 @@ export function ExperimentCounterattackPanel({
       <div className="character-active-skill">
         <div>
           <strong>{isEnglish ? "Metal element counterattack" : "金属元素反击"}</strong>
-          <span>{isEnglish ? "Discard a metal element card to deal 1 damage to the original attacker" : "弃置金属元素牌，对原攻击者造成 1 点伤害"}</span>
+          <span>{isEnglish ? "Deferred: real metal cards not implemented" : "真实金属卡牌延期实现"}</span>
         </div>
-        {metalCards.length === 0 ? (
-          <p className="empty-note">{isEnglish ? "The current 68-card pool has no legal metal element card. This awaits a future real-metal card-pool phase." : "当前 68 张卡池暂无合法金属元素牌，等待后续真实金属卡池阶段启用。"}</p>
-        ) : null}
+        <div className="candidate-grid">
+          {metalCards.length > 0 ? (
+            metalCards.map((cardInstanceId) => (
+              <button className="primary-button" disabled key={cardInstanceId} type="button">
+                {getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
+              </button>
+            ))
+          ) : (
+            <button className="primary-button" disabled type="button">
+              {isEnglish ? "Deferred" : "延期实现"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="character-active-skill">
         <div>
-          <strong>{isEnglish ? "Physical acid-base pursuit" : "实体酸碱追击"}</strong>
-          <span>{isEnglish ? "Base damage follows the physical definition, receives +1 at increase, and does not open another response" : "基础伤害按实体定义，increase 阶段 +1，且不再打开响应"}</span>
+          <strong>{isEnglish ? "Acid-base pursuit counterattack" : "酸碱追击反击"}</strong>
+          <span>{isEnglish ? "Pursue with opposite dilute acid/base card" : "使用与原攻击相反的稀酸/稀碱追击"}</span>
         </div>
         <div className="candidate-grid">
-          {pursuitCards.map((cardInstanceId) => {
-            const definition = getCardDefinition(game, cardInstanceId);
-            return (
+          {pursuitCards.length > 0 ? (
+            pursuitCards.map((cardInstanceId) => (
               <button
                 className="primary-button"
+                disabled={isAi}
                 key={cardInstanceId}
                 onClick={() =>
                   dispatchGameAction({
@@ -118,10 +137,14 @@ export function ExperimentCounterattackPanel({
                 }
                 type="button"
               >
-                {isEnglish ? "Use" : "使用"} {getOptionalCardDisplayName(definition, locale)}
+                {getOptionalCardDisplayName(getCardDefinition(game, cardInstanceId), locale)}
               </button>
-            );
-          })}
+            ))
+          ) : (
+            <button className="primary-button" disabled type="button">
+              {isEnglish ? "No pursuit cards" : "无可用追击牌"}
+            </button>
+          )}
         </div>
       </div>
     </section>

@@ -23,48 +23,22 @@ import {
 } from "./resolution";
 
 function removeOwnFire(state: GameState, playerId: PlayerId): GameState {
-  const player = getPlayer(state, playerId);
-
-  if (!player) {
-    return state;
-  }
-
-  return replacePlayer(state, playerId, {
-    ...player,
-    statuses: player.statuses.filter((status) => status.statusId !== "FIRE"),
-  });
+  const p = getPlayer(state, playerId);
+  return p ? replacePlayer(state, playerId, { ...p, statuses: p.statuses.filter((s) => s.statusId !== "FIRE") }) : state;
 }
 
 function markDIYUsed(state: GameState, playerId: PlayerId): GameState {
-  const player = getPlayer(state, playerId);
-
-  if (!player) {
-    return state;
-  }
-
-  return replacePlayer(state, playerId, {
-    ...player,
-    usedDIYThisCycle: true,
-  });
+  const p = getPlayer(state, playerId);
+  return p ? replacePlayer(state, playerId, { ...p, usedDIYThisCycle: true }) : state;
 }
 
-function discardComponents(
-  state: GameState,
-  componentCardInstanceIds: CardInstanceId[],
-): GameState | undefined {
-  let nextState = state;
-
-  for (const cardInstanceId of componentCardInstanceIds) {
-    const updated = moveCardFromHandToDiscard(nextState, cardInstanceId);
-
-    if (!updated) {
-      return undefined;
-    }
-
-    nextState = updated;
+function discardComponents(state: GameState, componentCardInstanceIds: CardInstanceId[]): GameState | undefined {
+  let s: GameState | undefined = state;
+  for (const id of componentCardInstanceIds) {
+    if (!s) return undefined;
+    s = moveCardFromHandToDiscard(s, id);
   }
-
-  return nextState;
+  return s;
 }
 
 export function analyzeDIYSelection(
@@ -284,24 +258,12 @@ function executeValidatedDIYOutcome(
     return state;
   }
 
-  if (outcome.kind === "CO2_REMOVE_OWN_FIRE") {
+  if (outcome.kind === "CO2_REMOVE_OWN_FIRE" || outcome.kind === "H2O_REMOVE_OWN_FIRE") {
     const withFireRemoved = removeOwnFire(withComponentsDiscarded, playerId);
     const resolved = appendEvent(
       markDIYUsed(withFireRemoved, playerId),
       {
-        eventKey: "diy_co2_remove_fire",
-        params: { playerId },
-      },
-    );
-    return advanceTurnFromReducer(resolved, shuffle);
-  }
-
-  if (outcome.kind === "H2O_REMOVE_OWN_FIRE") {
-    const withFireRemoved = removeOwnFire(withComponentsDiscarded, playerId);
-    const resolved = appendEvent(
-      markDIYUsed(withFireRemoved, playerId),
-      {
-        eventKey: "diy_h2o_remove_fire",
+        eventKey: outcome.kind === "CO2_REMOVE_OWN_FIRE" ? "diy_co2_remove_fire" : "diy_h2o_remove_fire",
         params: { playerId },
       },
     );

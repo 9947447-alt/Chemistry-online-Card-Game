@@ -47,6 +47,7 @@ function requirePlayingSession(game: GameState): PlayingLocalGameSession {
   return {
     mode: "playing",
     characterIds: [characterIds[0], characterIds[1]],
+    playerControllers: ["human", "human"],
     revision: 1,
     game,
     error: null,

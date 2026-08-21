@@ -17,6 +17,7 @@ import {
   validateRespondWithCard,
 } from "./resolution";
 import { isValidLaboratoryPreparationConfirmation } from "./turnFlow";
+import type { GameAction, ResolveExperimentCounterattackAction } from "./actions";
 import type { CardInstanceId, GameState, Player, PlayerId } from "./types";
 
 function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
@@ -131,8 +132,6 @@ export function validateGameAction(state: GameState, action: GameAction): boolea
   }
 }
 
-import type { GameAction, ResolveExperimentCounterattackAction } from "./actions";
-
 export function getLegalActions(state: GameState, playerId: PlayerId): GameAction[] {
   if (state.phase === "gameOver" || state.phase === "preparationSelection") {
     return [];
@@ -187,23 +186,14 @@ export function getLegalActions(state: GameState, playerId: PlayerId): GameActio
     if (!player.usedDIYThisCycle) {
       for (const size of registeredDiyComponentSizes) {
         if (size <= player.hand.length) {
-          const combinations = getCombinations(player.hand, size);
-          for (const combo of combinations) {
-            if (validatePlayDiySelectionAction(state, playerId, combo, undefined)) {
-              legalActions.push({
-                type: "PLAY_DIY_SELECTION",
-                playerId,
-                componentCardInstanceIds: combo,
-              });
-            }
-
-            for (const opponent of aliveOpponents) {
-              if (validatePlayDiySelectionAction(state, playerId, combo, opponent.id)) {
+          for (const combo of getCombinations(player.hand, size)) {
+            for (const target of [undefined, ...aliveOpponents]) {
+              if (validatePlayDiySelectionAction(state, playerId, combo, target?.id)) {
                 legalActions.push({
                   type: "PLAY_DIY_SELECTION",
                   playerId,
                   componentCardInstanceIds: combo,
-                  targetPlayerId: opponent.id,
+                  ...(target ? { targetPlayerId: target.id } : {}),
                 });
               }
             }
@@ -216,96 +206,44 @@ export function getLegalActions(state: GameState, playerId: PlayerId): GameActio
   }
 
   if (state.phase === "responseWindow") {
-    const expectedResponderId = state.pendingResponse?.responderId;
-    if (expectedResponderId !== playerId) {
-      return [];
-    }
-
+    if (state.pendingResponse?.responderId !== playerId) return [];
     const legalActions: GameAction[] = [];
-
     for (const cardInstanceId of player.hand) {
       if (validateRespondWithCard(state, playerId, cardInstanceId)) {
-        legalActions.push({
-          type: "RESPOND_WITH_CARD",
-          playerId,
-          cardInstanceId,
-        });
+        legalActions.push({ type: "RESPOND_WITH_CARD", playerId, cardInstanceId });
       }
     }
-
     if (validatePassResponse(state, playerId)) {
       legalActions.push({ type: "PASS_RESPONSE", playerId });
     }
-
     return legalActions;
   }
 
   if (state.phase === "statusWindow" && state.activePlayerId === playerId) {
     const pending = state.pendingStatusHandling;
-    if (!pending || pending.playerId !== playerId) {
-      return [];
-    }
-
+    if (!pending || pending.playerId !== playerId) return [];
     const legalActions: GameAction[] = [];
-
     for (const cardInstanceId of player.hand) {
-      if (
-        validateHandleStatusWithCard(
-          state,
-          playerId,
-          pending.statusInstanceId,
-          cardInstanceId,
-        )
-      ) {
-        legalActions.push({
-          type: "HANDLE_STATUS_WITH_CARD",
-          playerId,
-          statusInstanceId: pending.statusInstanceId,
-          cardInstanceId,
-        });
+      if (validateHandleStatusWithCard(state, playerId, pending.statusInstanceId, cardInstanceId)) {
+        legalActions.push({ type: "HANDLE_STATUS_WITH_CARD", playerId, statusInstanceId: pending.statusInstanceId, cardInstanceId });
       }
     }
-
     if (validatePassStatusHandling(state, playerId, pending.statusInstanceId)) {
-      legalActions.push({
-        type: "PASS_STATUS_HANDLING",
-        playerId,
-        statusInstanceId: pending.statusInstanceId,
-      });
+      legalActions.push({ type: "PASS_STATUS_HANDLING", playerId, statusInstanceId: pending.statusInstanceId });
     }
-
     return legalActions;
   }
 
   if (state.phase === "experimentCounterattackWindow") {
     const pending = state.pendingExperimentCounterattack;
-    if (!pending || pending.responderPlayerId !== playerId) {
-      return [];
-    }
-
+    if (!pending || pending.responderPlayerId !== playerId) return [];
     const legalActions: GameAction[] = [];
-
-    const recoverAction: ResolveExperimentCounterattackAction = {
-      type: "RESOLVE_EXPERIMENT_COUNTERATTACK",
-      playerId,
-      option: "recover",
-    };
-    if (validateExperimentCounterattackAction(state, recoverAction)) {
-      legalActions.push(recoverAction);
-    }
-
+    const recoverAction: ResolveExperimentCounterattackAction = { type: "RESOLVE_EXPERIMENT_COUNTERATTACK", playerId, option: "recover" };
+    if (validateExperimentCounterattackAction(state, recoverAction)) legalActions.push(recoverAction);
     for (const cardInstanceId of pending.legalPursuitCardInstanceIds) {
-      const pursuitAction: ResolveExperimentCounterattackAction = {
-        type: "RESOLVE_EXPERIMENT_COUNTERATTACK",
-        playerId,
-        option: "acid-base-pursuit",
-        cardInstanceId,
-      };
-      if (validateExperimentCounterattackAction(state, pursuitAction)) {
-        legalActions.push(pursuitAction);
-      }
+      const pursuitAction: ResolveExperimentCounterattackAction = { type: "RESOLVE_EXPERIMENT_COUNTERATTACK", playerId, option: "acid-base-pursuit", cardInstanceId };
+      if (validateExperimentCounterattackAction(state, pursuitAction)) legalActions.push(pursuitAction);
     }
-
     return legalActions;
   }
 

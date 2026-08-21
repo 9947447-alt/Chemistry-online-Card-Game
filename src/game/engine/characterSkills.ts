@@ -32,33 +32,19 @@ type ActiveSkillSpec = Readonly<{
   usageKey: CharacterUsageKey;
 }>;
 
-function createSecretarySkillSpec(): ActiveSkillSpec {
-  return {
-    characterId: "clumsy_party_secretary",
-    usageKey: "clumsy_party_secretary_shared_active",
-  };
-}
+const secSpec: ActiveSkillSpec = {
+  characterId: "clumsy_party_secretary",
+  usageKey: "clumsy_party_secretary_shared_active",
+};
 
 const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
-  extra_lesson: {
-    characterId: "laboratory_teacher",
-    usageKey: "laboratory_teacher_extra_lesson",
-  },
-  emergency_supply: {
-    characterId: "chemical_factory_ceo",
-    usageKey: "chemical_factory_ceo_emergency_supply",
-  },
-  exhaust_leak: createSecretarySkillSpec(),
-  lab_fire: createSecretarySkillSpec(),
-  exothermic_accident: createSecretarySkillSpec(),
-  alkali_recovery: {
-    characterId: "caustic_soda_captain",
-    usageKey: "caustic_soda_captain_alkali_recovery",
-  },
-  exhaust_discharge: {
-    characterId: "sulfuric_acid_factory_director",
-    usageKey: "sulfuric_acid_factory_director_exhaust_discharge",
-  },
+  extra_lesson: { characterId: "laboratory_teacher", usageKey: "laboratory_teacher_extra_lesson" },
+  emergency_supply: { characterId: "chemical_factory_ceo", usageKey: "chemical_factory_ceo_emergency_supply" },
+  exhaust_leak: secSpec,
+  lab_fire: secSpec,
+  exothermic_accident: secSpec,
+  alkali_recovery: { characterId: "caustic_soda_captain", usageKey: "caustic_soda_captain_alkali_recovery" },
+  exhaust_discharge: { characterId: "sulfuric_acid_factory_director", usageKey: "sulfuric_acid_factory_director_exhaust_discharge" },
 };
 
 function getCommonSkillActor(
@@ -204,28 +190,13 @@ export function canActivateCharacterSkill(
   return getLegalCharacterSkillActions(state, playerId).some((action) => action.skillId === skillId);
 }
 
-function markSkillUsed(
-  state: GameState,
-  playerId: PlayerId,
-  usageKey: CharacterUsageKey,
-): GameState {
-  return {
-    ...state,
-    players: state.players.map((player) =>
-      player.id === playerId
-        ? {
-            ...player,
-            characterUsage: {
-              ...player.characterUsage,
-              perCycle: {
-                ...player.characterUsage.perCycle,
-                [usageKey]: 1,
-              },
-            },
-          }
-        : player,
-    ),
-  };
+function markSkillUsed(state: GameState, playerId: PlayerId, usageKey: CharacterUsageKey): GameState {
+  const p = state.players.find((c) => c.id === playerId);
+  if (!p) return state;
+  return replacePlayer(state, playerId, {
+    ...p,
+    characterUsage: { ...p.characterUsage, perCycle: { ...p.characterUsage.perCycle, [usageKey]: 1 } },
+  });
 }
 
 
@@ -414,19 +385,14 @@ export function activateCharacterSkill(
       return activateAlkaliRecovery(state, player, action, shuffle);
     case "exhaust_discharge":
       return activateExhaustDischarge(state, player, action, shuffle);
-    case "exhaust_leak": {
-      const targets = getOtherAlivePlayerIds(state, player.id);
-      return targets.length > 0 ? activateExhaustLeak(state, player, targets) : state;
-    }
-    case "lab_fire": {
-      const targets = getOtherAlivePlayerIds(state, player.id);
-      return targets.length > 0 ? activateLabFire(state, player, targets, shuffle) : state;
-    }
+    case "exhaust_leak":
+    case "lab_fire":
     case "exothermic_accident": {
       const targets = getOtherAlivePlayerIds(state, player.id);
-      return targets.length > 0
-        ? activateExothermicAccident(state, player, targets, shuffle)
-        : state;
+      if (targets.length === 0) return state;
+      if (action.skillId === "exhaust_leak") return activateExhaustLeak(state, player, targets);
+      if (action.skillId === "lab_fire") return activateLabFire(state, player, targets, shuffle);
+      return activateExothermicAccident(state, player, targets, shuffle);
     }
     default: {
       const exhaustiveSkill: never = action;

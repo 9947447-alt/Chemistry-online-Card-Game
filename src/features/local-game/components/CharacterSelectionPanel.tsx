@@ -11,7 +11,7 @@ import {
   type LocalGameSessionCommand,
 } from "../localGameSession";
 import { NewPlayerGuidance } from "./NewPlayerGuidance";
-import { getCharacterDisplayName } from "../presentationLocale";
+import { getCharacterDisplayName, getPlayerControllerDisplayName } from "../presentationLocale";
 import { FirstGameExample } from "./FirstGameExample";
 
 type CharacterSelectionPanelProps = {
@@ -75,13 +75,13 @@ export function CharacterSelectionPanel({
           />
           <div>
             <p className="debug-kicker">{isEnglish ? "REACTION FIELD · Web Playtest Alpha · MVP0-P10" : "反应域 · Web Playtest Alpha · MVP0-P10"}</p>
-            <h1 id="character-selection-title">{isEnglish ? "REACTION FIELD · Local two-player character selection" : "反应域 · 本地双人角色选择"}</h1>
+            <h1 id="character-selection-title">{isEnglish ? "REACTION FIELD · Local character selection" : "反应域 · 本地角色选择"}</h1>
           </div>
         </div>
         <p className="panel-note">
-          {isEnglish ? "Choose two characters to start a local shared-screen game. Both hands are public. Refreshing loses this game." : "选择两名玩家的角色后开始本地同屏对局；双方手牌公开。刷新页面会丢失本局进度。"}
+          {isEnglish ? "Choose characters and controllers (Human or AI) to start; hands are public." : "选择角色与控制方（人类或 AI）后开始；双方手牌公开。"}
         </p>
-        <p className="mirror-note">{isEnglish ? "This playtest allows mirrored characters; it does not predefine a future physical character-card mode." : "试玩版允许镜像角色；该能力不预先冻结未来正式实体角色牌模式。"}</p>
+        <p className="mirror-note">{isEnglish ? "Mirrored characters are allowed in this playtest." : "试玩版允许镜像角色。"}</p>
       </section>
 
       <section className="debug-section character-config" aria-labelledby="lineup-title">
@@ -93,30 +93,50 @@ export function CharacterSelectionPanel({
         </div>
         <div className="character-select-grid">
           {([0, 1] as const).map((playerIndex) => (
-            <label className="field-row character-select-field" key={playerIndex}>
+            <div className="character-select-group" key={playerIndex}>
+              <label className="field-row character-select-field">
                 <span>{isEnglish ? "Player" : "玩家"} {playerIndex === 0 ? "A" : "B"}</span>
-              <select
-                aria-label={isEnglish ? `player_${playerIndex + 1} character` : `player_${playerIndex + 1} 角色`}
-                onChange={(event) => dispatch({
-                  type: "SELECT_CHARACTER",
-                  playerIndex,
-                  characterId: event.target.value,
-                })}
-                value={session.characterIds[playerIndex]}
-              >
-                {characterDefinitions.map((character) => (
-                  <option key={character.id} value={character.id}>
-                    {getCharacterDisplayName(character.id, locale)} · {character.maxHp} HP
-                  </option>
-                ))}
-              </select>
-            </label>
+                <select
+                  aria-label={isEnglish ? `player_${playerIndex + 1} character` : `player_${playerIndex + 1} 角色`}
+                  onChange={(event) => dispatch({
+                    type: "SELECT_CHARACTER",
+                    playerIndex,
+                    characterId: event.target.value,
+                  })}
+                  value={session.characterIds[playerIndex]}
+                >
+                  {characterDefinitions.map((character) => (
+                    <option key={character.id} value={character.id}>
+                      {getCharacterDisplayName(character.id, locale)} · {character.maxHp} HP
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field-row character-controller-field">
+                <span>{isEnglish ? "Controller" : "控制方"}</span>
+                <select
+                  aria-label={isEnglish ? `player_${playerIndex + 1} controller` : `player_${playerIndex + 1} 控制方`}
+                  onChange={(event) => dispatch({
+                    type: "SELECT_PLAYER_CONTROLLER",
+                    playerIndex,
+                    controller: event.target.value,
+                  })}
+                  value={session.playerControllers[playerIndex]}
+                >
+                  <option value="human">{isEnglish ? "Human (Local)" : "人类（本地）"}</option>
+                  <option value="ai">NATBA-0 AI</option>
+                </select>
+              </label>
+            </div>
           ))}
         </div>
         <div className="lineup-summary" aria-live="polite">
           <strong>{isEnglish ? "Lineup confirmed" : "阵容确认"}</strong>
-          <span>{isEnglish ? "Player A" : "玩家 A"}：{getCharacterDisplayName(selectedCharacters[0].id, locale)}</span>
-          <span>{isEnglish ? "Player B" : "玩家 B"}：{getCharacterDisplayName(selectedCharacters[1].id, locale)}</span>
+          {([0, 1] as const).map((i) => (
+            <span key={i}>
+              {isEnglish ? "Player" : "玩家"} {i === 0 ? "A" : "B"} ({getPlayerControllerDisplayName(session.playerControllers[i], locale)})：{getCharacterDisplayName(selectedCharacters[i].id, locale)}
+            </span>
+          ))}
           {session.characterIds[0] === session.characterIds[1] ? (
             <span className="ok-pill">{isEnglish ? "Mirrored lineup is valid" : "镜像阵容合法"}</span>
           ) : null}
@@ -148,30 +168,27 @@ export function CharacterSelectionPanel({
           <p className="debug-kicker">{isEnglish ? "Character profiles" : "角色资料"}</p>
             <h2 id="character-catalog-title">{isEnglish ? "7 official character profiles" : "7 个正式角色资料"}</h2>
           </div>
-          <p className="panel-note">{isEnglish ? "Skill summaries come from character definitions; implementation notes remain in Debug details." : "技能摘要来自角色定义；具体实现说明可在调试详情中查看。"}</p>
+          <p className="panel-note">{isEnglish ? "Skill summaries come from character definitions." : "技能摘要来自角色定义。"}</p>
         </div>
         <div className="character-catalog-grid">
-          {characterDefinitions.map((character) => (
-            <article className="debug-section character-option-card" key={character.id}>
+          {characterDefinitions.map((c) => (
+            <article className="debug-section character-option-card" key={c.id}>
               <div className="character-option-card__heading">
-                <div>
-                  <h2>{getCharacterDisplayName(character.id, locale)}</h2>
-                  <p>{character.maxHp} HP</p>
-                </div>
-                <span className="active-pill">{character.maxHp} HP</span>
+                <h2>{getCharacterDisplayName(c.id, locale)}</h2>
+                <span className="active-pill">{c.maxHp} HP</span>
               </div>
-              <CharacterSkillList character={character} locale={locale} />
+              <CharacterSkillList character={c} locale={locale} />
               <details className="debug-details">
                 <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-                {character.skills.map((skill) => (
-                  <p key={skill.id}>{formatSkillDebugText(skill, locale)}</p>
+                {c.skills.map((s) => (
+                  <p key={s.id}>{formatSkillDebugText(s, locale)}</p>
                 ))}
               </details>
             </article>
           ))}
         </div>
         <p className="deferred-note">
-          {isEnglish ? "Unavailable or partial: Experiment Counterattack's metal option awaits a real metal card pool. Sulfate Byproduct is enabled by Phase 10 structured successful reactions. Deferred abilities have no false action entry point." : "不可用或部分实现：实验反击的金属选项等待真实金属卡池；硫酸盐副产已在 Phase 10 通过结构化成功反应事件启用。延期能力不提供虚假执行入口。"}
+          {isEnglish ? "Deferred abilities (e.g. real metals) have no false action entry." : "延期能力（如真实金属）不提供虚假执行入口。"}
         </p>
       </section>
     </main>

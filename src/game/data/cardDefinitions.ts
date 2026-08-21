@@ -1,39 +1,23 @@
-import type { CardDefinition } from "../engine/types";
+import type { CardDefinition, PlayTiming, Tag } from "../engine/types";
 
-export const cardDefinitions = [
-  {
-    id: "element_o",
-    name: "O",
-    type: "element",
-    formula: "O",
-    elements: ["O"],
-    elementCategory: "nonmetal",
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "element_c",
-    name: "C",
-    type: "element",
-    formula: "C",
-    elements: ["C"],
-    elementCategory: "nonmetal",
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "element_s",
-    name: "S",
-    type: "element",
-    formula: "S",
-    elements: ["S"],
-    elementCategory: "nonmetal",
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
+const diyComp = {
+  tags: [] as Tag[],
+  allowedTimings: ["diy-component"] as PlayTiming[],
+  rulesText: "MVP 0 中仅作为 DIY 组件。",
+};
+
+const elemDiy = (id: string, name: string, el: "O" | "C" | "S"): CardDefinition => ({
+  id, name, type: "element", formula: el, elements: [el], elementCategory: "nonmetal", ...diyComp,
+});
+
+const ionDiy = (id: string, name: string, ion: string): CardDefinition => ({
+  id, name, type: "ion", ionsProvided: [ion], ...diyComp,
+});
+
+export const cardDefinitions: readonly CardDefinition[] = [
+  elemDiy("element_o", "O", "O"),
+  elemDiy("element_c", "C", "C"),
+  elemDiy("element_s", "S", "S"),
   {
     id: "ion_h",
     name: "H+",
@@ -61,51 +45,11 @@ export const cardDefinitions = [
     allowedTimings: ["diy-component", "response"],
     rulesText: "MVP 0 中可响应酸性伤害，生成 CO2 仅记入日志。",
   },
-  {
-    id: "ion_cl",
-    name: "Cl-",
-    type: "ion",
-    ionsProvided: ["Cl-"],
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "ion_so4",
-    name: "SO4^2-",
-    type: "ion",
-    ionsProvided: ["SO4^2-"],
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "ion_na",
-    name: "Na+",
-    type: "ion",
-    ionsProvided: ["Na+"],
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "ion_k",
-    name: "K+",
-    type: "ion",
-    ionsProvided: ["K+"],
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
-  {
-    id: "ion_ca",
-    name: "Ca2+",
-    type: "ion",
-    ionsProvided: ["Ca2+"],
-    tags: [],
-    allowedTimings: ["diy-component"],
-    rulesText: "MVP 0 中仅作为 DIY 组件。",
-  },
+  ionDiy("ion_cl", "Cl-", "Cl-"),
+  ionDiy("ion_so4", "SO4^2-", "SO4^2-"),
+  ionDiy("ion_na", "Na+", "Na+"),
+  ionDiy("ion_k", "K+", "K+"),
+  ionDiy("ion_ca", "Ca2+", "Ca2+"),
   {
     id: "substance_h2o",
     name: "H2O",

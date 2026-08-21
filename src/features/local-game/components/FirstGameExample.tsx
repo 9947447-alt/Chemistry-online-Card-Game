@@ -32,8 +32,8 @@ export function FirstGameExample() {
         </ol>
         <p className="panel-note">
           {isEnglish
-            ? "This example does not judge card legality and does not imply that every play creates a reaction."
-            : "本示例不判断卡牌合法性，也不表示每次出牌都会产生反应。"}
+            ? "This example does not imply every play creates a reaction."
+            : "本示例不表示每次出牌都会产生反应。"}
         </p>
       </details>
     </section>
