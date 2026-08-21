@@ -27,7 +27,7 @@ export function GameSummary({
   const isEnglish = locale === "en";
   const isSoloVsAi = Boolean(playerControllers && playerControllers.some((c) => c === "ai"));
   const summaryTitle = isEnglish
-    ? (isSoloVsAi ? "Local Solo vs NATBA-0 AI game" : "Local public two-player game")
+    ? (isSoloVsAi ? "Solo vs NATBA-0" : "Local public two-player game")
     : (isSoloVsAi ? "本地人机公开对局" : "本地双人公开对局");
   const winnerText = game.phase === "gameOver"
     ? game.isDraw

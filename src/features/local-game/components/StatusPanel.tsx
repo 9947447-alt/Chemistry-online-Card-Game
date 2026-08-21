@@ -37,7 +37,7 @@ export function StatusPanel({ game, playerControllers, dispatchGameAction }: Sta
     <section className="debug-section status-panel" aria-labelledby="status-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "Handle the current status or pass" : "请处理当前状态，或放弃处理"}</p>
+          <p className="debug-kicker">{isEnglish ? "Handle status or pass" : "请处理当前状态，或放弃处理"}</p>
           <h2 id="status-title">{isEnglish ? "Status handling window" : "状态处理窗口"}</h2>
         </div>
         <button

@@ -142,25 +142,17 @@ export function useLocalGameDebug(
       return;
     }
 
-    const expectedMode = command.type === "START_LOCAL_GAME"
-      ? "configuring"
-      : command.type === "RESTART_CURRENT_LINEUP"
-        ? "playing"
-        : "fatal";
+    const isStart = command.type === "START_LOCAL_GAME";
+    const isRestart = command.type === "RESTART_CURRENT_LINEUP";
+    const expectedMode = isStart ? "configuring" : isRestart ? "playing" : "fatal";
+    const failCode = isStart ? "GAME_START_FAILED" : isRestart ? "GAME_RESTART_FAILED" : "GAME_RECOVERY_FAILED";
 
     if (currentSession.mode !== expectedMode) {
       return;
     }
 
     if (!isCharacterSelection(currentSession.characterIds)) {
-      enterFatal(
-        currentSession,
-        command.type === "START_LOCAL_GAME"
-          ? "GAME_START_FAILED"
-          : command.type === "RESTART_CURRENT_LINEUP"
-            ? "GAME_RESTART_FAILED"
-            : "GAME_RECOVERY_FAILED",
-      );
+      enterFatal(currentSession, failCode);
       return;
     }
 
@@ -168,21 +160,14 @@ export function useLocalGameDebug(
     try {
       game = createGame(currentSession.characterIds);
     } catch {
-      enterFatal(
-        currentSession,
-        command.type === "START_LOCAL_GAME"
-          ? "GAME_START_FAILED"
-          : command.type === "RESTART_CURRENT_LINEUP"
-            ? "GAME_RESTART_FAILED"
-            : "GAME_RECOVERY_FAILED",
-      );
+      enterFatal(currentSession, failCode);
       return;
     }
 
     dispatchPureAction({
-      type: command.type === "START_LOCAL_GAME"
+      type: isStart
         ? "APPLY_STARTED_LOCAL_GAME"
-        : command.type === "RESTART_CURRENT_LINEUP"
+        : isRestart
           ? "APPLY_RESTARTED_LOCAL_GAME"
           : "APPLY_RECOVERED_LOCAL_GAME",
       expectedRevision: currentSession.revision,

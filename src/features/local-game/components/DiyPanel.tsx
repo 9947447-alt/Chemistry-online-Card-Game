@@ -67,7 +67,7 @@ export function DiyPanel({ game, playerControllers, dispatchGameAction }: DiyPan
     <section className="debug-section diy-panel" aria-labelledby="diy-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "Choose a recipe and components, then run it" : "选择配方和组件后执行"}</p>
+          <p className="debug-kicker">{isEnglish ? "Choose a recipe and run it" : "选择配方和组件后执行"}</p>
           <h2 id="diy-title">{isEnglish ? "Active DIY" : "主动 DIY"}</h2>
         </div>
         <span className={activePlayer.usedDIYThisCycle ? "warn-pill" : "ok-pill"}>

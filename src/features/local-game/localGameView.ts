@@ -241,13 +241,13 @@ export function describePendingResponse(state: GameState): string {
   const p = state.pendingResponse;
   if (!p) return "无";
   const e = p.sourceEffect;
-  return `${getPlayerName(state, p.responderId)} 响应 ${describeDamageSource(e)}：${e.context.baseAmount} 点 ${e.context.tags.join("+")} 伤害，chainDepth ${p.chainDepth}`;
+  return `${getPlayerName(state, p.responderId)} 响应 ${describeDamageSource(e)}：${e.context.baseAmount} ${e.context.tags.join("+")} d${p.chainDepth}`;
 }
 
 export function describePendingExperimentCounterattack(state: GameState): string {
   const p = state.pendingExperimentCounterattack;
   if (!p) return "无";
-  return `${getPlayerName(state, p.responderPlayerId)} 已抵消 ${getPlayerName(state, p.attackerPlayerId)} 的 ${describeDamageSource({ type: "DAMAGE", context: p.originalDamageContext })}；原响应类型：${p.responseType}`;
+  return `${getPlayerName(state, p.responderPlayerId)} 抵消 ${getPlayerName(state, p.attackerPlayerId)} ${describeDamageSource({ type: "DAMAGE", context: p.originalDamageContext })} ${p.responseType}`;
 }
 
 export function describePendingStatusHandling(state: GameState): string {
@@ -260,7 +260,7 @@ export function describePendingStatusHandling(state: GameState): string {
 
 export function describeTableReference(state: GameState): string {
   const t = state.tableReference;
-  return t ? `${t.displayName} · ${getPlayerName(state, t.playedBy)} · 第 ${t.cycle} 周期 / 第 ${t.round} 轮` : "暂无场面基准牌";
+  return t ? `${t.displayName} · ${getPlayerName(state, t.playedBy)} · ${t.cycle}/${t.round}` : "暂无场面基准牌";
 }
 
 export function isMainActionCard(definition: CardDefinition) {

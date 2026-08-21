@@ -36,7 +36,7 @@ export function ResponsePanel({ game, playerControllers, dispatchGameAction }: R
     <section className="debug-section response-panel" aria-labelledby="response-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "The current responder may choose a legal response card" : "当前响应者可选择合法响应牌"}</p>
+          <p className="debug-kicker">{isEnglish ? "Choose a legal response" : "当前响应者可选择合法响应牌"}</p>
           <h2 id="response-title">{isEnglish ? "Response window" : "响应窗口"}</h2>
         </div>
         <button
@@ -49,7 +49,7 @@ export function ResponsePanel({ game, playerControllers, dispatchGameAction }: R
         </button>
       </div>
       <p className="panel-note">
-        {isEnglish ? `${getPlayerDisplayName(responder, locale)} decides whether to respond to the current effect.` : `轮到 ${responder.name} 决定是否响应当前效果。`}
+        {isEnglish ? `${getPlayerDisplayName(responder, locale)} may respond.` : `轮到 ${responder.name} 决定是否响应当前效果。`}
         {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details">

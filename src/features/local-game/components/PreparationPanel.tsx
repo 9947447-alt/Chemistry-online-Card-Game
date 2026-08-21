@@ -43,7 +43,7 @@ export function PreparationPanel({ game, playerControllers, dispatchGameAction }
     <section className="debug-section preparation-panel" aria-labelledby="preparation-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "Keep the required number of cards" : "请保留指定数量的手牌"}</p>
+          <p className="debug-kicker">{isEnglish ? "Keep the required cards" : "请保留指定数量的手牌"}</p>
           <h2 id="preparation-title">{isEnglish ? "Laboratory Teacher · Preparation" : "实验室老师 · 备课"}</h2>
         </div>
         <strong className="selection-count">

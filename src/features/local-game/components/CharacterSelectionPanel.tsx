@@ -79,9 +79,9 @@ export function CharacterSelectionPanel({
           </div>
         </div>
         <p className="panel-note">
-          {isEnglish ? "Choose characters and controllers (Human or AI) to start; hands are public." : "选择角色与控制方（人类或 AI）后开始；双方手牌公开。"}
+          {isEnglish ? "Choose characters and controllers; hands are public." : "选择角色与控制方后开始；双方手牌公开。"}
         </p>
-        <p className="mirror-note">{isEnglish ? "Mirrored characters are allowed in this playtest." : "试玩版允许镜像角色。"}</p>
+        <p className="mirror-note">{isEnglish ? "Mirrored characters are allowed." : "试玩版允许镜像角色。"}</p>
       </section>
 
       <section className="debug-section character-config" aria-labelledby="lineup-title">
@@ -168,7 +168,7 @@ export function CharacterSelectionPanel({
           <p className="debug-kicker">{isEnglish ? "Character profiles" : "角色资料"}</p>
             <h2 id="character-catalog-title">{isEnglish ? "7 official character profiles" : "7 个正式角色资料"}</h2>
           </div>
-          <p className="panel-note">{isEnglish ? "Skill summaries come from character definitions." : "技能摘要来自角色定义。"}</p>
+          <p className="panel-note">{isEnglish ? "Skill summaries from definitions." : "技能摘要来自角色定义。"}</p>
         </div>
         <div className="character-catalog-grid">
           {characterDefinitions.map((c) => (
@@ -188,7 +188,7 @@ export function CharacterSelectionPanel({
           ))}
         </div>
         <p className="deferred-note">
-          {isEnglish ? "Deferred abilities (e.g. real metals) have no false action entry." : "延期能力（如真实金属）不提供虚假执行入口。"}
+          {isEnglish ? "Deferred abilities have no false entry." : "延期能力不提供虚假执行入口。"}
         </p>
       </section>
     </main>

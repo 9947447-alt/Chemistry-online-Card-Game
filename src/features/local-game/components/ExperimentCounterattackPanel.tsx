@@ -55,7 +55,7 @@ export function ExperimentCounterattackPanel({
     >
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "Choose a currently legal counterattack option" : "请选择一个当前合法的反击选项"}</p>
+          <p className="debug-kicker">{isEnglish ? "Choose a legal option" : "请选择一个当前合法的反击选项"}</p>
           <h2 id="experiment-counterattack-title">{isEnglish ? "Experiment Counterattack selection" : "实验反击选择"}</h2>
         </div>
         <span className={used ? "warn-pill" : "ok-pill"}>
@@ -64,7 +64,7 @@ export function ExperimentCounterattackPanel({
       </div>
       <p className="panel-note">
         {isEnglish
-          ? `${getPlayerDisplayName(responder, locale)} successfully responded to ${getPlayerDisplayName(getPlayer(game, pending.attackerPlayerId), locale)}'s attack. Choose one legal counterattack option.`
+          ? `${getPlayerDisplayName(responder, locale)} cancelled ${getPlayerDisplayName(getPlayer(game, pending.attackerPlayerId), locale)}'s attack. Choose one option.`
           : `${responder.name} 已成功响应 ${getPlayerName(game, pending.attackerPlayerId)} 的攻击，请选择一个合法反击选项。`}
         {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
@@ -77,7 +77,7 @@ export function ExperimentCounterattackPanel({
       <div className="character-active-skill">
         <div>
           <strong>{isEnglish ? "Recover 1 HP" : "回复 1 HP"}</strong>
-          <span>{isEnglish ? "Unavailable at full HP or with Fire or SO2 leak" : "满 HP、火情或尾气泄漏时不可选"}</span>
+          <span>{isEnglish ? "Blocked at full HP, Fire, or SO2 leak" : "满 HP、火情或尾气泄漏时不可选"}</span>
         </div>
         <button
           className="primary-button"
@@ -98,7 +98,7 @@ export function ExperimentCounterattackPanel({
       <div className="character-active-skill">
         <div>
           <strong>{isEnglish ? "Metal element counterattack" : "金属元素反击"}</strong>
-          <span>{isEnglish ? "Deferred: real metal cards not implemented" : "真实金属卡牌延期实现"}</span>
+          <span>{isEnglish ? "Deferred: no real metal cards" : "真实金属卡牌延期实现"}</span>
         </div>
         <div className="candidate-grid">
           {metalCards.length > 0 ? (
@@ -118,7 +118,7 @@ export function ExperimentCounterattackPanel({
       <div className="character-active-skill">
         <div>
           <strong>{isEnglish ? "Acid-base pursuit counterattack" : "酸碱追击反击"}</strong>
-          <span>{isEnglish ? "Pursue with opposite dilute acid/base card" : "使用与原攻击相反的稀酸/稀碱追击"}</span>
+          <span>{isEnglish ? "Pursue with opposite dilute acid/base" : "使用与原攻击相反的稀酸/稀碱追击"}</span>
         </div>
         <div className="candidate-grid">
           {pursuitCards.length > 0 ? (

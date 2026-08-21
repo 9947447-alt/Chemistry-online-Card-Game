@@ -30,7 +30,7 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
     <main className="local-game-page fatal-session-page">
       <section className="debug-section fatal-session-card" role="alert" aria-labelledby="fatal-session-title">
           <div>
-          <p className="debug-kicker">{isEnglish ? "REACTION FIELD · Session safety boundary" : "反应域 · 会话安全边界"}</p>
+          <p className="debug-kicker">{isEnglish ? "REACTION FIELD · Safety" : "反应域 · 会话安全边界"}</p>
           <h1 id="fatal-session-title">{isEnglish ? "The current game stopped safely" : "当前对局已安全停止"}</h1>
         </div>
         <p>{getFatalMessageDisplayName(session.error.code, session.error.userMessage, locale)}</p>
@@ -73,7 +73,7 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
             ? (isEnglish ? "Safe diagnostics copied." : "安全诊断已复制。")
             : copyStatus === "failed"
               ? (isEnglish ? "Clipboard error." : "剪贴板错误。")
-              : (isEnglish ? "Diagnostics exclude private game details." : "诊断不含对局细节。")}
+              : (isEnglish ? "No private game details." : "诊断不含对局细节。")}
         </p>
       </section>
     </main>

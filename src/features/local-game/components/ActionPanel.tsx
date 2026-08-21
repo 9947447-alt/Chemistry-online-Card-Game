@@ -64,7 +64,7 @@ function CharacterSkillActions({
     const cards = used ? [] : getAlkaliRecoveryCards(game, activePlayer);
     return (
       <SkillRow
-        desc={isEnglish ? "Discard physical strong-alkali to recover 2 HP · once per cycle" : "弃置实体强碱牌回复 2 HP · 每周期一次"}
+        desc={isEnglish ? "Discard strong-alkali: +2 HP / cycle" : "弃置实体强碱牌回复 2 HP · 每周期一次"}
         title={getSkillDisplayName("alkali_recovery", locale)}
       >
         {cards.length > 0 ? cards.map((cardInstanceId) => (
@@ -95,7 +95,7 @@ function CharacterSkillActions({
     const used = Boolean(activePlayer.characterUsage.perCycle.sulfuric_acid_factory_director_exhaust_discharge);
     return (
       <SkillRow
-        desc={isEnglish ? "Give other living player Exhaust Leak · once per cycle" : "使其他存活玩家获得尾气泄漏状态 · 每周期一次"}
+        desc={isEnglish ? "Give Exhaust Leak / cycle" : "使其他存活玩家获得尾气泄漏状态 · 每周期一次"}
         title={getSkillDisplayName("exhaust_discharge", locale)}
       >
         {targets.map((target) => (
@@ -124,7 +124,7 @@ function CharacterSkillActions({
     return (
       <SkillRow
         desc={`${isEnglish ? "Three skills share once per cycle · " : "三项技能共享每周期一次 · "}${used ? (isEnglish ? "used" : "已用") : (isEnglish ? "available" : "可用")}`}
-        title={isEnglish ? "Secretary shared active skills" : "书记共享主动技能"}
+        title={isEnglish ? "Shared skills" : "书记共享主动技能"}
       >
         {skills.map((skillId) => (
           <button
@@ -199,7 +199,7 @@ export function ActionPanel({
     <section className="debug-section action-panel" aria-labelledby="main-action-title">
       <div className="panel-heading">
         <div>
-          <p className="debug-kicker">{isEnglish ? "It is the active player's main action" : "轮到当前玩家进行主行动"}</p>
+          <p className="debug-kicker">{isEnglish ? "Active player's turn" : "轮到当前玩家进行主行动"}</p>
           <h2 id="main-action-title">{isEnglish ? "Main action" : "主行动"}</h2>
         </div>
         <button
@@ -220,7 +220,7 @@ export function ActionPanel({
         <div className="character-active-skill">
           <div>
             <strong>{getSkillDisplayName(activeCharacterSkill.id, locale)}</strong>
-            <span>{isEnglish ? "Hand of 4 or fewer · once per cycle · ends action" : "手牌不超过 4 张 · 每周期一次 · 发动后结束行动"}</span>
+            <span>{isEnglish ? "Hand ≤4 · once / cycle · ends action" : "手牌不超过 4 张 · 每周期一次 · 发动后结束行动"}</span>
           </div>
           <button
             className="primary-button"
@@ -249,7 +249,7 @@ export function ActionPanel({
         dispatchGameAction={dispatchGameAction}
         game={game}
       />
-      <p className="empty-note">{isEnglish ? "Normal play updates table reference." : "普通出牌只更新场面基准。"}</p>
+      <p className="empty-note">{isEnglish ? "Play updates table reference." : "普通出牌只更新场面基准。"}</p>
       <div className="action-card-list">
         {activePlayer.hand.map((cardInstanceId) => {
           const definition = getCardDefinition(game, cardInstanceId);

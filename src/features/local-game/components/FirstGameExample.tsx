@@ -7,13 +7,13 @@ export function FirstGameExample() {
   return (
     <section className="debug-section first-game-example" aria-labelledby="first-game-example-title">
       <p className="debug-kicker">
-        {isEnglish ? "Three-step example · Display only" : "三步玩法示例 · 仅作展示"}
+        {isEnglish ? "Display only" : "三步玩法示例 · 仅作展示"}
       </p>
       <h2 id="first-game-example-title">
-        {isEnglish ? "See how one action can resolve" : "查看一次行动如何结算"}
+        {isEnglish ? "How one action resolves" : "查看一次行动如何结算"}
       </h2>
       <details className="first-game-example__details">
-        <summary>{isEnglish ? "Open the three-step example" : "展开三步玩法示例"}</summary>
+        <summary>{isEnglish ? "Example" : "展开三步玩法示例"}</summary>
         <ol>
           {(isEnglish
             ? [
@@ -32,7 +32,7 @@ export function FirstGameExample() {
         </ol>
         <p className="panel-note">
           {isEnglish
-            ? "This example does not imply every play creates a reaction."
+            ? "Not every play creates a reaction."
             : "本示例不表示每次出牌都会产生反应。"}
         </p>
       </details>

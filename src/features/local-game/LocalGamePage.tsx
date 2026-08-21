@@ -151,7 +151,7 @@ function PlayingGame({
             <section className="debug-section">
               <h2>{isEnglish ? "Game over" : "对局结束"}</h2>
               <p className="panel-note">
-                {isEnglish ? "Review the full log, or use the header to restart with the current lineup or return to character selection." : "可以查看完整日志，或使用顶部“按当前阵容重开”“返回角色选择”。"}
+                {isEnglish ? "Use the header to restart or return to character selection." : "可查看日志，或用顶部重开/返回角色选择。"}
               </p>
               <ProjectRepositoryLink />
             </section>

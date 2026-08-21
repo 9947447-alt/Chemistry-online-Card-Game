@@ -1,6 +1,5 @@
 import type {
   CharacterId,
-  CharacterSkillId,
   CharacterSkillImplementationStatus,
   CharacterSkillType,
   LogPresentationContext,
@@ -194,14 +193,14 @@ export function getSkillAvailabilityDisplayName(
   locale: DisplayLocale,
 ): string {
   if (status === "implemented-8c-4-partial") {
-    return locale === "en" ? "Partially available in this playtest" : "当前试玩部分可用";
+    return locale === "en" ? "Partial" : "当前试玩部分可用";
   }
 
   if (status.startsWith("implemented")) {
-    return locale === "en" ? "Available in this playtest" : "当前试玩可用";
+    return locale === "en" ? "Available" : "当前试玩可用";
   }
 
-  return locale === "en" ? "Information only in this playtest" : "当前试玩为说明项";
+  return locale === "en" ? "Info only" : "当前试玩为说明项";
 }
 
 export function getPlayerDisplayName(player: Player | undefined, locale: DisplayLocale): string {
@@ -244,15 +243,15 @@ const fatalMessages: Readonly<
 > = {
   SESSION_INITIALIZATION_FAILED: [
     "本地会话初始化失败，请重新开始。",
-    "Session initialization failed; please restart.",
+    "Init failed; restart.",
   ],
   GAME_START_FAILED: [
     "无法创建本地对局，请重试。",
-    "Could not create game; please retry.",
+    "Could not create game.",
   ],
   GAME_RESTART_FAILED: [
     "无法重建本地对局，旧对局已隔离。",
-    "Could not rebuild game; old game isolated.",
+    "Could not rebuild game.",
   ],
   GAME_ACTION_FAILED: [
     "操作发生致命错误，对局已停止。",
@@ -260,11 +259,11 @@ const fatalMessages: Readonly<
   ],
   GAME_RECOVERY_FAILED: [
     "恢复未能创建新对局，请返回重试。",
-    "Recovery failed; please return and retry.",
+    "Recovery failed.",
   ],
   GAME_STATE_VALIDATION_FAILED: [
     "新状态未通过校验，已阻止运行。",
-    "State failed validation; operation blocked.",
+    "State failed validation.",
   ],
 };
 
