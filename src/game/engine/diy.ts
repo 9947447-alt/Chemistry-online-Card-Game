@@ -1,8 +1,7 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
 import { createDIYDamageContext } from "./damageContext";
 import type {
-  CardDefinition,
   CardDefinitionId,
   CardInstanceId,
   DamageEffect,
@@ -16,96 +15,12 @@ import type {
 import { advanceTurnFromReducer, type ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
 
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
-
-function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
-  return state.players.find((player) => player.id === playerId);
-}
-
-function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player): GameState {
-  return {
-    ...state,
-    players: state.players.map((player) => (player.id === playerId ? nextPlayer : player)),
-  };
-}
-
-function getCardHolder(state: GameState, cardInstanceId: CardInstanceId): Player | undefined {
-  return state.players.find((player) => player.hand.includes(cardInstanceId));
-}
-
-function moveCardFromHandToDiscard(
-  state: GameState,
-  cardInstanceId: CardInstanceId,
-): GameState | undefined {
-  const holder = getCardHolder(state, cardInstanceId);
-  const instance = state.cardInstances[cardInstanceId];
-
-  if (!holder || !instance) {
-    return undefined;
-  }
-
-  return replacePlayer(
-    {
-      ...state,
-      cardInstances: {
-        ...state.cardInstances,
-        [cardInstanceId]: {
-          ...instance,
-          ownerId: undefined,
-          zone: { type: "discard" },
-        },
-      },
-      discardPile: [...state.discardPile, cardInstanceId],
-    },
-    holder.id,
-    {
-      ...holder,
-      hand: holder.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
-    },
-  );
-}
-
-function addStatusIfMissing(
-  state: GameState,
-  targetPlayerId: PlayerId,
-  sourcePlayerId: PlayerId,
-  statusId: PlayerStatus["statusId"],
-): GameState {
-  const target = getPlayer(state, targetPlayerId);
-
-  if (!target) {
-    return state;
-  }
-
-  const existingStatus = target.statuses.find((status) => status.statusId === statusId);
-
-  if (existingStatus) {
-    return appendEvent(state, {
-      eventKey: "status_refreshed",
-      params: { playerId: target.id, statusId },
-    });
-  }
-
-  const status: PlayerStatus = {
-    id: `status_${String(state.log.length + 1).padStart(3, "0")}_${target.id}_${statusId}`,
-    statusId,
-    sourcePlayerId,
-    createdAt: state.log.length + 1,
-  };
-
-  return appendEvent(
-    replacePlayer(state, target.id, {
-      ...target,
-      statuses: [...target.statuses, status],
-    }),
-    {
-      eventKey: "status_gained",
-      params: { playerId: target.id, statusId },
-    },
-  );
-}
+import {
+  addStatusIfMissing,
+  getPlayer,
+  moveCardFromHandToDiscard,
+  replacePlayer,
+} from "./resolution";
 
 function removeOwnFire(state: GameState, playerId: PlayerId): GameState {
   const player = getPlayer(state, playerId);
@@ -192,7 +107,7 @@ export function analyzeDIYSelection(
       recordInvalid(id);
       continue;
     }
-    const definition = definitionsById.get(instance.definitionId);
+    const definition = cardDefinitionsById.get(instance.definitionId);
     if (!definition || !definition.allowedTimings.includes("diy-component")) {
       recordInvalid(id);
     }

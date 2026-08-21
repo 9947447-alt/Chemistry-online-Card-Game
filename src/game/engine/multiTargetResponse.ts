@@ -1,4 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { applyDamage } from "./damage";
 import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
 import {
@@ -9,6 +9,7 @@ import {
   createImmediateSo2AbsorptionReactionEvent,
   recordSuccessfulReaction,
 } from "./reactions";
+import { moveCardFromHandToDiscard } from "./resolution";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -20,10 +21,6 @@ import type {
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 export function startExhaustLeakResponseSequence(
   state: GameState,
@@ -65,48 +62,7 @@ export function isAlkalineAbsorptionDefinition(definition: CardDefinition): bool
   );
 }
 
-function discardResponseCard(
-  state: GameState,
-  playerId: PlayerId,
-  cardInstanceId: CardInstanceId,
-): GameState | undefined {
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  const instance = state.cardInstances[cardInstanceId];
-
-  if (
-    !player ||
-    !player.hand.includes(cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== playerId ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== playerId
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === playerId
-        ? {
-            ...candidate,
-            hand: candidate.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, cardInstanceId],
-  };
-}
-
-function getValidPendingResponse(
+export function getValidMultiTargetPendingResponse(
   state: GameState,
   playerId: PlayerId,
 ): MultiTargetPendingResponse | undefined {
@@ -144,9 +100,9 @@ export function respondToMultiTargetDamage(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingResponse = getValidPendingResponse(state, playerId);
+  const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
   const instance = state.cardInstances[cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
 
   if (!pendingResponse || !definition || !isAlkalineAbsorptionDefinition(definition)) {
     return state;
@@ -163,7 +119,7 @@ export function respondToMultiTargetDamage(
     return state;
   }
 
-  const withCardDiscarded = discardResponseCard(state, playerId, cardInstanceId);
+  const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
   if (!withCardDiscarded) {
     return state;
   }
@@ -204,7 +160,7 @@ export function passMultiTargetDamageResponse(
   playerId: PlayerId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingResponse = getValidPendingResponse(state, playerId);
+  const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
   if (!pendingResponse) {
     return state;
   }

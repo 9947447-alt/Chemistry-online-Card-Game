@@ -227,4 +227,8 @@ export const cardDefinitions = [
   },
 ] satisfies CardDefinition[];
 
+export const cardDefinitionsById = new Map<string, CardDefinition>(
+  cardDefinitions.map((definition) => [definition.id, definition]),
+);
+
 export type CardDefinitionKnownId = (typeof cardDefinitions)[number]["id"];

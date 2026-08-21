@@ -1,5 +1,4 @@
-import { cardDefinitions } from "../data/cardDefinitions";
-import { diyRecipes } from "../data/diyRecipes";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { canPlayCardAgainstTableReference } from "./cardAssociation";
 import {
   createCardDamageContext,
@@ -9,6 +8,8 @@ import {
 import { applyDamage } from "./damage";
 import { openExperimentCounterattackOrResume } from "./experimentCounterattack";
 import {
+  getValidMultiTargetPendingResponse,
+  isAlkalineAbsorptionDefinition,
   isMultiTargetPendingResponse,
   passMultiTargetDamageResponse,
   respondToMultiTargetDamage,
@@ -24,7 +25,6 @@ import type {
   CardInstanceId,
   DamageEffect,
   DamageSource,
-  Effect,
   GameState,
   Player,
   PlayerId,
@@ -33,16 +33,7 @@ import type {
 import { advanceTurnFromReducer, finishGameIfResolved, type ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
 
-export function resolveEffects(effects: Effect[]): Effect[] {
-  return effects;
-}
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
-const diyRecipesById = new Map(diyRecipes.map((recipe) => [recipe.id, recipe]));
-
-function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
+export function getPlayer(state: GameState, playerId: PlayerId): Player | undefined {
   return state.players.find((player) => player.id === playerId);
 }
 
@@ -51,7 +42,7 @@ function getDefinitionForCard(
   cardInstanceId: CardInstanceId,
 ): CardDefinition | undefined {
   const instance = state.cardInstances[cardInstanceId];
-  return instance ? definitionsById.get(instance.definitionId) : undefined;
+  return instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
 }
 
 function setTableReference(
@@ -73,22 +64,18 @@ function setTableReference(
   };
 }
 
-function getCardHolder(state: GameState, cardInstanceId: CardInstanceId): Player | undefined {
-  return state.players.find((player) => player.hand.includes(cardInstanceId));
-}
-
-function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player): GameState {
+export function replacePlayer(state: GameState, playerId: PlayerId, nextPlayer: Player): GameState {
   return {
     ...state,
     players: state.players.map((player) => (player.id === playerId ? nextPlayer : player)),
   };
 }
 
-function moveCardFromHandToDiscard(
+export function moveCardFromHandToDiscard(
   state: GameState,
   cardInstanceId: CardInstanceId,
 ): GameState | undefined {
-  const holder = getCardHolder(state, cardInstanceId);
+  const holder = state.players.find((player) => player.hand.includes(cardInstanceId));
   const instance = state.cardInstances[cardInstanceId];
 
   if (!holder || !instance) {
@@ -116,7 +103,7 @@ function moveCardFromHandToDiscard(
   );
 }
 
-function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
+export function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | undefined {
   if (definition.tags.includes("acid")) {
     return "acid";
   }
@@ -128,7 +115,7 @@ function getAcidBaseDamageKind(definition: CardDefinition): "acid" | "base" | un
   return undefined;
 }
 
-function canNeutralize(
+export function canNeutralize(
   incomingDamageKind: "acid" | "base",
   responseDefinition: CardDefinition,
 ): boolean {
@@ -147,7 +134,7 @@ function canNeutralize(
   return responseDefinition.tags.includes("acid");
 }
 
-function canGenerateCarbonDioxideAgainstAcid(
+export function canGenerateCarbonDioxideAgainstAcid(
   incomingDamageKind: "acid" | "base",
   responseDefinition: CardDefinition,
 ): boolean {
@@ -162,22 +149,6 @@ function canGenerateCarbonDioxideAgainstAcid(
   );
 }
 
-function getDamageSourceName(source: DamageSource): string {
-  switch (source.kind) {
-    case "card":
-      return definitionsById.get(source.cardDefinitionId)?.name ?? "未知卡牌";
-    case "diy":
-      return diyRecipesById.get(source.recipeId)?.displayName ?? "未知主动 DIY";
-    case "status":
-      return source.statusId;
-    case "character-skill":
-      return source.skillId;
-    default: {
-      const exhaustiveSource: never = source;
-      return exhaustiveSource;
-    }
-  }
-}
 
 function discardAttackSourceCardIfNeeded(
   state: GameState,
@@ -231,7 +202,7 @@ function enterNextStatusWindowOrMainAction(
   );
 }
 
-function addStatusIfMissing(
+export function addStatusIfMissing(
   state: GameState,
   targetPlayerId: PlayerId,
   sourcePlayerId: PlayerId,
@@ -329,18 +300,9 @@ function playOxygenRecoveryCard(
   actor: Player,
   definition: CardDefinition,
   cardInstanceId: CardInstanceId,
-  targetPlayerId: PlayerId | undefined,
   shuffle: ShuffleFunction,
 ): GameState {
-  if (
-    targetPlayerId !== actor.id ||
-    !canRecoverHp(actor)
-  ) {
-    return state;
-  }
-
   const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
-
   if (!withCardDiscarded) {
     return state;
   }
@@ -375,27 +337,59 @@ function playOxygenRecoveryCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
+function isOwnedHandCard(state: GameState, playerId: PlayerId, cardInstanceId: CardInstanceId): boolean {
+  const player = getPlayer(state, playerId);
+  const instance = state.cardInstances[cardInstanceId];
+  return Boolean(
+    player &&
+    !player.eliminated &&
+    player.hand.includes(cardInstanceId) &&
+    instance &&
+    instance.ownerId === playerId &&
+    instance.zone.type === "hand" &&
+    instance.zone.playerId === playerId,
+  );
+}
+
+export function validatePassAction(state: GameState, playerId: PlayerId): boolean {
+  const actor = getPlayer(state, playerId);
+  return Boolean(
+    state.phase === "mainAction" &&
+    playerId === state.activePlayerId &&
+    actor &&
+    !actor.eliminated,
+  );
+}
+
+export function validatePlayReferenceCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+): boolean {
+  if (state.phase !== "mainAction" || playerId !== state.activePlayerId) {
+    return false;
+  }
+  const definition = getDefinitionForCard(state, cardInstanceId);
+  return Boolean(
+    isOwnedHandCard(state, playerId, cardInstanceId) &&
+    definition &&
+    definition.type !== "event" &&
+    canPlayCardAgainstTableReference(state, playerId, cardInstanceId),
+  );
+}
+
 export function playReferenceCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const actor = getPlayer(state, playerId);
-  const definition = getDefinitionForCard(state, cardInstanceId);
-
-  if (
-    state.phase !== "mainAction" ||
-    playerId !== state.activePlayerId ||
-    !actor ||
-    actor.eliminated ||
-    !actor.hand.includes(cardInstanceId) ||
-    !definition ||
-    !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
-  ) {
+  if (!validatePlayReferenceCard(state, playerId, cardInstanceId)) {
     return state;
   }
 
+  const actor = getPlayer(state, playerId)!;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
   const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
 
   if (!withCardDiscarded) {
@@ -422,6 +416,44 @@ export function playReferenceCard(
   return advanceTurnFromReducer(resolved, shuffle);
 }
 
+export function validatePlayMainActionCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+  targetPlayerId: PlayerId | undefined,
+): boolean {
+  if (state.phase !== "mainAction" || playerId !== state.activePlayerId) {
+    return false;
+  }
+  const actor = getPlayer(state, playerId);
+  const definition = getDefinitionForCard(state, cardInstanceId);
+  if (
+    !actor ||
+    !isOwnedHandCard(state, playerId, cardInstanceId) ||
+    !definition ||
+    !definition.allowedTimings.includes("main-action") ||
+    !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
+  ) {
+    return false;
+  }
+
+  if (definition.id === "substance_o2") {
+    return canRecoverHp(actor) && targetPlayerId === actor.id;
+  }
+
+  const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
+  if (!target || target.id === actor.id || target.eliminated) {
+    return false;
+  }
+
+  if (definition.id === "substance_so2") {
+    return true;
+  }
+
+  const damageKind = getAcidBaseDamageKind(definition);
+  return definition.type === "substance" && definition.baseDamage === 1 && damageKind !== undefined;
+}
+
 export function playMainActionCard(
   state: GameState,
   playerId: PlayerId,
@@ -429,29 +461,20 @@ export function playMainActionCard(
   targetPlayerId: PlayerId | undefined,
   shuffle: ShuffleFunction,
 ): GameState {
-  const actor = getPlayer(state, playerId);
-  const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
-  const definition = getDefinitionForCard(state, cardInstanceId);
-  const damageKind = definition ? getAcidBaseDamageKind(definition) : undefined;
-
-  if (
-    state.phase !== "mainAction" ||
-    playerId !== state.activePlayerId ||
-    !actor ||
-    actor.eliminated ||
-    !actor.hand.includes(cardInstanceId) ||
-    !definition ||
-    !definition.allowedTimings.includes("main-action") ||
-    !canPlayCardAgainstTableReference(state, playerId, cardInstanceId)
-  ) {
+  if (!validatePlayMainActionCard(state, playerId, cardInstanceId, targetPlayerId)) {
     return state;
   }
 
+  const actor = getPlayer(state, playerId)!;
+  const target = targetPlayerId ? getPlayer(state, targetPlayerId) : undefined;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
+  const damageKind = getAcidBaseDamageKind(definition);
+
   if (definition.id === "substance_o2") {
-    return playOxygenRecoveryCard(state, actor, definition, cardInstanceId, targetPlayerId, shuffle);
+    return playOxygenRecoveryCard(state, actor, definition, cardInstanceId, shuffle);
   }
 
-  if (!target || target.id === actor.id || target.eliminated) {
+  if (!target) {
     return state;
   }
 
@@ -459,11 +482,7 @@ export function playMainActionCard(
     return playSulfurDioxideCard(state, actor, target, definition, cardInstanceId, shuffle);
   }
 
-  if (definition.type !== "substance") {
-    return state;
-  }
-
-  if (definition.baseDamage !== 1 || !damageKind) {
+  if (!damageKind) {
     return state;
   }
 
@@ -474,7 +493,7 @@ export function playMainActionCard(
       cardInstanceId,
       definition,
       targetPlayerId: target.id,
-      baseAmount: definition.baseDamage,
+      baseAmount: definition.baseDamage ?? 1,
     }),
   };
 
@@ -501,9 +520,42 @@ export function playMainActionCard(
         cardDefinitionId: definition.id,
         targetId: target.id,
         damageKind,
-        baseAmount: definition.baseDamage,
+        baseAmount: definition.baseDamage ?? 1,
       },
     },
+  );
+}
+
+export function validateHandleStatusWithCard(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+  cardInstanceId: CardInstanceId,
+): boolean {
+  const pending = state.pendingStatusHandling;
+  const player = getPlayer(state, playerId);
+  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
+  const definition = getDefinitionForCard(state, cardInstanceId);
+  const canHandleSo2 =
+    status?.statusId === "SO2_LEAK" &&
+    definition?.allowedTimings.includes("status-window") &&
+    definition.tags.includes("alkaline-absorb");
+  const canHandleFire =
+    status?.statusId === "FIRE" &&
+    (definition?.id === "substance_h2o" || definition?.id === "substance_co2") &&
+    definition.allowedTimings.includes("status-window") &&
+    definition.tags.includes("fire-extinguish");
+
+  return Boolean(
+    state.phase === "statusWindow" &&
+    state.activePlayerId === playerId &&
+    pending &&
+    pending.playerId === playerId &&
+    pending.statusInstanceId === statusInstanceId &&
+    status &&
+    isOwnedHandCard(state, playerId, cardInstanceId) &&
+    definition &&
+    (canHandleSo2 || canHandleFire),
   );
 }
 
@@ -514,35 +566,13 @@ export function handleStatusWithCard(
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingStatusHandling = state.pendingStatusHandling;
-  const player = getPlayer(state, playerId);
-  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
-  const definition = getDefinitionForCard(state, cardInstanceId);
-  const canHandleSo2Leak =
-    status?.statusId === "SO2_LEAK" &&
-    definition?.allowedTimings.includes("status-window") &&
-    definition.tags.includes("alkaline-absorb");
-  const canHandleFire =
-    status?.statusId === "FIRE" &&
-    (definition?.id === "substance_h2o" || definition?.id === "substance_co2") &&
-    definition.allowedTimings.includes("status-window") &&
-    definition.tags.includes("fire-extinguish");
-
-  if (
-    state.phase !== "statusWindow" ||
-    !pendingStatusHandling ||
-    pendingStatusHandling.playerId !== playerId ||
-    pendingStatusHandling.statusInstanceId !== statusInstanceId ||
-    state.activePlayerId !== playerId ||
-    !player ||
-    player.eliminated ||
-    !status ||
-    !player.hand.includes(cardInstanceId) ||
-    !definition ||
-    (!canHandleSo2Leak && !canHandleFire)
-  ) {
+  if (!validateHandleStatusWithCard(state, playerId, statusInstanceId, cardInstanceId)) {
     return state;
   }
+
+  const player = getPlayer(state, playerId)!;
+  const status = player.statuses.find((candidate) => candidate.id === statusInstanceId)!;
+  const definition = getDefinitionForCard(state, cardInstanceId)!;
 
   const withCardDiscarded = moveCardFromHandToDiscard(state, cardInstanceId);
 
@@ -582,29 +612,40 @@ export function handleStatusWithCard(
   return enterNextStatusWindowOrMainAction(resolved, player.id, status.createdAt);
 }
 
+export function validatePassStatusHandling(
+  state: GameState,
+  playerId: PlayerId,
+  statusInstanceId: string,
+): boolean {
+  const pending = state.pendingStatusHandling;
+  const player = getPlayer(state, playerId);
+  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
+
+  return Boolean(
+    state.phase === "statusWindow" &&
+    state.activePlayerId === playerId &&
+    pending &&
+    pending.playerId === playerId &&
+    pending.statusInstanceId === statusInstanceId &&
+    player &&
+    !player.eliminated &&
+    status &&
+    (status.statusId === "SO2_LEAK" || status.statusId === "FIRE"),
+  );
+}
+
 export function passStatusHandling(
   state: GameState,
   playerId: PlayerId,
   statusInstanceId: string,
   shuffle: ShuffleFunction,
 ): GameState {
-  const pendingStatusHandling = state.pendingStatusHandling;
-  const player = getPlayer(state, playerId);
-  const status = player?.statuses.find((candidate) => candidate.id === statusInstanceId);
-
-  if (
-    state.phase !== "statusWindow" ||
-    !pendingStatusHandling ||
-    pendingStatusHandling.playerId !== playerId ||
-    pendingStatusHandling.statusInstanceId !== statusInstanceId ||
-    state.activePlayerId !== playerId ||
-    !player ||
-    player.eliminated ||
-    !status ||
-    (status.statusId !== "SO2_LEAK" && status.statusId !== "FIRE")
-  ) {
+  if (!validatePassStatusHandling(state, playerId, statusInstanceId)) {
     return state;
   }
+
+  const player = getPlayer(state, playerId)!;
+  const status = player.statuses.find((candidate) => candidate.id === statusInstanceId)!;
 
   const appliedDamage = applyDamage(state, {
     type: "DAMAGE",
@@ -651,48 +692,63 @@ export function passStatusHandling(
   return enterNextStatusWindowOrMainAction(gameOverChecked, player.id, status.createdAt);
 }
 
+export function validateRespondWithCard(
+  state: GameState,
+  playerId: PlayerId,
+  cardInstanceId: CardInstanceId,
+): boolean {
+  if (state.phase !== "responseWindow") {
+    return false;
+  }
+  if (!isOwnedHandCard(state, playerId, cardInstanceId)) {
+    return false;
+  }
+  const definition = getDefinitionForCard(state, cardInstanceId);
+  if (!definition) {
+    return false;
+  }
+
+  if (isMultiTargetPendingResponse(state)) {
+    const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
+    return Boolean(pendingResponse && isAlkalineAbsorptionDefinition(definition));
+  }
+
+  const pendingResponse = getValidSinglePendingResponse(state, playerId);
+  const damageContext = pendingResponse?.sourceEffect.context;
+  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
+  const isCarbonateResponse =
+    damageKind === "acid" && canGenerateCarbonDioxideAgainstAcid(damageKind, definition);
+
+  return Boolean(
+    pendingResponse &&
+    damageKind &&
+    (canNeutralize(damageKind, definition) || isCarbonateResponse),
+  );
+}
+
 export function respondWithCard(
   state: GameState,
   playerId: PlayerId,
   cardInstanceId: CardInstanceId,
   shuffle: ShuffleFunction,
 ): GameState {
+  if (!validateRespondWithCard(state, playerId, cardInstanceId)) {
+    return state;
+  }
+
   if (isMultiTargetPendingResponse(state)) {
     return respondToMultiTargetDamage(state, playerId, cardInstanceId, shuffle);
   }
 
-  const pendingResponse = state.pendingResponse;
-  const responder = getPlayer(state, playerId);
-  const sourceEffect = pendingResponse?.sourceEffect;
-  const damageContext = sourceEffect?.context;
-  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
-  const responseDefinition = getDefinitionForCard(state, cardInstanceId);
-  const responseInstance = state.cardInstances[cardInstanceId];
-  const attackName = sourceEffect ? getDamageSourceName(sourceEffect.context.source) : "";
+  const pendingResponse = state.pendingResponse!;
+  const responder = getPlayer(state, playerId)!;
+  const sourceEffect = pendingResponse.sourceEffect!;
+  const damageContext = sourceEffect.context;
+  const damageKind = getAcidBaseDamageTag(damageContext);
+  const responseDefinition = getDefinitionForCard(state, cardInstanceId)!;
   const isCarbonateResponse =
     damageKind === "acid" &&
-    responseDefinition &&
     canGenerateCarbonDioxideAgainstAcid(damageKind, responseDefinition);
-
-  if (
-    state.phase !== "responseWindow" ||
-    !pendingResponse ||
-    pendingResponse.responderId !== playerId ||
-    !sourceEffect ||
-    damageContext?.responsePolicy !== "acid-base" ||
-    !damageKind ||
-    !responder ||
-    responder.eliminated ||
-    !responder.hand.includes(cardInstanceId) ||
-    !responseInstance ||
-    responseInstance.ownerId !== responder.id ||
-    responseInstance.zone.type !== "hand" ||
-    responseInstance.zone.playerId !== responder.id ||
-    !responseDefinition ||
-    (!canNeutralize(damageKind, responseDefinition) && !isCarbonateResponse)
-  ) {
-    return state;
-  }
 
   const reactionEvent = createAcidBaseResponseReactionEvent({
     context: sourceEffect.context,
@@ -741,34 +797,63 @@ export function respondWithCard(
   });
 }
 
-export function passResponse(
+export function getValidSinglePendingResponse(
   state: GameState,
   playerId: PlayerId,
-  shuffle: ShuffleFunction,
-): GameState {
-  if (isMultiTargetPendingResponse(state)) {
-    return passMultiTargetDamageResponse(state, playerId, shuffle);
+): NonNullable<GameState["pendingResponse"]> | undefined {
+  if (state.phase !== "responseWindow" || isMultiTargetPendingResponse(state)) {
+    return undefined;
   }
 
-  const pendingResponse = state.pendingResponse;
-  const sourceEffect = pendingResponse?.sourceEffect;
-  const damageContext = sourceEffect?.context;
-  const damageKind = damageContext ? getAcidBaseDamageTag(damageContext) : undefined;
+  const pending = state.pendingResponse;
+  const damageContext = pending?.sourceEffect?.context;
   const responder = getPlayer(state, playerId);
   const target = damageContext ? getPlayer(state, damageContext.targetPlayerId) : undefined;
-
   if (
-    state.phase !== "responseWindow" ||
-    !pendingResponse ||
-    pendingResponse.responderId !== playerId ||
-    !sourceEffect ||
+    !pending ||
+    !pending.sourceEffect ||
+    pending.responderId !== playerId ||
+    damageContext?.responsePolicy !== "acid-base" ||
+    damageContext.targetPlayerId !== pending.responderId ||
     !responder ||
     responder.eliminated ||
     !target ||
     target.eliminated
   ) {
+    return undefined;
+  }
+
+  return pending;
+}
+
+export function validatePassResponse(state: GameState, playerId: PlayerId): boolean {
+  if (isMultiTargetPendingResponse(state)) {
+    const pendingResponse = getValidMultiTargetPendingResponse(state, playerId);
+    const responder = getPlayer(state, playerId);
+    return Boolean(pendingResponse && responder && !responder.eliminated);
+  }
+
+  return getValidSinglePendingResponse(state, playerId) !== undefined;
+}
+
+export function passResponse(
+  state: GameState,
+  playerId: PlayerId,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validatePassResponse(state, playerId)) {
     return state;
   }
+
+  if (isMultiTargetPendingResponse(state)) {
+    return passMultiTargetDamageResponse(state, playerId, shuffle);
+  }
+
+  const pendingResponse = state.pendingResponse!;
+  const sourceEffect = pendingResponse.sourceEffect!;
+  const damageContext = sourceEffect.context;
+  const damageKind = getAcidBaseDamageTag(damageContext);
+  const target = getPlayer(state, damageContext.targetPlayerId)!;
 
   const appliedDamage = applyDamage(state, sourceEffect);
   const withDamage = appliedDamage.state;

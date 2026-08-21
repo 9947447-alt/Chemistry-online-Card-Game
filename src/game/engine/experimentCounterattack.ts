@@ -1,9 +1,10 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { ResolveExperimentCounterattackAction } from "./actions";
 import { applyDamage } from "./damage";
 import { createExperimentCounterattackPursuitDamageContext } from "./damageContext";
 import { canRecoverHp } from "./recovery";
 import { resumeResponseContinuation } from "./responseContinuation";
+import { moveCardFromHandToDiscard } from "./resolution";
 import type {
   CardDefinition,
   CardInstanceId,
@@ -18,10 +19,6 @@ import type {
 } from "./types";
 import type { ShuffleFunction } from "./turnFlow";
 import { appendEvent } from "./logEvents";
-
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 
 function getSourcePlayerId(source: DamageSource): PlayerId | null {
   return source.kind === "status" ? null : source.sourcePlayerId;
@@ -83,7 +80,7 @@ function getOwnedHandCardIds(
 ): CardInstanceId[] {
   return player.hand.filter((cardInstanceId) => {
     const instance = state.cardInstances[cardInstanceId];
-    const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+    const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
     return Boolean(
       instance &&
         instance.ownerId === player.id &&
@@ -208,47 +205,7 @@ function markCounterattackUsed(state: GameState, playerId: PlayerId): GameState 
   };
 }
 
-function discardOwnedHandCard(
-  state: GameState,
-  playerId: PlayerId,
-  cardInstanceId: CardInstanceId,
-): GameState | undefined {
-  const player = state.players.find((candidate) => candidate.id === playerId);
-  const instance = state.cardInstances[cardInstanceId];
-  if (
-    !player ||
-    !player.hand.includes(cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== player.id ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== player.id
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === player.id
-        ? {
-            ...candidate,
-            hand: candidate.hand.filter((heldCardId) => heldCardId !== cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, cardInstanceId],
-  };
-}
-
-function isValidPending(
+export function getValidPendingExperimentCounterattack(
   state: GameState,
   playerId: PlayerId,
 ): PendingExperimentCounterattack | undefined {
@@ -313,26 +270,62 @@ function isValidPending(
   return pending;
 }
 
-export function resolveExperimentCounterattack(
+export function validateExperimentCounterattackAction(
   state: GameState,
   action: ResolveExperimentCounterattackAction,
-  shuffle: ShuffleFunction,
-): GameState {
-  const pending = isValidPending(state, action.playerId);
+): boolean {
+  const pending = getValidPendingExperimentCounterattack(state, action.playerId);
   const responder = state.players.find((player) => player.id === action.playerId);
   const attacker = pending
     ? state.players.find((player) => player.id === pending.attackerPlayerId)
     : undefined;
 
   if (!pending || !responder || !attacker) {
-    return state;
+    return false;
   }
 
   if (action.option === "recover") {
-    if (!pending.legalOptions.includes("recover") || !canRecoverHp(responder)) {
-      return state;
-    }
+    return pending.legalOptions.includes("recover") && canRecoverHp(responder);
+  }
 
+  if (action.option === "acid-base-pursuit") {
+    if (
+      !action.cardInstanceId ||
+      !pending.legalOptions.includes("acid-base-pursuit") ||
+      !pending.legalPursuitCardInstanceIds.includes(action.cardInstanceId)
+    ) {
+      return false;
+    }
+    const instance = state.cardInstances[action.cardInstanceId];
+    const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
+    return Boolean(
+      instance &&
+      responder.hand.includes(action.cardInstanceId) &&
+      instance.ownerId === responder.id &&
+      instance.zone.type === "hand" &&
+      instance.zone.playerId === responder.id &&
+      definition &&
+      isLegalExperimentCounterattackPursuitDefinition(definition),
+    );
+  }
+
+  return false;
+}
+
+export function resolveExperimentCounterattack(
+  state: GameState,
+  action: ResolveExperimentCounterattackAction,
+  shuffle: ShuffleFunction,
+): GameState {
+  if (!validateExperimentCounterattackAction(state, action)) {
+    return state;
+  }
+
+  const pending = getValidPendingExperimentCounterattack(state, action.playerId)!;
+  const responder = state.players.find((player) => player.id === action.playerId)!;
+  const attacker = state.players.find((player) => player.id === pending.attackerPlayerId)!;
+
+  if (action.option === "recover") {
     const healedState: GameState = {
       ...state,
       players: state.players.map((player) =>
@@ -356,19 +349,13 @@ export function resolveExperimentCounterattack(
   }
 
   const instance = state.cardInstances[action.cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
-  if (
-    !pending.legalOptions.includes("acid-base-pursuit") ||
-    !pending.legalPursuitCardInstanceIds.includes(action.cardInstanceId) ||
-    !definition ||
-    !isLegalExperimentCounterattackPursuitDefinition(definition)
-  ) {
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
+  if (!definition) {
     return state;
   }
 
-  const withCardDiscarded = discardOwnedHandCard(
+  const withCardDiscarded = moveCardFromHandToDiscard(
     state,
-    responder.id,
     action.cardInstanceId,
   );
   if (!withCardDiscarded) {

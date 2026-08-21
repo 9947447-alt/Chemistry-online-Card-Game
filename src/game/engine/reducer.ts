@@ -11,6 +11,7 @@ import {
   playMainActionCard,
   playReferenceCard,
   respondWithCard,
+  validatePassAction,
 } from "./resolution";
 import { advanceTurnFromReducer, confirmLaboratoryPreparation } from "./turnFlow";
 
@@ -49,11 +50,7 @@ export function engineReducer(state: GameState, action: GameAction): GameState {
     case "RESOLVE_EXPERIMENT_COUNTERATTACK":
       return resolveExperimentCounterattack(state, action, fisherYatesShuffle);
     case "PASS_ACTION":
-      if (
-        action.playerId !== state.activePlayerId ||
-        state.phase !== "mainAction" ||
-        state.players.find((player) => player.id === action.playerId)?.eliminated
-      ) {
+      if (!validatePassAction(state, action.playerId)) {
         return state;
       }
       return advanceTurnFromReducer(state, fisherYatesShuffle);

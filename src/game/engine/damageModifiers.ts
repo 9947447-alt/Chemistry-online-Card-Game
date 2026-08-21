@@ -1,9 +1,8 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import { diyRecipes } from "../data/diyRecipes";
 import type { DamageModifierSet, DamageModifierSource } from "./damage";
 import type {
   CharacterSkillId,
-  CardDefinition,
   DamageContext,
   DamageSource,
   GameState,
@@ -11,9 +10,6 @@ import type {
   PlayerId,
 } from "./types";
 
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
 const diyRecipesById = new Map(diyRecipes.map((recipe) => [recipe.id, recipe]));
 
 function getEligiblePlayer(state: GameState, playerId: PlayerId): Player | undefined {
@@ -84,7 +80,7 @@ function collectSourceModifier(
     return {};
   }
 
-  const definition = definitionsById.get(source.cardDefinitionId);
+  const definition = cardDefinitionsById.get(source.cardDefinitionId);
   if (!definition || definition.type !== "substance") {
     return {};
   }

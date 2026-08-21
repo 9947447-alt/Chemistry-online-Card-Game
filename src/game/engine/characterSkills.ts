@@ -1,11 +1,11 @@
-import { cardDefinitions } from "../data/cardDefinitions";
+import { cardDefinitionsById } from "../data/cardDefinitions";
 import type { ActivateCharacterSkillAction } from "./actions";
 import { applyLoseHpBatch } from "./loseHp";
 import { startExhaustLeakResponseSequence } from "./multiTargetResponse";
 import { canRecoverHp } from "./recovery";
 import type {
-  CardDefinition,
   CharacterId,
+  CharacterSkillId,
   CharacterUsageKey,
   GameState,
   Player,
@@ -19,6 +19,11 @@ import {
   type ShuffleFunction,
 } from "./turnFlow";
 import { appendEvent } from "./logEvents";
+import {
+  addStatusIfMissing,
+  moveCardFromHandToDiscard,
+  replacePlayer,
+} from "./resolution";
 
 type ActiveSkillId = ActivateCharacterSkillAction["skillId"];
 
@@ -56,15 +61,15 @@ const activeSkillSpecs: Record<ActiveSkillId, ActiveSkillSpec> = {
   },
 };
 
-const definitionsById = new Map<string, CardDefinition>(
-  cardDefinitions.map((definition) => [definition.id, definition]),
-);
-
 function getCommonSkillActor(
   state: GameState,
   action: ActivateCharacterSkillAction,
 ): Player | undefined {
   const spec = activeSkillSpecs[action.skillId];
+  if (!spec) {
+    return undefined;
+  }
+
   const player = state.players.find((candidate) => candidate.id === action.playerId);
 
   if (
@@ -79,6 +84,124 @@ function getCommonSkillActor(
   }
 
   return player;
+}
+
+export function validateCharacterSkillAction(
+  state: GameState,
+  action: ActivateCharacterSkillAction,
+): boolean {
+  const player = getCommonSkillActor(state, action);
+  if (!player) {
+    return false;
+  }
+
+  switch (action.skillId) {
+    case "extra_lesson":
+    case "emergency_supply": {
+      return player.hand.length <= 4 && getAvailableDrawCardCount(state) > 0;
+    }
+    case "alkali_recovery": {
+      if (!canRecoverHp(player)) {
+        return false;
+      }
+      if (!action.cardInstanceId || !player.hand.includes(action.cardInstanceId)) {
+        return false;
+      }
+      const instance = state.cardInstances[action.cardInstanceId];
+      if (
+        !instance ||
+        instance.ownerId !== player.id ||
+        instance.zone.type !== "hand" ||
+        instance.zone.playerId !== player.id
+      ) {
+        return false;
+      }
+      const definition = cardDefinitionsById.get(instance.definitionId);
+      return Boolean(
+        definition &&
+          definition.type === "substance" &&
+          definition.tags.includes("strong-alkali"),
+      );
+    }
+    case "exhaust_discharge": {
+      if (!action.targetPlayerId) {
+        return false;
+      }
+      const target = state.players.find((candidate) => candidate.id === action.targetPlayerId);
+      return Boolean(target && target.id !== player.id && !target.eliminated);
+    }
+    case "exhaust_leak":
+    case "lab_fire":
+    case "exothermic_accident": {
+      return getOtherAlivePlayerIds(state, player.id).length > 0;
+    }
+    default: {
+      const exhaustiveSkill: never = action;
+      return exhaustiveSkill;
+    }
+  }
+}
+
+export function getLegalCharacterSkillActions(
+  state: GameState,
+  playerId: PlayerId,
+): readonly ActivateCharacterSkillAction[] {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player) {
+    return [];
+  }
+
+  const legalActions: ActivateCharacterSkillAction[] = [];
+  const skillIds = (Object.keys(activeSkillSpecs) as ActiveSkillId[]).filter(
+    (skillId) => activeSkillSpecs[skillId].characterId === player.characterId,
+  );
+
+  for (const skillId of skillIds) {
+    if (skillId === "alkali_recovery") {
+      for (const cardInstanceId of player.hand) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+          cardInstanceId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+    } else if (skillId === "exhaust_discharge") {
+      for (const targetPlayerId of getOtherAlivePlayerIds(state, playerId)) {
+        const action: ActivateCharacterSkillAction = {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId,
+          skillId,
+          targetPlayerId,
+        };
+        if (validateCharacterSkillAction(state, action)) {
+          legalActions.push(action);
+        }
+      }
+    } else {
+      const action: ActivateCharacterSkillAction = {
+        type: "ACTIVATE_CHARACTER_SKILL",
+        playerId,
+        skillId,
+      };
+      if (validateCharacterSkillAction(state, action)) {
+        legalActions.push(action);
+      }
+    }
+  }
+
+  return legalActions;
+}
+
+export function canActivateCharacterSkill(
+  state: GameState,
+  playerId: PlayerId,
+  skillId: CharacterSkillId,
+): boolean {
+  return getLegalCharacterSkillActions(state, playerId).some((action) => action.skillId === skillId);
 }
 
 function markSkillUsed(
@@ -105,49 +228,6 @@ function markSkillUsed(
   };
 }
 
-function replacePlayer(state: GameState, playerId: PlayerId, player: Player): GameState {
-  return {
-    ...state,
-    players: state.players.map((candidate) => (candidate.id === playerId ? player : candidate)),
-  };
-}
-
-function addStatusIfMissing(
-  state: GameState,
-  targetPlayerId: PlayerId,
-  sourcePlayerId: PlayerId,
-  statusId: PlayerStatus["statusId"],
-): GameState {
-  const target = state.players.find((player) => player.id === targetPlayerId);
-  if (!target) {
-    return state;
-  }
-
-  if (target.statuses.some((status) => status.statusId === statusId)) {
-    return appendEvent(state, {
-      eventKey: "status_refreshed",
-      params: { playerId: target.id, statusId },
-    });
-  }
-
-  const status: PlayerStatus = {
-    id: `status_${String(state.log.length + 1).padStart(3, "0")}_${target.id}_${statusId}`,
-    statusId,
-    sourcePlayerId,
-    createdAt: state.log.length + 1,
-  };
-
-  return appendEvent(
-    replacePlayer(state, target.id, {
-      ...target,
-      statuses: [...target.statuses, status],
-    }),
-    {
-      eventKey: "status_gained",
-      params: { playerId: target.id, statusId },
-    },
-  );
-}
 
 function activateDrawSkill(
   state: GameState,
@@ -157,10 +237,6 @@ function activateDrawSkill(
 ): GameState {
   const drawCount = skillId === "extra_lesson" ? 4 : 3;
   const usageKey = activeSkillSpecs[skillId].usageKey;
-
-  if (player.hand.length > 4 || getAvailableDrawCardCount(state) === 0) {
-    return state;
-  }
 
   const handSizeBefore = player.hand.length;
   const drawnState = drawCardsForPlayer(state, player.id, drawCount, shuffle);
@@ -187,47 +263,22 @@ function activateAlkaliRecovery(
   shuffle: ShuffleFunction,
 ): GameState {
   const instance = state.cardInstances[action.cardInstanceId];
-  const definition = instance ? definitionsById.get(instance.definitionId) : undefined;
+  const definition = instance ? cardDefinitionsById.get(instance.definitionId) : undefined;
+  const withDiscarded = moveCardFromHandToDiscard(state, action.cardInstanceId);
 
-  if (
-    !canRecoverHp(player) ||
-    !player.hand.includes(action.cardInstanceId) ||
-    !instance ||
-    instance.ownerId !== player.id ||
-    instance.zone.type !== "hand" ||
-    instance.zone.playerId !== player.id ||
-    !definition ||
-    definition.type !== "substance" ||
-    !definition.tags.includes("strong-alkali")
-  ) {
+  if (!definition || !withDiscarded) {
     return state;
   }
 
   const healedHp = Math.min(player.maxHp, player.hp + 2);
-  const withCostDiscarded: GameState = {
-    ...state,
-    players: state.players.map((candidate) =>
-      candidate.id === player.id
-        ? {
-            ...candidate,
-            hp: healedHp,
-            hand: candidate.hand.filter((cardId) => cardId !== action.cardInstanceId),
-          }
-        : candidate,
-    ),
-    cardInstances: {
-      ...state.cardInstances,
-      [action.cardInstanceId]: {
-        ...instance,
-        ownerId: undefined,
-        zone: { type: "discard" },
-      },
-    },
-    discardPile: [...state.discardPile, action.cardInstanceId],
-  };
+  const updatedPlayer = withDiscarded.players.find((p) => p.id === player.id)!;
+  const withHealing = replacePlayer(withDiscarded, player.id, {
+    ...updatedPlayer,
+    hp: healedHp,
+  });
   const loggedState = appendEvent(
     markSkillUsed(
-      withCostDiscarded,
+      withHealing,
       player.id,
       activeSkillSpecs.alkali_recovery.usageKey,
     ),
@@ -251,7 +302,7 @@ function activateExhaustDischarge(
   shuffle: ShuffleFunction,
 ): GameState {
   const target = state.players.find((candidate) => candidate.id === action.targetPlayerId);
-  if (!target || target.id === player.id || target.eliminated) {
+  if (!target) {
     return state;
   }
 
@@ -346,7 +397,11 @@ export function activateCharacterSkill(
   action: ActivateCharacterSkillAction,
   shuffle: ShuffleFunction,
 ): GameState {
-  const player = getCommonSkillActor(state, action);
+  if (!validateCharacterSkillAction(state, action)) {
+    return state;
+  }
+
+  const player = state.players.find((candidate) => candidate.id === action.playerId);
   if (!player) {
     return state;
   }
