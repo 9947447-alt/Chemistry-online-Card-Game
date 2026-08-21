@@ -35,7 +35,7 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
         </div>
         <p>{getFatalMessageDisplayName(session.error.code, session.error.userMessage, locale)}</p>
         <p className="panel-note">
-          {isEnglish ? "Old game was isolated; recovery creates a new game." : "旧对局已隔离，恢复将创建全新对局。"}
+          {isEnglish ? "Old game was isolated." : "旧对局状态已从本地会话中移除。"}
         </p>
         <dl className="failure-diagnostics">
           {([
@@ -55,7 +55,7 @@ export function FatalSessionPage({ session, dispatch }: FatalSessionPageProps) {
             onClick={() => dispatch({ type: "RECOVER_FATAL_WITH_CURRENT_LINEUP" })}
             type="button"
           >
-            {isEnglish ? "Restart new game" : "按原阵容创建新对局"}
+            {isEnglish ? "Restart new game" : "按原阵容创建全新对局"}
           </button>
           <button
             className="secondary-button"

@@ -75,7 +75,7 @@ export function CharacterSelectionPanel({
           />
           <div>
             <p className="debug-kicker">{isEnglish ? "REACTION FIELD · Web Playtest Alpha · MVP0-P10" : "反应域 · Web Playtest Alpha · MVP0-P10"}</p>
-            <h1 id="character-selection-title">{isEnglish ? "REACTION FIELD · Local character selection" : "反应域 · 本地角色选择"}</h1>
+            <h1 id="character-selection-title">{isEnglish ? "REACTION FIELD · Local two-player character selection" : "反应域 · 本地双人角色选择"}</h1>
           </div>
         </div>
         <p className="panel-note">
@@ -93,41 +93,41 @@ export function CharacterSelectionPanel({
         </div>
         <div className="character-select-grid">
           {([0, 1] as const).map((playerIndex) => (
-            <div className="character-select-group" key={playerIndex}>
-              <label className="field-row character-select-field">
-                <span>{isEnglish ? "Player" : "玩家"} {playerIndex === 0 ? "A" : "B"}</span>
-                <select
-                  aria-label={isEnglish ? `player_${playerIndex + 1} character` : `player_${playerIndex + 1} 角色`}
-                  onChange={(event) => dispatch({
-                    type: "SELECT_CHARACTER",
-                    playerIndex,
-                    characterId: event.target.value,
-                  })}
-                  value={session.characterIds[playerIndex]}
-                >
-                  {characterDefinitions.map((character) => (
-                    <option key={character.id} value={character.id}>
-                      {getCharacterDisplayName(character.id, locale)} · {character.maxHp} HP
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field-row character-controller-field">
-                <span>{isEnglish ? "Controller" : "控制方"}</span>
-                <select
-                  aria-label={isEnglish ? `player_${playerIndex + 1} controller` : `player_${playerIndex + 1} 控制方`}
-                  onChange={(event) => dispatch({
-                    type: "SELECT_PLAYER_CONTROLLER",
-                    playerIndex,
-                    controller: event.target.value,
-                  })}
-                  value={session.playerControllers[playerIndex]}
-                >
-                  <option value="human">{isEnglish ? "Human (Local)" : "人类（本地）"}</option>
-                  <option value="ai">NATBA-0 AI</option>
-                </select>
-              </label>
-            </div>
+            <label className="field-row character-select-field" key={`character-${playerIndex}`}>
+              <span>{isEnglish ? "Player" : "玩家"} {playerIndex === 0 ? "A" : "B"}</span>
+              <select
+                aria-label={isEnglish ? `player_${playerIndex + 1} character` : `player_${playerIndex + 1} 角色`}
+                onChange={(event) => dispatch({
+                  type: "SELECT_CHARACTER",
+                  playerIndex,
+                  characterId: event.target.value,
+                })}
+                value={session.characterIds[playerIndex]}
+              >
+                {characterDefinitions.map((character) => (
+                  <option key={character.id} value={character.id}>
+                    {getCharacterDisplayName(character.id, locale)} · {character.maxHp} HP
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+          {([0, 1] as const).map((playerIndex) => (
+            <label className="field-row character-controller-field" key={`controller-${playerIndex}`}>
+              <span>{isEnglish ? "Controller" : "控制方"}</span>
+              <select
+                aria-label={isEnglish ? `player_${playerIndex + 1} controller` : `player_${playerIndex + 1} 控制方`}
+                onChange={(event) => dispatch({
+                  type: "SELECT_PLAYER_CONTROLLER",
+                  playerIndex,
+                  controller: event.target.value,
+                })}
+                value={session.playerControllers[playerIndex]}
+              >
+                <option value="human">{getPlayerControllerDisplayName("human", locale)}</option>
+                <option value="ai">{getPlayerControllerDisplayName("ai", locale)}</option>
+              </select>
+            </label>
           ))}
         </div>
         <div className="lineup-summary" aria-live="polite">

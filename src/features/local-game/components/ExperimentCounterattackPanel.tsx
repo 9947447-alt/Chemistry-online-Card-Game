@@ -10,7 +10,7 @@ import {
   getPlayer,
   getPlayerName,
 } from "../localGameView";
-import { getOptionalCardDisplayName, getPlayerDisplayName } from "../presentationLocale";
+import { getAiAutoActionNote, getOptionalCardDisplayName, getPlayerDisplayName } from "../presentationLocale";
 
 type ExperimentCounterattackPanelProps = {
   game: GameState;
@@ -66,7 +66,7 @@ export function ExperimentCounterattackPanel({
         {isEnglish
           ? `${getPlayerDisplayName(responder, locale)} successfully responded to ${getPlayerDisplayName(getPlayer(game, pending.attackerPlayerId), locale)}'s attack. Choose one legal counterattack option.`
           : `${responder.name} 已成功响应 ${getPlayerName(game, pending.attackerPlayerId)} 的攻击，请选择一个合法反击选项。`}
-        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is choosing counterattack..." : "NATBA-0 AI 正在自动选择反击..."}` : ""}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>

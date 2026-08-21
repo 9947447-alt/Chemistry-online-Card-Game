@@ -113,7 +113,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
           <h3>{isEnglish ? "Data, safety, and content boundaries" : "数据、安全与内容边界"}</h3>
           <ul>
             {[
-              ["无遥测、无账号、无联网、无存档；刷新即丢失对局。", "No telemetry, accounts, online play, or saves."],
+              ["零网络遥测，无账号、无联网、无存档；刷新即丢失对局。", "No telemetry, accounts, online play, or saves."],
               ["卡池固定 68 张；虚拟产物不创建实体 CardInstance。", "Pool fixed at 68; virtual products create no CardInstances."],
               ["金属反击、方程式、沉淀与多人房间延期。", "Metal counterattack, equations, and rooms are deferred."],
               ["本地安全诊断仅含版本、commit 与错误码。", "Diagnostics include version, commit, and error code."],

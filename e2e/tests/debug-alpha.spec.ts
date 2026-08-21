@@ -341,6 +341,10 @@ test("新手引导覆盖真实流程和 fixture 窗口，并保持可键盘恢�
   await page.keyboard.press("Tab");
   await expect(playerBSelect).toBeFocused();
   await page.keyboard.press("Tab");
+  await expect(page.getByLabel("player_1 控制方")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("player_2 控制方")).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(startButton).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(initialExpand).toBeFocused();

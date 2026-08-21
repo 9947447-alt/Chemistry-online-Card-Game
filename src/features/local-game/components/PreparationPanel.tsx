@@ -4,7 +4,7 @@ import type { GameAction } from "../../../game/engine/actions";
 import type { CardInstanceId, GameState } from "../../../game/engine/types";
 import type { PlayerControllerSelection } from "../localGameSession";
 import { CardDebugCard } from "./CardDebugCard";
-import { getPlayerDisplayName } from "../presentationLocale";
+import { getAiAutoActionNote, getPlayerDisplayName } from "../presentationLocale";
 
 type PreparationPanelProps = {
   game: GameState;
@@ -52,7 +52,7 @@ export function PreparationPanel({ game, playerControllers, dispatchGameAction }
       </div>
       <p className="panel-note">
         {isEnglish ? "Current selector" : "当前选择玩家"}：{getPlayerDisplayName(currentPlayer, locale)}
-        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is selecting cards..." : "NATBA-0 AI 正在自动备课..."}` : ""}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>LABORATORY_PREPARATION</p></details>
       <div className="preparation-candidate-grid">

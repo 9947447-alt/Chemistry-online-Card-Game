@@ -8,7 +8,7 @@ import {
   getStatusHandlingCards,
 } from "../localGameView";
 import { CardDebugCard } from "./CardDebugCard";
-import { getPlayerDisplayName, getStatusDisplayName } from "../presentationLocale";
+import { getAiAutoActionNote, getPlayerDisplayName, getStatusDisplayName } from "../presentationLocale";
 
 type StatusPanelProps = {
   game: GameState;
@@ -57,7 +57,7 @@ export function StatusPanel({ game, playerControllers, dispatchGameAction }: Sta
       </div>
       <p className="panel-note">
         {isEnglish ? `${getPlayerDisplayName(player, locale)} is handling ${getStatusDisplayName(status.statusId, locale)}.` : `${player.name} 正在处理一项状态`}
-        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is handling status..." : "NATBA-0 AI 正在自动处理状态..."}` : ""}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>HANDLE_STATUS_WITH_CARD / PASS_STATUS_HANDLING · {status.statusId} ({status.id})</p></details>
       <div className="candidate-grid">

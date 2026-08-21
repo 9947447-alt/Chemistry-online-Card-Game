@@ -44,7 +44,7 @@ export function CardDebugCard({
         type="button"
       >
         <span className="debug-card__name">{getCardDisplayName(definition.id, definition.name, locale)}</span>
-        <span className="debug-card__line">{isEnglish ? "Selectable" : "当前可选"}</span>
+        <span className="debug-card__line">{isEnglish ? "Selectable in this game" : "可在当前对局中选择"}</span>
       </button>
       <details className="debug-details debug-card__details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>

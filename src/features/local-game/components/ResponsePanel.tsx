@@ -8,7 +8,7 @@ import {
   getResponseCards,
 } from "../localGameView";
 import { CardDebugCard } from "./CardDebugCard";
-import { getPlayerDisplayName } from "../presentationLocale";
+import { getAiAutoActionNote, getPlayerDisplayName } from "../presentationLocale";
 
 type ResponsePanelProps = {
   game: GameState;
@@ -50,7 +50,7 @@ export function ResponsePanel({ game, playerControllers, dispatchGameAction }: R
       </div>
       <p className="panel-note">
         {isEnglish ? `${getPlayerDisplayName(responder, locale)} decides whether to respond to the current effect.` : `轮到 ${responder.name} 决定是否响应当前效果。`}
-        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is responding..." : "NATBA-0 AI 正在自动响应..."}` : ""}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details">
         <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>

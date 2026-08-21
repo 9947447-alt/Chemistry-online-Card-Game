@@ -19,6 +19,7 @@ import {
   getOpponentTargets,
 } from "../localGameView";
 import {
+  getAiAutoActionNote,
   getOptionalCardDisplayName,
   getPlayerDisplayName,
   getSkillDisplayName,
@@ -212,7 +213,7 @@ export function ActionPanel({
       </div>
       <p className="panel-note">
         {isEnglish ? "Active player" : "当前行动玩家"}：{getPlayerDisplayName(activePlayer, locale)}
-        {isAi ? ` · ${isEnglish ? "NATBA-0 AI is taking action..." : "NATBA-0 AI 正在自动行动..."}` : ""}
+        {isAi ? ` · ${getAiAutoActionNote(locale)}` : ""}
       </p>
       <details className="debug-details"><summary>{isEnglish ? "Debug details" : "调试详情"}</summary><p>PLAY_CARD / PLAY_REFERENCE_CARD / PASS_ACTION</p></details>
       {activeCharacterSkill ? (

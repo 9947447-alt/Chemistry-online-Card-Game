@@ -25,7 +25,8 @@ export function GameLog({ game }: GameLogProps) {
                 {renderGameLogEntry(entry, locale, context)}
                 <details className="debug-details game-log__details">
                   <summary>{isEnglish ? "Debug details" : "调试详情"}</summary>
-                  <span className="game-log__entry-id">{entry.id}</span>
+                  <span className="game-log__entry-id">{isEnglish ? "Log ID" : "日志编号"}：{entry.id}</span>
+                  {reaction ? <span className="game-log__entry-id">{JSON.stringify(entry.reaction)}</span> : null}
                 </details>
               </div>
               {reaction ? (

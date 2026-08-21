@@ -281,11 +281,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.character-select-group {
-  display: grid;
-  gap: 8px;
-}
-
 .character-select-field,
 .character-controller-field {
   background: #f7f9fb;

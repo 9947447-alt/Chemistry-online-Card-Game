@@ -274,3 +274,7 @@ export const getFatalMessageDisplayName = (code: string, fallback: string, local
 export const getPlayerControllerDisplayName = (controller: PlayerController, locale: DisplayLocale): string =>
   controller === "human" ? (locale === "en" ? "Human" : "人类") : "NATBA AI";
 
+export const getAiAutoActionNote = (locale: DisplayLocale): string =>
+  locale === "en" ? "NATBA-0 AI is taking action..." : "NATBA-0 AI 正在自动行动...";
+
+
