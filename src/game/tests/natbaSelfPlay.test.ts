@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { DecisionContext } from "../engine/decisionContext";
 import {
   allDefaultCharacterIds,
+  natba0RandomLegalPolicy,
   runBatchSelfPlay,
   runSelfPlayGame,
+  type NATBAPolicy,
 } from "../natba";
 
 describe("Phase 19C — NATBA-0 Self-Play & Deterministic Replay", () => {
@@ -32,6 +35,12 @@ describe("Phase 19C — NATBA-0 Self-Play & Deterministic Replay", () => {
     expect(run1.finalState).toEqual(run2.finalState);
     expect(JSON.stringify(run1.finalState)).toBe(JSON.stringify(run2.finalState));
     expect(run1.finalState.log).toEqual(run2.finalState.log);
+    expect(run1.rounds).toBe(
+      (run1.finalState.cycleNumber - 1) * run1.finalState.settings.roundsPerCycle +
+        run1.finalState.roundInCycle,
+    );
+    expect(run1.rounds).toBeGreaterThan(run1.finalState.roundInCycle);
+    expect(run1.phasesVisited.mainAction).toBeGreaterThan(0);
   });
 
   it("completes clean self-play matches across all 7 playable characters with zero illegal actions", () => {
@@ -72,6 +81,7 @@ describe("Phase 19C — NATBA-0 Self-Play & Deterministic Replay", () => {
     });
 
     expect(summary.totalGames).toBe(gameCount);
+    expect(summary.abortedGames).toBe(0);
     expect(summary.winsPlayer1 + summary.winsPlayer2 + summary.draws).toBe(
       gameCount,
     );
@@ -113,6 +123,116 @@ describe("Phase 19C — NATBA-0 Self-Play & Deterministic Replay", () => {
 
     // Verify no legacy actions were ever generated
     expect(summary.actionTypeCounts.START_ACTIVE_DIY).toBeUndefined();
+    expect(summary.phasesVisited.mainAction).toBeGreaterThan(0);
+    expect(Object.keys(summary.cardDefinitionPlayCounts).length).toBeGreaterThan(0);
+  });
+
+  it("rejects policy actions outside the current decision context before dispatch", () => {
+    const startActiveDiyPolicy: NATBAPolicy = () => ({
+      type: "START_ACTIVE_DIY",
+      playerId: "player_1",
+      recipeId: "diy_hcl_from_h_cl",
+      componentCardInstanceIds: [],
+    });
+
+    const diyResult = runSelfPlayGame({
+      gameId: "illegal_diy",
+      seed: 11,
+      characterIds: ["caustic_soda_captain", "acid_king"],
+      policyPlayer1: startActiveDiyPolicy,
+      policyPlayer2: startActiveDiyPolicy,
+    });
+    expect(diyResult.completed).toBe(false);
+    expect(diyResult.illegalActionAttempts).toBe(1);
+    expect(diyResult.actionLog).toEqual([]);
+    expect(diyResult.actionLog.some((action) => action.type === "START_ACTIVE_DIY")).toBe(
+      false,
+    );
+
+    const wrongKeepCountPolicy: NATBAPolicy = (observation, context, random) => {
+      if (context.kind === "laboratory-preparation") {
+        return {
+          type: "CONFIRM_LABORATORY_PREPARATION",
+          playerId: context.playerId,
+          keptCardInstanceIds: context.candidateCardInstanceIds.slice(0, 3),
+        };
+      }
+      return natba0RandomLegalPolicy(observation, context, random);
+    };
+
+    const prepResult = runSelfPlayGame({
+      gameId: "illegal_prep",
+      seed: 12,
+      characterIds: ["laboratory_teacher", "chemical_factory_ceo"],
+      policyPlayer1: wrongKeepCountPolicy,
+      policyPlayer2: wrongKeepCountPolicy,
+    });
+    expect(prepResult.completed).toBe(false);
+    expect(prepResult.illegalActionAttempts).toBe(1);
+    expect(prepResult.actionLog).toEqual([]);
+    expect(prepResult.finalState.phase).toBe("preparationSelection");
+
+    const outsiderFinitePolicy: NATBAPolicy = (
+      _observation,
+      context: DecisionContext,
+    ) => {
+      if (context.kind !== "finite-actions") {
+        return undefined;
+      }
+      return {
+        type: "PASS_ACTION",
+        playerId: context.playerId === "player_1" ? "player_2" : "player_1",
+      };
+    };
+
+    const finiteResult = runSelfPlayGame({
+      gameId: "illegal_finite",
+      seed: 13,
+      characterIds: ["caustic_soda_captain", "acid_king"],
+      policyPlayer1: outsiderFinitePolicy,
+      policyPlayer2: outsiderFinitePolicy,
+    });
+    expect(finiteResult.completed).toBe(false);
+    expect(finiteResult.illegalActionAttempts).toBe(1);
+    expect(finiteResult.actionLog).toEqual([]);
+  });
+
+  it("returns zero-valued batch statistics when gameCount is 0", () => {
+    const summary = runBatchSelfPlay({ gameCount: 0, baseSeed: 1 });
+    expect(summary.totalGames).toBe(0);
+    expect(summary.abortedGames).toBe(0);
+    expect(summary.firstPlayerWinRate).toBe(0);
+    expect(summary.secondPlayerWinRate).toBe(0);
+    expect(summary.drawRate).toBe(0);
+    expect(summary.averageSteps).toBe(0);
+    expect(summary.averageCycles).toBe(0);
+    expect(summary.averageRounds).toBe(0);
+    expect(summary.minSteps).toBe(0);
+    expect(summary.maxSteps).toBe(0);
+    expect(summary.phasesVisited).toEqual({});
+    expect(summary.cardDefinitionPlayCounts).toEqual({});
+  });
+
+  it("excludes aborted games from character win-rate denominators", () => {
+    const summary = runBatchSelfPlay({
+      gameCount: 4,
+      baseSeed: 99,
+      maxStepsPerGame: 1,
+      characterPairs: [
+        ["laboratory_teacher", "chemical_factory_ceo"],
+        ["caustic_soda_captain", "acid_king"],
+      ],
+    });
+
+    expect(summary.abortedGames).toBe(4);
+    expect(summary.winsPlayer1 + summary.winsPlayer2 + summary.draws).toBe(0);
+    expect(summary.firstPlayerWinRate).toBe(0);
+    expect(summary.totalDeadlocks).toBe(4);
+    for (const charId of allDefaultCharacterIds) {
+      expect(summary.characterStats[charId].matches).toBe(0);
+      expect(summary.characterStats[charId].wins).toBe(0);
+      expect(summary.characterStats[charId].winRate).toBe(0);
+    }
   });
 
   it("covers all 5 decision phases across structured self-play scenarios", () => {

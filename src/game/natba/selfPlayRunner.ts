@@ -7,7 +7,7 @@ import {
 import type { GameAction } from "../engine/actions";
 import { getAIObservation } from "../engine/aiObservation";
 import { createInitialGame } from "../engine/createInitialGame";
-import { getDecisionContext } from "../engine/decisionContext";
+import { getDecisionContext, type DecisionContext } from "../engine/decisionContext";
 import { engineReducer } from "../engine/reducer";
 import type { CharacterId, GameState } from "../engine/types";
 import { natba0RandomLegalPolicy } from "./natba0Policy";
@@ -58,6 +58,8 @@ export function runSelfPlayGame(options: SelfPlayOptions = {}): SelfPlayGameResu
   });
 
   const actionLog: GameAction[] = [];
+  const phasesVisited: Record<string, number> = {};
+  const cardDefinitionPlayCounts: Record<string, number> = {};
   let illegalActionAttempts = 0;
   let deadlocked = false;
   let steps = 0;
@@ -73,15 +75,23 @@ export function runSelfPlayGame(options: SelfPlayOptions = {}): SelfPlayGameResu
       break;
     }
 
+    recordVisitedPhase(phasesVisited, context);
+
     const decisionPlayerId = context.playerId;
     const observation = getAIObservation(state, decisionPlayerId);
     const isPlayer1 = decisionPlayerId === state.players[0]?.id;
     const activePolicy: NATBAPolicy = isPlayer1 ? policyPlayer1 : policyPlayer2;
 
     const action = activePolicy(observation, context, decisionRandom);
-    if (!action) {
+    if (!action || !isPolicyActionLegal(context, action)) {
+      illegalActionAttempts += action ? 1 : 0;
       deadlocked = true;
       break;
+    }
+
+    for (const definitionId of collectPlayedCardDefinitionIds(action, state)) {
+      cardDefinitionPlayCounts[definitionId] =
+        (cardDefinitionPlayCounts[definitionId] ?? 0) + 1;
     }
 
     actionLog.push(action);
@@ -110,7 +120,7 @@ export function runSelfPlayGame(options: SelfPlayOptions = {}): SelfPlayGameResu
     isDraw: state.isDraw,
     totalSteps: steps,
     cycles: state.cycleNumber,
-    rounds: state.roundInCycle,
+    rounds: elapsedRounds(state),
     actionLog,
     finalState: state,
     completed,
@@ -118,7 +128,118 @@ export function runSelfPlayGame(options: SelfPlayOptions = {}): SelfPlayGameResu
     deadlocked,
     characterPlayer1: characterIds[0],
     characterPlayer2: characterIds[1],
+    phasesVisited,
+    cardDefinitionPlayCounts,
   };
+}
+
+function elapsedRounds(state: GameState): number {
+  return (state.cycleNumber - 1) * state.settings.roundsPerCycle + state.roundInCycle;
+}
+
+function recordVisitedPhase(
+  phasesVisited: Record<string, number>,
+  context: DecisionContext,
+): void {
+  if (context.kind !== "finite-actions" && context.kind !== "laboratory-preparation") {
+    return;
+  }
+  phasesVisited[context.phase] = (phasesVisited[context.phase] ?? 0) + 1;
+}
+
+function isSameGameAction(left: GameAction, right: GameAction): boolean {
+  const leftRecord = left as unknown as Record<string, unknown>;
+  const rightRecord = right as unknown as Record<string, unknown>;
+  const leftKeys = Object.keys(leftRecord);
+  const rightKeys = Object.keys(rightRecord);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every((key) => isSameActionValue(leftRecord[key], rightRecord[key]));
+}
+
+function isSameActionValue(left: unknown, right: unknown): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((item, index) => item === right[index]);
+  }
+  return false;
+}
+
+function isPolicyActionLegal(context: DecisionContext, action: GameAction): boolean {
+  if (action.type === "START_ACTIVE_DIY") {
+    return false;
+  }
+
+  if (context.kind === "finite-actions") {
+    return context.legalActions.some((legal) => isSameGameAction(legal, action));
+  }
+
+  if (context.kind === "laboratory-preparation") {
+    if (action.type !== "CONFIRM_LABORATORY_PREPARATION") {
+      return false;
+    }
+    if (action.playerId !== context.playerId) {
+      return false;
+    }
+    if (action.keptCardInstanceIds.length !== context.keepCount) {
+      return false;
+    }
+    const uniqueKept = new Set(action.keptCardInstanceIds);
+    if (uniqueKept.size !== context.keepCount) {
+      return false;
+    }
+    const candidates = new Set(context.candidateCardInstanceIds);
+    return action.keptCardInstanceIds.every((cardId) => candidates.has(cardId));
+  }
+
+  return false;
+}
+
+function collectPlayedCardDefinitionIds(
+  action: GameAction,
+  state: GameState,
+): readonly string[] {
+  const definitionIds: string[] = [];
+  const pushInstance = (cardInstanceId: string | undefined) => {
+    if (!cardInstanceId) {
+      return;
+    }
+    const definitionId = state.cardInstances[cardInstanceId]?.definitionId;
+    if (definitionId) {
+      definitionIds.push(definitionId);
+    }
+  };
+
+  switch (action.type) {
+    case "PLAY_CARD":
+    case "PLAY_REFERENCE_CARD":
+    case "RESPOND_WITH_CARD":
+    case "HANDLE_STATUS_WITH_CARD":
+      pushInstance(action.cardInstanceId);
+      break;
+    case "ACTIVATE_CHARACTER_SKILL":
+      if (action.skillId === "alkali_recovery") {
+        pushInstance(action.cardInstanceId);
+      }
+      break;
+    case "RESOLVE_EXPERIMENT_COUNTERATTACK":
+      if (action.option === "acid-base-pursuit" || action.option === "metal-counterattack") {
+        pushInstance(action.cardInstanceId);
+      }
+      break;
+    case "PLAY_DIY_SELECTION":
+      for (const cardInstanceId of action.componentCardInstanceIds) {
+        pushInstance(cardInstanceId);
+      }
+      break;
+    default:
+      break;
+  }
+
+  return definitionIds;
 }
 
 function buildDefaultCharacterPairs(): [CharacterId, CharacterId][] {
@@ -156,6 +277,22 @@ function createInitialMatchupMatrix(): Record<
   return matrix;
 }
 
+function ratio(numerator: number, denominator: number, digits: number): number {
+  if (denominator <= 0) {
+    return 0;
+  }
+  return Number((numerator / denominator).toFixed(digits));
+}
+
+function mergeCounts(
+  target: Record<string, number>,
+  source: Record<string, number>,
+): void {
+  for (const [key, count] of Object.entries(source)) {
+    target[key] = (target[key] ?? 0) + count;
+  }
+}
+
 export function runBatchSelfPlay(
   options: BatchSelfPlayOptions,
 ): SelfPlayBatchSummary {
@@ -168,6 +305,34 @@ export function runBatchSelfPlay(
     maxStepsPerGame = 1000,
   } = options;
 
+  const characterStats = createInitialCharacterStats();
+  const matchupMatrix = createInitialMatchupMatrix();
+
+  if (gameCount <= 0) {
+    return {
+      totalGames: 0,
+      winsPlayer1: 0,
+      winsPlayer2: 0,
+      draws: 0,
+      abortedGames: 0,
+      firstPlayerWinRate: 0,
+      secondPlayerWinRate: 0,
+      drawRate: 0,
+      characterStats,
+      matchupMatrix,
+      averageSteps: 0,
+      minSteps: 0,
+      maxSteps: 0,
+      averageCycles: 0,
+      averageRounds: 0,
+      actionTypeCounts: {},
+      cardDefinitionPlayCounts: {},
+      phasesVisited: {},
+      totalIllegalActionAttempts: 0,
+      totalDeadlocks: 0,
+    };
+  }
+
   const pairs =
     characterPairs && characterPairs.length > 0
       ? characterPairs
@@ -176,6 +341,7 @@ export function runBatchSelfPlay(
   let winsPlayer1 = 0;
   let winsPlayer2 = 0;
   let draws = 0;
+  let abortedGames = 0;
   let totalStepsSum = 0;
   let minSteps = Number.POSITIVE_INFINITY;
   let maxSteps = 0;
@@ -185,10 +351,8 @@ export function runBatchSelfPlay(
   let totalDeadlocks = 0;
 
   const actionTypeCounts: Record<string, number> = {};
+  const cardDefinitionPlayCounts: Record<string, number> = {};
   const phasesVisited: Record<string, number> = {};
-
-  const characterStats = createInitialCharacterStats();
-  const matchupMatrix = createInitialMatchupMatrix();
 
   for (let index = 0; index < gameCount; index += 1) {
     const pair = pairs[index % pairs.length];
@@ -225,6 +389,13 @@ export function runBatchSelfPlay(
     for (const action of result.actionLog) {
       actionTypeCounts[action.type] = (actionTypeCounts[action.type] ?? 0) + 1;
     }
+    mergeCounts(cardDefinitionPlayCounts, result.cardDefinitionPlayCounts);
+    mergeCounts(phasesVisited, result.phasesVisited);
+
+    if (!result.completed) {
+      abortedGames += 1;
+      continue;
+    }
 
     if (!matchupMatrix[char1]) {
       matchupMatrix[char1] = {} as Record<CharacterId, CharacterMatchupRecord>;
@@ -256,45 +427,35 @@ export function runBatchSelfPlay(
       matchup.winsP2 += 1;
       characterStats[char2].wins += 1;
     }
-
-    for (const logEntry of result.finalState.log) {
-      if (
-        logEntry.params &&
-        typeof logEntry.params === "object" &&
-        "phase" in logEntry.params
-      ) {
-        const phaseValue = (logEntry.params as { phase?: unknown }).phase;
-        if (phaseValue !== undefined) {
-          const phaseName = String(phaseValue);
-          phasesVisited[phaseName] = (phasesVisited[phaseName] ?? 0) + 1;
-        }
-      }
-    }
   }
 
   for (const charId of Object.keys(characterStats) as CharacterId[]) {
     const stat = characterStats[charId];
     if (stat && stat.matches > 0) {
-      stat.winRate = Number((stat.wins / stat.matches).toFixed(4));
+      stat.winRate = ratio(stat.wins, stat.matches, 4);
     }
   }
+
+  const completedGames = gameCount - abortedGames;
 
   return {
     totalGames: gameCount,
     winsPlayer1,
     winsPlayer2,
     draws,
-    firstPlayerWinRate: Number((winsPlayer1 / gameCount).toFixed(4)),
-    secondPlayerWinRate: Number((winsPlayer2 / gameCount).toFixed(4)),
-    drawRate: Number((draws / gameCount).toFixed(4)),
+    abortedGames,
+    firstPlayerWinRate: ratio(winsPlayer1, completedGames, 4),
+    secondPlayerWinRate: ratio(winsPlayer2, completedGames, 4),
+    drawRate: ratio(draws, completedGames, 4),
     characterStats,
     matchupMatrix,
-    averageSteps: Number((totalStepsSum / gameCount).toFixed(2)),
+    averageSteps: ratio(totalStepsSum, gameCount, 2),
     minSteps: minSteps === Number.POSITIVE_INFINITY ? 0 : minSteps,
     maxSteps,
-    averageCycles: Number((totalCyclesSum / gameCount).toFixed(2)),
-    averageRounds: Number((totalRoundsSum / gameCount).toFixed(2)),
+    averageCycles: ratio(totalCyclesSum, gameCount, 2),
+    averageRounds: ratio(totalRoundsSum, gameCount, 2),
     actionTypeCounts,
+    cardDefinitionPlayCounts,
     phasesVisited,
     totalIllegalActionAttempts,
     totalDeadlocks,

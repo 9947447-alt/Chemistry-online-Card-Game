@@ -64,6 +64,9 @@ describe("Phase 19C — NATBA-0 Random Legal Policy", () => {
       expect(context.legalActions).toContainEqual(action);
       expect(validateGameAction(state, action)).toBe(true);
       expect(action.type).not.toBe("START_ACTIVE_DIY");
+      expect(context.legalActions.some((legal) => legal.type === "START_ACTIVE_DIY")).toBe(
+        false,
+      );
     }
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createInitialGame } from "../engine/createInitialGame";
+import { createInitialGame, createSeededEngine } from "../engine/createInitialGame";
+import { getDecisionContext } from "../engine/decisionContext";
 import { engineReducer } from "../engine/reducer";
 import {
   createFisherYatesShuffle,
@@ -9,6 +10,7 @@ import {
 } from "../../shared/random";
 import type { GameAction } from "../engine/actions";
 import type { GameState } from "../engine/types";
+import { expectCardZonesToBeConsistent } from "./assertCardZones";
 
 describe("Phase 19B — Deterministic Simulation Infrastructure", () => {
   describe("createInitialGame with seed injection", () => {
@@ -153,53 +155,97 @@ describe("Phase 19B — Deterministic Simulation Infrastructure", () => {
     it("replays deterministic discard pile recycling upon deck exhaustion", () => {
       const seed = 54321;
 
-      function runDeckRecycleSimulation(): GameState {
-        const prng = createMulberry32(seed);
-        const shuffle = createFisherYatesShuffle(prng);
+      function assignConsistentZones(
+        state: GameState,
+        p1Hand: string[],
+        p2Hand: string[],
+        deck: string[],
+        discardPile: string[],
+      ): GameState {
+        const cardInstances = { ...state.cardInstances };
+        for (const id of p1Hand) {
+          cardInstances[id] = {
+            ...cardInstances[id],
+            ownerId: "player_1",
+            zone: { type: "hand", playerId: "player_1" },
+          };
+        }
+        for (const id of p2Hand) {
+          cardInstances[id] = {
+            ...cardInstances[id],
+            ownerId: "player_2",
+            zone: { type: "hand", playerId: "player_2" },
+          };
+        }
+        for (const id of deck) {
+          cardInstances[id] = {
+            ...cardInstances[id],
+            ownerId: undefined,
+            zone: { type: "deck" },
+          };
+        }
+        for (const id of discardPile) {
+          cardInstances[id] = {
+            ...cardInstances[id],
+            ownerId: undefined,
+            zone: { type: "discard" },
+          };
+        }
+        return {
+          ...state,
+          cardInstances,
+          deck,
+          discardPile,
+          players: state.players.map((player) => {
+            if (player.id === "player_1") {
+              return { ...player, hand: p1Hand };
+            }
+            if (player.id === "player_2") {
+              return { ...player, hand: p2Hand };
+            }
+            return player;
+          }),
+        };
+      }
 
-        // Start with 2 Caustic Soda Captains to have standard 10 card hands
-        let state = createInitialGame({
+      function runDeckRecycleSimulation(): GameState {
+        const engine = createSeededEngine(seed);
+        let state = engine.createGame({
           gameId: "recycle_sim",
-          shuffle,
           characterIds: ["laboratory_teacher", "caustic_soda_captain"],
         });
 
-        // Confirm prep
         const prep = state.pendingLaboratoryPreparation!;
-        state = engineReducer(
+        state = engine.reduce(state, {
+          type: "CONFIRM_LABORATORY_PREPARATION",
+          playerId: "player_1",
+          keptCardInstanceIds: prep.candidateCardInstanceIds.slice(0, 10),
+        });
+
+        const p1Hand = state.players[0].hand.slice(0, 2);
+        const occupied = new Set([...p1Hand, ...state.players[1].hand]);
+        const rest = Object.keys(state.cardInstances).filter((id) => !occupied.has(id));
+        const deck = rest.slice(0, 1);
+        const discardPile = rest.slice(1, 16);
+        const extras = rest.slice(16);
+        state = assignConsistentZones(
           state,
-          {
-            type: "CONFIRM_LABORATORY_PREPARATION",
-            playerId: "player_1",
-            keptCardInstanceIds: prep.candidateCardInstanceIds.slice(0, 10),
-          },
-          shuffle,
+          p1Hand,
+          [...state.players[1].hand, ...extras],
+          deck,
+          discardPile,
         );
+        expectCardZonesToBeConsistent(state);
+        expect(state.deck).toHaveLength(1);
+        expect(state.discardPile).toHaveLength(15);
+        expect(state.players[0].hand).toHaveLength(2);
 
-        // Artificially deplete deck to 1 card and set discard pile with 15 cards
-        const remainingCard = state.deck[0];
-        const discardCards = state.deck.slice(1, 16);
-        // Reduce player 1's hand to 2 cards so extra_lesson (requires hand <= 4) is legal
-        state = {
-          ...state,
-          players: state.players.map((p) =>
-            p.id === "player_1" ? { ...p, hand: p.hand.slice(0, 2) } : p,
-          ),
-          deck: [remainingCard],
-          discardPile: discardCards,
-        };
-
-        // Player 1 (Teacher) uses extra_lesson (draws 4 cards -> exhausts 1 remaining deck card, triggers recycling discardPile of 15 cards, draws 3 from recycled deck)
-        const nextState = engineReducer(
-          state,
-          {
-            type: "ACTIVATE_CHARACTER_SKILL",
-            playerId: "player_1",
-            skillId: "extra_lesson",
-          },
-          shuffle,
-        );
-
+        const nextState = engine.reduce(state, {
+          type: "ACTIVATE_CHARACTER_SKILL",
+          playerId: "player_1",
+          skillId: "extra_lesson",
+        });
+        expectCardZonesToBeConsistent(nextState);
         return nextState;
       }
 
@@ -207,11 +253,30 @@ describe("Phase 19B — Deterministic Simulation Infrastructure", () => {
       const result2 = runDeckRecycleSimulation();
 
       expect(result1).toEqual(result2);
-      expect(result1.deck.length).toBe(12); // 15 recycled - 3 drawn = 12
+      expect(result1.deck.length).toBe(12);
       expect(result1.discardPile.length).toBe(0);
       expect(
         result1.log.some((entry) => entry.eventKey === "recycle_discard_into_deck"),
       ).toBe(true);
+    });
+
+    it("binds createInitialGame seed through later reducer shuffles via createSeededEngine", () => {
+      function runSeededSession(): GameState {
+        const engine = createSeededEngine(424242);
+        let state = engine.createGame({
+          gameId: "seeded_session",
+          characterIds: ["caustic_soda_captain", "acid_king"],
+        });
+        state = engine.reduce(state, { type: "PASS_ACTION", playerId: "player_1" });
+        state = engine.reduce(state, { type: "PASS_ACTION", playerId: "player_2" });
+        return state;
+      }
+
+      const run1 = runSeededSession();
+      const run2 = runSeededSession();
+      expect(run1).toEqual(run2);
+      expect(JSON.stringify(run1)).toBe(JSON.stringify(run2));
+      expect(run1.roundInCycle).toBe(2);
     });
 
     it("produces differing trajectories when given different initial seeds", () => {
@@ -277,37 +342,56 @@ describe("Phase 19B — Deterministic Simulation Infrastructure", () => {
       const seed = 987654321;
 
       function simulateCombatGame(): GameState {
-        const shuffle = createSeededShuffle(seed);
-        let state = createInitialGame({
+        const engine = createSeededEngine(seed);
+        let state = engine.createGame({
           gameId: "combat_sim",
-          shuffle,
           characterIds: ["chemistry_enthusiast", "sulfuric_acid_factory_director"],
         });
 
-        // 3 cycles with passing and skills
-        for (let cycle = 0; cycle < 3; cycle += 1) {
-          for (let round = 0; round < 3; round += 1) {
-            // Player 1 turn
-            if (state.phase === "mainAction" && state.activePlayerId === "player_1") {
-              state = engineReducer(state, { type: "PASS_ACTION", playerId: "player_1" }, shuffle);
-            }
-            // Player 2 turn
-            if (state.phase === "mainAction" && state.activePlayerId === "player_2") {
-              // Try activating exhaust_discharge if available, otherwise pass
-              const skillAction: GameAction = {
-                type: "ACTIVATE_CHARACTER_SKILL",
-                playerId: "player_2",
-                skillId: "exhaust_discharge",
-                targetPlayerId: "player_1",
-              };
-              const afterSkill = engineReducer(state, skillAction, shuffle);
-              if (afterSkill !== state) {
-                state = afterSkill;
-              } else {
-                state = engineReducer(state, { type: "PASS_ACTION", playerId: "player_2" }, shuffle);
-              }
-            }
+        let steps = 0;
+        while (steps < 200 && state.phase !== "gameOver" && state.cycleNumber < 4) {
+          const context = getDecisionContext(state);
+          if (context.kind === "none" || context.kind === "game-over") {
+            break;
           }
+
+          let action: GameAction | undefined;
+          if (context.kind === "laboratory-preparation") {
+            action = {
+              type: "CONFIRM_LABORATORY_PREPARATION",
+              playerId: context.playerId,
+              keptCardInstanceIds: context.candidateCardInstanceIds.slice(
+                0,
+                context.keepCount,
+              ),
+            };
+          } else {
+            const exhaust = context.legalActions.find(
+              (candidate) =>
+                candidate.type === "ACTIVATE_CHARACTER_SKILL" &&
+                candidate.skillId === "exhaust_discharge",
+            );
+            const passOrRecover = context.legalActions.find(
+              (candidate) =>
+                candidate.type === "PASS_ACTION" ||
+                candidate.type === "PASS_RESPONSE" ||
+                candidate.type === "PASS_STATUS_HANDLING" ||
+                (candidate.type === "RESOLVE_EXPERIMENT_COUNTERATTACK" &&
+                  candidate.option === "recover"),
+            );
+            action = exhaust ?? passOrRecover ?? context.legalActions[0];
+          }
+
+          if (!action) {
+            break;
+          }
+
+          const nextState = engine.reduce(state, action);
+          if (nextState === state) {
+            break;
+          }
+          state = nextState;
+          steps += 1;
         }
 
         return state;
@@ -321,6 +405,14 @@ describe("Phase 19B — Deterministic Simulation Infrastructure", () => {
       expect(matchA.cycleNumber).toBe(matchB.cycleNumber);
       expect(matchA.roundInCycle).toBe(matchB.roundInCycle);
       expect(matchA.log).toEqual(matchB.log);
+      expect(matchA.cycleNumber >= 3 || matchA.phase === "gameOver").toBe(true);
+      expect(
+        matchA.log.some(
+          (entry) =>
+            entry.eventKey === "status_window_start" ||
+            entry.eventKey === "skill_exhaust_discharge",
+        ),
+      ).toBe(true);
     });
   });
 });

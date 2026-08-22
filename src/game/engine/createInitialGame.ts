@@ -1,17 +1,32 @@
 import { starterDeck } from "../data/starterDeck";
 import { getCharacterDefinition } from "../data/characterDefinitions";
 import { createSeededShuffle, fisherYatesShuffle, type ShuffleFunction } from "../../shared/random";
+import type { GameAction } from "./actions";
 import type { CardInstance, CharacterId, GameState, Player } from "./types";
 import { createEmptyCharacterUsage } from "./characterUsage";
 import { beginActionForPlayer, dealCycleStartHands } from "./turnFlow";
 import { createLogPresentationContext } from "./logEvents";
+import { engineReducer } from "./reducer";
 
 export type CreateInitialGameOptions = {
   gameId?: string;
   playerNames?: [string, string];
   characterIds?: [CharacterId, CharacterId];
   shuffle?: ShuffleFunction;
+  /**
+   * Seeds only the opening deck shuffle and deal inside `createInitialGame`.
+   * Later `engineReducer(state, action)` calls still default to `Math.random`
+   * unless the same `shuffle` is passed as the third argument, or the caller
+   * uses `createSeededEngine` which binds one shuffle to both operations.
+   */
   seed?: number;
+};
+
+export type SeededEngine = {
+  readonly seed: number;
+  readonly shuffle: ShuffleFunction;
+  createGame(options?: Omit<CreateInitialGameOptions, "seed" | "shuffle">): GameState;
+  reduce(state: GameState, action: GameAction): GameState;
 };
 
 const defaultPlayerNames: [string, string] = ["玩家 A", "玩家 B"];
@@ -105,4 +120,18 @@ export function createInitialGame(options: CreateInitialGameOptions = {}): GameS
   }
 
   return beginActionForPlayer(state, state.startingPlayerId);
+}
+
+export function createSeededEngine(seed: number): SeededEngine {
+  const shuffle = createSeededShuffle(seed);
+  return {
+    seed,
+    shuffle,
+    createGame(options = {}) {
+      return createInitialGame({ ...options, shuffle });
+    },
+    reduce(state, action) {
+      return engineReducer(state, action, shuffle);
+    },
+  };
 }

@@ -33,6 +33,8 @@ export type SelfPlayGameResult = {
   readonly deadlocked: boolean;
   readonly characterPlayer1: CharacterId;
   readonly characterPlayer2: CharacterId;
+  readonly phasesVisited: Record<string, number>;
+  readonly cardDefinitionPlayCounts: Record<string, number>;
 };
 
 export type BatchSelfPlayOptions = {
@@ -62,6 +64,7 @@ export type SelfPlayBatchSummary = {
   readonly winsPlayer1: number;
   readonly winsPlayer2: number;
   readonly draws: number;
+  readonly abortedGames: number;
   readonly firstPlayerWinRate: number;
   readonly secondPlayerWinRate: number;
   readonly drawRate: number;
@@ -73,6 +76,7 @@ export type SelfPlayBatchSummary = {
   readonly averageCycles: number;
   readonly averageRounds: number;
   readonly actionTypeCounts: Record<string, number>;
+  readonly cardDefinitionPlayCounts: Record<string, number>;
   readonly phasesVisited: Record<string, number>;
   readonly totalIllegalActionAttempts: number;
   readonly totalDeadlocks: number;
