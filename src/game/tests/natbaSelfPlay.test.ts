@@ -3,6 +3,7 @@ import type { DecisionContext } from "../engine/decisionContext";
 import {
   allDefaultCharacterIds,
   natba0RandomLegalPolicy,
+  natba1HeuristicPolicy,
   runBatchSelfPlay,
   runSelfPlayGame,
   type NATBAPolicy,
@@ -281,3 +282,105 @@ describe("Phase 19C — NATBA-0 Self-Play & Deterministic Replay", () => {
     expect(hasActiveOrResponseActions).toBe(true);
   });
 });
+
+describe("Phase 19E — NATBA-1 Heuristic Policy Self-Play & Win-Rate Benchmark", () => {
+  it("replays full NATBA-1 vs NATBA-1 game deterministically with bit-identical final states and logs", () => {
+    const seed = 543216789;
+    const run1 = runSelfPlayGame({
+      gameId: "natba1_replay_test",
+      seed,
+      characterIds: ["laboratory_teacher", "chemistry_enthusiast"],
+      policyPlayer1: natba1HeuristicPolicy,
+      policyPlayer2: natba1HeuristicPolicy,
+    });
+
+    const run2 = runSelfPlayGame({
+      gameId: "natba1_replay_test",
+      seed,
+      characterIds: ["laboratory_teacher", "chemistry_enthusiast"],
+      policyPlayer1: natba1HeuristicPolicy,
+      policyPlayer2: natba1HeuristicPolicy,
+    });
+    expect(run1.completed).toBe(true);
+    expect(run2.completed).toBe(true);
+    expect(run1.deadlocked).toBe(false);
+    expect(run2.deadlocked).toBe(false);
+    expect(run1.illegalActionAttempts).toBe(0);
+    expect(run2.illegalActionAttempts).toBe(0);
+
+    expect(run1.totalSteps).toBe(run2.totalSteps);
+    expect(run1.actionLog).toEqual(run2.actionLog);
+    expect(run1.finalState).toEqual(run2.finalState);
+    expect(JSON.stringify(run1.finalState)).toBe(JSON.stringify(run2.finalState));
+    expect(run1.finalState.log).toEqual(run2.finalState.log);
+  });
+
+  it("completes clean NATBA-1 self-play matches across all 7 playable characters with zero illegal actions", () => {
+    const testPairs = [
+      ["laboratory_teacher", "chemical_factory_ceo"] as const,
+      ["clumsy_party_secretary", "caustic_soda_captain"] as const,
+      ["acid_king", "chemistry_enthusiast"] as const,
+      ["sulfuric_acid_factory_director", "laboratory_teacher"] as const,
+      ["caustic_soda_captain", "acid_king"] as const,
+      ["chemistry_enthusiast", "clumsy_party_secretary"] as const,
+      ["chemical_factory_ceo", "sulfuric_acid_factory_director"] as const,
+    ];
+
+    for (let index = 0; index < testPairs.length; index += 1) {
+      const pair = testPairs[index];
+      const result = runSelfPlayGame({
+        gameId: `natba1_char_test_${index}`,
+        seed: 2000 + index * 41,
+        characterIds: pair,
+        policyPlayer1: natba1HeuristicPolicy,
+        policyPlayer2: natba1HeuristicPolicy,
+        maxSteps: 1000,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deadlocked).toBe(false);
+      expect(result.illegalActionAttempts).toBe(0);
+      expect(result.totalSteps).toBeGreaterThan(0);
+      expect(result.finalState.phase).toBe("gameOver");
+    }
+  });
+
+  it("demonstrates significant win-rate superiority of NATBA-1 over NATBA-0 baseline in paired matchups", () => {
+    const summaryP1Heuristic = runBatchSelfPlay({
+      gameCount: 50,
+      baseSeed: 20260901,
+      policyPlayer1: natba1HeuristicPolicy,
+      policyPlayer2: natba0RandomLegalPolicy,
+      maxStepsPerGame: 1000,
+    });
+
+    const summaryP2Heuristic = runBatchSelfPlay({
+      gameCount: 50,
+      baseSeed: 20260901,
+      policyPlayer1: natba0RandomLegalPolicy,
+      policyPlayer2: natba1HeuristicPolicy,
+      maxStepsPerGame: 1000,
+    });
+
+    expect(summaryP1Heuristic.totalIllegalActionAttempts).toBe(0);
+    expect(summaryP1Heuristic.totalDeadlocks).toBe(0);
+    expect(summaryP1Heuristic.abortedGames).toBe(0);
+
+    expect(summaryP2Heuristic.totalIllegalActionAttempts).toBe(0);
+    expect(summaryP2Heuristic.totalDeadlocks).toBe(0);
+    expect(summaryP2Heuristic.abortedGames).toBe(0);
+
+    const totalHeuristicWins =
+      summaryP1Heuristic.winsPlayer1 + summaryP2Heuristic.winsPlayer2;
+    const totalRandomWins =
+      summaryP1Heuristic.winsPlayer2 + summaryP2Heuristic.winsPlayer1;
+    const totalCompleted =
+      100 - (summaryP1Heuristic.draws + summaryP2Heuristic.draws);
+
+    const overallHeuristicWinRate = totalHeuristicWins / totalCompleted;
+
+    expect(overallHeuristicWinRate).toBeGreaterThanOrEqual(0.7);
+    expect(totalHeuristicWins).toBeGreaterThan(totalRandomWins * 2);
+  });
+});
+
